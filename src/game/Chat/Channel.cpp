@@ -38,7 +38,7 @@ Channel::Channel(const std::string& name, uint32 channel_id/* = 0*/)
         if (builtin->flags & CHANNEL_DBC_FLAG_CITY_ONLY2)               // for city only channels
             m_flags |= CHANNEL_FLAG_CITY;
 
-        if (builtin->flags & CHANNEL_DBC_FLAG_LFG)                      // for LFG channel
+        if (builtin->ChannelID == 24)                                   // for LFG channel
             m_flags |= CHANNEL_FLAG_LFG;
         else                                                            // for all other channels
             m_flags |= CHANNEL_FLAG_NOT_LFG;
