@@ -1506,6 +1506,15 @@ void BattleGround::OnObjectDBLoad(GameObject* obj)
     }
 }
 
+uint32 BattleGround::GetSingleGameObjectGuid(uint8 event1, uint8 event2)
+{
+    auto itr = m_eventObjects[MAKE_PAIR32(event1, event2)].gameobjects.begin();
+    if (itr != m_eventObjects[MAKE_PAIR32(event1, event2)].gameobjects.end())
+        return *itr;
+
+    return ObjectGuid();
+}
+
 /**
   Function that checks if event handles doors
 
