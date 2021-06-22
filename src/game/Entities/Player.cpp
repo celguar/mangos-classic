@@ -7668,6 +7668,7 @@ void Player::RemovedInsignia(Player* looterPlr)
 
     // Now we must make bones lootable, and send player loot
     bones->SetFlag(CORPSE_FIELD_DYNAMIC_FLAGS, CORPSE_DYNFLAG_LOOTABLE);
+    bones->ForceValuesUpdateAtIndex(CORPSE_DYNFLAG_LOOTABLE);
 
     // We store the level of our player in the gold field
     // We retrieve this information at Player::SendLoot()
