@@ -823,7 +823,12 @@ bool BgQueueInviteEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
         if (!plr)
             return;
 
-        BattleGround* bg = sBattleGroundMgr.GetBattleGround(m_bgInstanceGuid, m_bgTypeId);
+        BattleGround* bg = nullptr;
+        if (m_bgTypeId < MAX_BATTLEGROUND_TYPE_ID)
+            bg = sBattleGroundMgr.GetBattleGround(m_bgInstanceGuid, m_bgTypeId);
+        else
+            sLog.outError("BgQueueInviteEvent: wrong event data, bgTypeId = %u, instanceGuid = %u", m_bgTypeId, m_bgInstanceGuid);
+
         // if battleground ended and its instance deleted - do nothing
         if (!bg)
             return;
@@ -870,7 +875,12 @@ bool BgQueueRemoveEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
             // player logged off (we should do nothing, he is correctly removed from queue in another procedure)
             return;
 
-        BattleGround* bg = sBattleGroundMgr.GetBattleGround(m_bgInstanceGuid, m_bgTypeId);
+        BattleGround* bg = nullptr;
+        if (m_bgTypeId < MAX_BATTLEGROUND_TYPE_ID)
+            bg = sBattleGroundMgr.GetBattleGround(m_bgInstanceGuid, m_bgTypeId);
+        else
+            sLog.outError("BgQueueRemoveEvent: wrong event data, bgTypeId = %u, instanceGuid = %u", m_bgTypeId, m_bgInstanceGuid);
+
         // battleground can be deleted already when we are removing queue info
         // bg pointer can be nullptr! so use it carefully!
 

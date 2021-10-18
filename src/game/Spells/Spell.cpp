@@ -3964,13 +3964,7 @@ void Spell::WriteSpellGoTargets(WorldPacket& data)
 
 void Spell::SendInterrupted(SpellCastResult result) const
 {
-    WorldPacket data(SMSG_SPELL_FAILURE, (8 + 4 + 1));
-    data << m_trueCaster->GetPackGUID();
-    data << m_spellInfo->Id;
-    data << uint8(result);
-    m_trueCaster->SendMessageToSet(data, true);
-
-    data.Initialize(SMSG_SPELL_FAILED_OTHER, (8 + 4));
+    WorldPacket data(SMSG_SPELL_FAILED_OTHER, (8 + 4));
     data << m_trueCaster->GetObjectGuid();
     data << m_spellInfo->Id;
     m_trueCaster->SendMessageToSet(data, true);

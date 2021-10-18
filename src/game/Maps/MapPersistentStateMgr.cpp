@@ -507,6 +507,9 @@ void DungeonResetScheduler::LoadResetTimes()
 
 void DungeonResetScheduler::ScheduleReset(bool add, time_t time, DungeonResetEvent event)
 {
+    if (!m_resetTimeQueue.size())
+        return;
+
     if (add)
         m_resetTimeQueue.insert(std::pair<time_t, DungeonResetEvent>(time, event));
     else
