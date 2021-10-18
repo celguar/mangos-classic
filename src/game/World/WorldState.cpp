@@ -98,8 +98,21 @@ WorldState::WorldState() : m_emeraldDragonsState(0xF), m_emeraldDragonsTimer(0),
 
     for (auto& data : aqWorldstateMap)
         m_aqWorldstateMapReverse.emplace(data.second, data.first);
-}
 
+    // apply war efforts rates
+    if (sWorld.getConfig(CONFIG_FLOAT_WAREFFORT_RATES) != 1.0f)
+    {
+        for (auto itr = aqWorldStateTotalsMap.begin(); itr != aqWorldStateTotalsMap.end(); ++itr)
+        {
+            uint32 search = itr->first == WORLD_STATE_AQ_PEACEBLOOM_TOTAL ? (itr->first + 1) : (itr->first - 1);
+            auto itr2 = m_aqWorldstateMapReverse.find(search);
+            if (itr2 != m_aqWorldstateMapReverse.end())
+            {
+                itr->second = GetModMaxResources((*itr2).second, itr->second);
+            }
+        }
+    }
+}
 
 WorldState::~WorldState()
 {
@@ -156,7 +169,7 @@ void WorldState::Load()
                             }
                             for (uint32 i = 0; i < RESOURCE_MAX; ++i)
                                 loadStream >> m_aqData.m_WarEffortCounters[i];
-                            loadStream >> m_aqData.m_phase2Tier >> m_aqData.m_killedBosses;
+                            loadStream >> m_aqData.m_phase2Tier >> m_aqData.m_killedBosses >> m_aqData.IsGateClosed;
                         }
                         catch (std::exception& e)
                         {
@@ -213,6 +226,7 @@ void WorldState::Load()
         while (result->NextRow());
     }
     StartWarEffortEvent();
+    HandleAQGate();
     SpawnWarEffortGos();
     if (m_siData.m_state == STATE_1_ENABLED)
     {
@@ -666,6 +680,7 @@ void WorldState::HandleWarEffortPhaseTransition(uint32 newPhase)
 {
     StopWarEffortEvent();
     m_aqData.m_phase = newPhase;
+    m_aqData.IsGateClosed = true;
     switch (m_aqData.m_phase)
     {
         case PHASE_2_TRANSPORTING_RESOURCES:
@@ -681,15 +696,40 @@ void WorldState::HandleWarEffortPhaseTransition(uint32 newPhase)
         case PHASE_4_10_HOUR_WAR:
             m_aqData.m_phase = PHASE_4_10_HOUR_WAR;
             m_aqData.m_timer = 10 * HOUR * IN_MILLISECONDS;
+            m_aqData.IsGateClosed = false;
+            break;
+        case PHASE_5_DONE:
+        case PHASE_0_DISABLED:
+            m_aqData.IsGateClosed = false;
             break;
         default: break;
     }
     StartWarEffortEvent();
+    HandleAQGate();
+    Save(SAVE_ID_AHN_QIRAJ);
+}
+
+void WorldState::HandleWarEffortGateSwitch(bool close)
+{
+    m_aqData.IsGateClosed = close;
+    HandleAQGate();
     Save(SAVE_ID_AHN_QIRAJ);
 }
 
 void WorldState::StartWarEffortEvent()
 {
+    if (m_aqData.m_phase == PHASE_0_DISABLED && sWorld.getConfig(CONFIG_BOOL_WAREFFORT_ENABLE)) // force enable if phase != DONE
+    {
+        HandleWarEffortPhaseTransition(PHASE_1_GATHERING_RESOURCES);
+        return;
+    }
+
+    if (m_aqData.m_phase != PHASE_0_DISABLED && !sWorld.getConfig(CONFIG_BOOL_WAREFFORT_ENABLE)) // force disable
+    {
+        HandleWarEffortPhaseTransition(PHASE_0_DISABLED);
+        return;
+    }
+
     switch (m_aqData.m_phase)
     {
         case PHASE_1_GATHERING_RESOURCES: sGameEventMgr.StartEvent(GAME_EVENT_AHN_QIRAJ_EFFORT_PHASE_1); break;
@@ -727,8 +767,30 @@ void WorldState::StopWarEffortEvent()
     }
 }
 
+void WorldState::HandleAQGate()
+{
+    Map* mapPtr = sMapMgr.FindMap(1);
+    if (!mapPtr)
+        return;
+
+    for (auto& goGuid : m_aqGateGuids)
+    {
+        if (!goGuid.second)
+            continue;
+
+        if (GameObject* obj = mapPtr->GetGameObject(goGuid.second))
+        {
+            obj->UseOpenableObject(!m_aqData.IsGateClosed);
+            obj->SendForcedObjectUpdate();
+        }
+    }
+}
+
 void WorldState::SpawnWarEffortGos()
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_WAREFFORT_ENABLE))
+        return;
+
     if (m_aqData.m_phase > PHASE_2_TRANSPORTING_RESOURCES)
         return;
 
@@ -936,6 +998,74 @@ void WorldState::SetSilithusBossKilled(AQSilithusBoss boss)
     Save(SAVE_ID_AHN_QIRAJ);
 }
 
+uint32 WorldState::GetModMaxResources(AQResources resource, uint32 defaultMax)
+{
+    if (sWorld.getConfig(CONFIG_FLOAT_WAREFFORT_RATES) == 1.0f || sWorld.getConfig(CONFIG_FLOAT_WAREFFORT_RATES) == 0.f)
+        return defaultMax;
+
+    uint32 itemStackSize = GetResourceItemStack(resource);
+    uint32 tempMod = defaultMax * sWorld.getConfig(CONFIG_FLOAT_WAREFFORT_RATES); // raw calculation
+    if (tempMod < itemStackSize)                                                  // minimum
+        return itemStackSize;
+
+    uint32 remainder = tempMod % itemStackSize;                                   // check if result is multiple of stackSize
+    tempMod -= remainder;                                                         // substract remainder
+    if (remainder >= itemStackSize / 2)                                           // if remainder >= half stackSize, add stackSize
+        tempMod += itemStackSize;
+
+    return tempMod;
+}
+
+uint32 WorldState::GetResourceItemStack(AQResources resource)
+{
+    uint32 resourceStack = 20;
+    uint32 questId = 0;
+    switch (resource)
+    {
+        // common
+    case AQ_COPPER_BAR_HORDE: questId = QUEST_HORDE_COPPER_BARS_1; break;
+    case AQ_COPPER_BAR_ALLY: questId = QUEST_ALLIANCE_COPPER_BARS_1; break;
+    case AQ_PURPLE_LOTUS_ALLY: questId = QUEST_ALLIANCE_PURPLE_LOTUS_1; break;
+    case AQ_SPOTTED_YELLOWTAIL_ALLY: questId = QUEST_ALLIANCE_SPOTTED_YELLOWTAIL_1; break;
+    case AQ_SPOTTED_YELLOWTAIL_HORDE: questId = QUEST_HORDE_SPOTTED_YELLOWTAIL_1; break;
+    case AQ_THICK_LEATHER_ALLY: questId = QUEST_ALLIANCE_THICK_LEATHER_1; break;
+    case AQ_THICK_LEATHER_HORDE: questId = QUEST_HORDE_THICK_LEATHER_1; break;
+    case AQ_RUNECLOTH_BANDAGE_ALLY: questId = QUEST_ALLIANCE_RUNECLOTH_BANDAGES_1; break;
+    case AQ_RUNECLOTH_BANDAGE_HORDE: questId = QUEST_HORDE_RUNECLOTH_BANDAGES_1; break;
+    case AQ_PURPLE_LOTUS_HORDE: questId = QUEST_HORDE_PURPLE_LOTUS_1; break;
+        // horde
+    case AQ_PEACEBLOOM: questId = QUEST_HORDE_PEACEBLOOM_1; break;
+    case AQ_WOOL_BANDAGE: questId = QUEST_HORDE_WOOL_BANDAGES_1; break;
+    case AQ_LEAN_WOLF_STEAK: questId = QUEST_HORDE_LEAN_WOLF_STEAKS_1; break;
+    case AQ_TIN_BAR: questId = QUEST_HORDE_TIN_BARS_1; break;
+    case AQ_FIREBLOOM: questId = QUEST_HORDE_FIREBLOOM_1; break;
+    case AQ_HEAVY_LEATHER: questId = QUEST_HORDE_HEAVY_LEATHER_1; break;
+    case AQ_MITHRIL_BAR: questId = QUEST_HORDE_MITHRIL_BARS_1; break;
+    case AQ_BAKED_SALMON: questId = QUEST_HORDE_BAKED_SALMON_1; break;
+    case AQ_RUGGED_LEATHER: questId = QUEST_HORDE_RUGGED_LEATHER_1; break;
+    case AQ_MAGEWEAVE_BANDAGE: questId = QUEST_HORDE_MAGEWEAVE_BANDAGE_1; break;
+        // alliance
+    case AQ_LINEN_BANDAGE: questId = QUEST_ALLIANCE_LINEN_BANDAGE_1; break;
+    case AQ_RAINBOW_FIN_ALBACORE: questId = QUEST_ALLIANCE_RAINBOW_FIN_ALBACORE_1; break;
+    case AQ_LIGHT_LEATHER: questId = QUEST_ALLIANCE_LIGHT_LEATHER_1; break;
+    case AQ_STRANGLEKELP: questId = QUEST_ALLIANCE_STRANGLEKELP_1; break;
+    case AQ_MEDIUM_LEATHER: questId = QUEST_ALLIANCE_MEDIUM_LEATHER_1; break;
+    case AQ_SILK_BANDAGE: questId = QUEST_ALLIANCE_SILK_BANDAGES_1; break;
+    case AQ_IRON_BAR: questId = QUEST_ALLIANCE_IRON_BARS_1; break;
+    case AQ_ROAST_RAPTOR: questId = QUEST_ALLIANCE_ROAST_RAPTOR_1; break;
+    case AQ_ARTHAS_TEARS: questId = QUEST_ALLIANCE_ARTHAS_TEARS_1; break;
+    case AQ_THORIUM_BAR: questId = QUEST_ALLIANCE_THORIUM_BARS_1; break;
+    default: return resourceStack;
+    }
+
+    if (questId)
+    {
+        if (const Quest* qInfo = sObjectMgr.GetQuestTemplate(questId))
+            resourceStack = qInfo->ReqItemCount[0];
+    }
+    return resourceStack;
+}
+
 std::pair<AQResourceGroup, Team> WorldState::GetResourceInfo(AQResources resource)
 {
     switch (resource)
@@ -989,7 +1119,7 @@ std::pair<uint32, uint32> WorldState::GetResourceCounterAndMax(AQResourceGroup g
 
 std::string WorldState::GetAQPrintout()
 {
-    std::string output = "Phase: " + std::to_string(m_aqData.m_phase) + " Timer: " + std::to_string(m_aqData.m_timer) + "\nValues:";
+    std::string output = "Phase: " + std::to_string(m_aqData.m_phase) + " Gate: " + std::to_string(m_aqData.IsGateClosed) + " Timer: " + std::to_string(m_aqData.m_timer) + "\nValues:";
     for (uint32 value : m_aqData.m_WarEffortCounters)
         output += " " + std::to_string(value);
     return output;
@@ -1002,7 +1132,7 @@ std::string AhnQirajData::GetData()
     std::string output = std::to_string(m_phase) + " " + std::to_string(uint64(Clock::to_time_t(respawnTime)));
     for (uint32 value : m_WarEffortCounters)
         output += " " + std::to_string(value);
-    output += " " + std::to_string(m_phase2Tier) + " " + std::to_string(m_killedBosses);
+    output += " " + std::to_string(m_phase2Tier) + " " + std::to_string(m_killedBosses) + " " + std::to_string(IsGateClosed ? 1 : 0);
     return output;
 }
 
