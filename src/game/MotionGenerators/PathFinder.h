@@ -16,6 +16,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef IKE_PATHFINDER
+#define IKE_PATHFINDER
+#endif
+
 #ifndef MANGOS_PATH_FINDER_H
 #define MANGOS_PATH_FINDER_H
 
@@ -34,8 +38,8 @@ class Unit;
 // 74*4.0f=296y  number_of_points*interval = max_path_len
 // this is way more than actual evade range
 // I think we can safely cut those down even more
-#define MAX_PATH_LENGTH         74
-#define MAX_POINT_PATH_LENGTH   74
+#define MAX_PATH_LENGTH         148 //This value is doubled from the original and then used only half by findpath. If the same value is used by findpath and findsmooth path no result will be found by the second at max length.
+#define MAX_POINT_PATH_LENGTH   148
 
 #define SMOOTH_PATH_STEP_SIZE   4.0f
 #define SMOOTH_PATH_SLOP        0.3f
@@ -65,6 +69,8 @@ enum PathType
 class PathFinder
 {
     public:
+        PathFinder();
+        PathFinder(uint32 mapId, uint32 instanceId = 0);
         PathFinder(Unit const* owner, bool ignoreNormalization = false);
         ~PathFinder();
 
@@ -88,6 +94,11 @@ class PathFinder
         PointsArray& getPath() { return m_pathPoints; }
         PathType getPathType() const { return m_type; }
 
+        void setArea(uint32 mapId, float x, float y, float z, uint32 area = 1, float range = 10.0f);
+        uint32 getArea(uint32 mapId, float x, float y, float z);
+        unsigned short getFlags(uint32 mapId, float x, float y, float z);
+
+        void setAreaCost(uint32 area = 1, float cost = 0.0f);
     private:
 
         PointsArray    m_pathPoints;       // our actual (x,y,z) path to the target

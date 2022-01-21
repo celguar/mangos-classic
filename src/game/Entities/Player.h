@@ -63,6 +63,11 @@ struct FactionTemplateEntry;
 #include "PlayerBot/Base/PlayerbotAI.h"
 #endif
 
+#ifdef ENABLE_PLAYERBOTS
+class PlayerbotAI;
+class PlayerbotMgr;
+#endif
+
 struct AreaTrigger;
 
 typedef std::deque<Mail*> PlayerMails;
@@ -914,6 +919,10 @@ class Player : public Unit
         void Update(const uint32 diff) override;
         void Heartbeat() override;
 
+#ifdef ENABLE_PLAYERBOTS
+        void UpdateAI(const uint32 diff, bool minimal = false);
+#endif
+
         static bool BuildEnumData(QueryResult* result,  WorldPacket& p_data);
 
         void SendInitialPacketsBeforeAddToMap();
@@ -1069,6 +1078,7 @@ class Player : public Unit
         uint8 FindEquipSlot(ItemPrototype const* proto, uint32 slot, bool swap) const;
         uint32 GetItemCount(uint32 item, bool inBankAlso = false, Item* skipItem = nullptr) const;
         Item* GetItemByGuid(ObjectGuid guid) const;
+        Item* GetItemByEntry(uint32 item) const;            // only for special cases
         Item* GetItemByPos(uint16 pos) const;
         Item* GetItemByPos(uint8 bag, uint8 slot) const;
         Item* GetWeaponForAttack(WeaponAttackType attackType) const { return GetWeaponForAttack(attackType, false, false); }
@@ -1354,6 +1364,10 @@ class Player : public Unit
         /*********************************************************/
 
         bool LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder);
+
+#ifdef ENABLE_PLAYERBOTS
+        bool MinimalLoadFromDB(QueryResult *result, uint32 guid);
+#endif
 
         static uint32 GetZoneIdFromDB(ObjectGuid guid);
         static uint32 GetLevelFromDB(ObjectGuid guid);
@@ -1726,6 +1740,7 @@ class Player : public Unit
 
         static Team TeamForRace(uint8 race);
         Team GetTeam() const { return m_team; }
+        PvpTeamIndex GetTeamId() const { return m_team == ALLIANCE ? TEAM_INDEX_ALLIANCE : TEAM_INDEX_HORDE; }
         static uint32 getFactionForRace(uint8 race);
         void setFactionForRace(uint8 race);
 
@@ -2177,6 +2192,16 @@ class Player : public Unit
         bool IsInDuel() const { return duel && duel->startTime != 0; }
 #endif
 
+#ifdef ENABLE_PLAYERBOTS
+        //EquipmentSets& GetEquipmentSets() { return m_EquipmentSets; }
+        void SetPlayerbotAI(PlayerbotAI* ai) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotAI = ai; }
+        PlayerbotAI* GetPlayerbotAI() { return m_playerbotAI; }
+        void SetPlayerbotMgr(PlayerbotMgr* mgr) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotMgr = mgr; }
+        PlayerbotMgr* GetPlayerbotMgr() { return m_playerbotMgr; }
+        void SetBotDeathTimer() { m_deathTimer = 0; }
+        //PlayerTalentMap& GetTalentMap(uint8 spec) { return m_talents[spec]; }
+#endif
+
         void SendLootError(ObjectGuid guid, LootError error) const;
 
         // cooldown system
@@ -2472,6 +2497,11 @@ class Player : public Unit
         std::unique_ptr<PlayerMenu> m_playerMenu;
 
 #ifdef BUILD_PLAYERBOT
+        PlayerbotAI* m_playerbotAI;
+        PlayerbotMgr* m_playerbotMgr;
+#endif
+
+#ifdef ENABLE_PLAYERBOTS
         PlayerbotAI* m_playerbotAI;
         PlayerbotMgr* m_playerbotMgr;
 #endif

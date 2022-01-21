@@ -68,6 +68,11 @@
 #include "Config/Config.h"
 #endif
 
+#ifdef ENABLE_PLAYERBOTS
+#include "playerbot.h"
+#include "PlayerbotAIConfig.h"
+#endif
+
 #include <cmath>
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
@@ -468,6 +473,10 @@ Player::Player(WorldSession* session): Unit(), m_taxiTracker(*this), m_mover(thi
     m_playerbotAI = 0;
     m_playerbotMgr = 0;
 #endif
+#ifdef ENABLE_PLAYERBOTS
+    m_playerbotAI = 0;
+    m_playerbotMgr = 0;
+#endif
     m_speakTime = 0;
     m_speakCount = 0;
 
@@ -635,6 +644,11 @@ Player::Player(WorldSession* session): Unit(), m_taxiTracker(*this), m_mover(thi
     m_isDebuggingAreaTriggers = false;
 
     m_fishingSteps = 0;
+    
+#ifdef ENABLE_PLAYERBOTS
+    m_playerbotAI = NULL;
+    m_playerbotMgr = NULL;
+#endif
 }
 
 Player::~Player()
@@ -676,6 +690,21 @@ Player::~Player()
     if (m_playerbotMgr)
     {
         delete m_playerbotMgr;
+        m_playerbotMgr = 0;
+    }
+#endif
+
+#ifdef ENABLE_PLAYERBOTS
+    if (m_playerbotAI) {
+        {
+            delete m_playerbotAI;
+        }
+        m_playerbotAI = 0;
+    }
+    if (m_playerbotMgr) {
+        {
+            delete m_playerbotMgr;
+        }
         m_playerbotMgr = 0;
     }
 #endif
@@ -1569,6 +1598,20 @@ void Player::Update(const uint32 diff)
         m_playerbotMgr->UpdateAI(diff);
 #endif
 }
+
+#ifdef ENABLE_PLAYERBOTS
+void Player::UpdateAI(const uint32 diff, bool minimal)
+{
+    if (m_playerbotAI)
+    {
+        m_playerbotAI->UpdateAI(diff);
+    }
+    if (m_playerbotMgr)
+    {
+        m_playerbotMgr->UpdateAI(diff);
+    }
+}
+#endif
 
 void Player::Heartbeat()
 {
@@ -8170,6 +8213,25 @@ Item* Player::GetItemByGuid(ObjectGuid guid) const
     return nullptr;
 }
 
+Item* Player::GetItemByEntry(uint32 item) const
+{
+    for (int i = EQUIPMENT_SLOT_START; i < INVENTORY_SLOT_ITEM_END; ++i)
+        if (Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+            if (pItem->GetEntry() == item)
+            {
+                return pItem;
+            }
+
+    for (int i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
+        if (Bag* pBag = (Bag*)GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+            if (Item* itemPtr = pBag->GetItemByEntry(item))
+            {
+                return itemPtr;
+            }
+
+    return NULL;
+}
+
 Item* Player::GetItemByPos(uint16 pos) const
 {
     uint8 bag = pos >> 8;
@@ -12372,7 +12434,11 @@ void Player::AddQuest(Quest const* pQuest, Object* questGiver)
         questStatusData.uState = QUEST_CHANGED;
 
     // quest accept scripts
+#ifdef ENABLE_PLAYERBOTS
+    if (questGiver && this != questGiver)
+#else
     if (questGiver)
+#endif
     {
         switch (questGiver->GetTypeId())
         {
@@ -12548,6 +12614,9 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
 
     bool handled = false;
 
+#ifdef ENABLE_PLAYERBOTS
+    if (this != questGiver) {
+#endif
     switch (questGiver->GetTypeId())
     {
         case TYPEID_UNIT:
@@ -12557,8 +12626,15 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
             handled = sScriptDevAIMgr.OnQuestRewarded(this, (GameObject*)questGiver, pQuest);
             break;
     }
+#ifdef ENABLE_PLAYERBOTS
+    }
+#endif
 
+#ifdef ENABLE_PLAYERBOTS
+    if (this != questGiver && !handled && pQuest->GetQuestCompleteScript() != 0)
+#else
     if (!handled && pQuest->GetQuestCompleteScript() != 0)
+#endif
         GetMap()->ScriptsStart(SCRIPT_TYPE_QUEST_END, pQuest->GetQuestCompleteScript(), questGiver, this, Map::SCRIPT_EXEC_PARAM_UNIQUE_BY_SOURCE);
 
     // Find spell cast on spell reward if any, then find the appropriate caster and cast it
