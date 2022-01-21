@@ -908,6 +908,15 @@ ChatCommand* ChatHandler::getCommandTable()
         { "auction",        SEC_ADMINISTRATOR,  false, nullptr,                                           "", auctionCommandTable  },
 #ifdef BUILD_AHBOT
         { "ahbot",          SEC_ADMINISTRATOR,  true,  nullptr,                                           "", ahbotCommandTable    },
+        #endif
+#ifdef ENABLE_PLAYERBOTS
+#ifndef BUILD_AHBOT
+        { "ahbot",            SEC_GAMEMASTER,    true,  &ChatHandler::HandleAhBotCommand,                      "", NULL },
+#endif
+        { "rndbot",           SEC_GAMEMASTER,    true,  &ChatHandler::HandleRandomPlayerbotCommand,     "", NULL },
+        { "bot",              SEC_PLAYER,        false, &ChatHandler::HandlePlayerbotCommand,               "", NULL },
+        { "gtask",            SEC_GAMEMASTER,    true,  &ChatHandler::HandleGuildTaskCommand,           "", NULL },
+        { "pmon",             SEC_GAMEMASTER,    true,  &ChatHandler::HandlePerfMonCommand,           "" },
 #endif
 #ifdef ENABLE_PLAYERBOTS
 #ifndef BUILD_AHBOT

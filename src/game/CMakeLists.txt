@@ -162,6 +162,11 @@ if (BUILD_PLAYERBOTS)
   add_definitions(-DENABLE_PLAYERBOTS)
 endif()
 
+# Define Ike3 Bots ENABLE_PLAYERBOTS if need
+if (BUILD_IKE3_BOTS)
+  add_definitions(-DENABLE_PLAYERBOTS)
+endif()
+
 if (MSVC)
   set_target_properties(${LIBRARY_NAME} PROPERTIES PROJECT_LABEL "Game")
 endif()

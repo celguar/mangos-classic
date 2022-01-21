@@ -72,6 +72,8 @@ enum PathType
 class PathFinder
 {
     public:
+        PathFinder();
+        PathFinder(uint32 mapId, uint32 instanceId = 0);
         PathFinder(Unit const* owner, bool ignoreNormalization = false);
         ~PathFinder();
 

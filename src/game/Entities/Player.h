@@ -911,6 +911,10 @@ class Player : public Unit
         void Update(const uint32 diff) override;
         void Heartbeat() override;
 
+#ifdef ENABLE_PLAYERBOTS
+        void UpdateAI(const uint32 diff, bool minimal = false);
+#endif
+
         static bool BuildEnumData(QueryResult* result,  WorldPacket& p_data);
 
         void SendInitialPacketsBeforeAddToMap();
@@ -1067,6 +1071,7 @@ class Player : public Unit
         uint8 FindEquipSlot(ItemPrototype const* proto, uint32 slot, bool swap) const;
         uint32 GetItemCount(uint32 item, bool inBankAlso = false, Item* skipItem = nullptr) const;
         Item* GetItemByGuid(ObjectGuid guid) const;
+        Item* GetItemByEntry(uint32 item) const;            // only for special cases
         Item* GetItemByPos(uint16 pos) const;
         Item* GetItemByPos(uint8 bag, uint8 slot) const;
         Item* GetItemByEntry(uint32 item) const;
@@ -1352,6 +1357,10 @@ class Player : public Unit
         /*********************************************************/
 
         bool LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder);
+
+#ifdef ENABLE_PLAYERBOTS
+        bool MinimalLoadFromDB(QueryResult *result, uint32 guid);
+#endif
 
         static uint32 GetZoneIdFromDB(ObjectGuid guid);
         static uint32 GetLevelFromDB(ObjectGuid guid);
@@ -1725,6 +1734,7 @@ class Player : public Unit
 
         static Team TeamForRace(uint8 race);
         Team GetTeam() const { return m_team; }
+        PvpTeamIndex GetTeamId() const { return m_team == ALLIANCE ? TEAM_INDEX_ALLIANCE : TEAM_INDEX_HORDE; }
         static uint32 getFactionForRace(uint8 race);
         void setFactionForRace(uint8 race);
 
