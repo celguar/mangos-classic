@@ -231,7 +231,7 @@ class BattleGroundWS : public BattleGround
 
         // Flag interactions
         void ClearDroppedFlagGuid(Team team)  { m_droppedFlagGuid[GetTeamIndexByTeamId(team)].Clear();}
-        ObjectGuid const& GetDroppedFlagGuid(Team team) const { return m_droppedFlagGuid[GetTeamIndexByTeamId(team)];}
+        ObjectGuid const& GetDroppedFlagGuid(Team team) const { return m_droppedFlagGuid[GetTeamIndexByTeamId(team)]; }
 
         void RespawnFlagAtBase(Team team, bool wasCaptured);
         void RespawnDroppedFlag(Team team);

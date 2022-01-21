@@ -252,6 +252,7 @@ class WorldSession
 #else
         const std::string GetRemoteAddress() const { return m_socket ? m_socket->GetRemoteAddress() : "disconnected"; }
 #endif
+#endif
         const std::string& GetLocalAddress() const { return m_localAddress; }
 
         void SetPlayer(Player* plr, uint32 playerGuid);
@@ -261,6 +262,10 @@ class WorldSession
         SessionAnticheatInterface* GetAnticheat() const { return m_anticheat.get(); }
 
 #if defined(BUILD_DEPRECATED_PLAYERBOT) || defined(ENABLE_PLAYERBOTS)
+        void SetNoAnticheat();
+#endif
+
+#ifdef ENABLE_PLAYERBOTS
         void SetNoAnticheat();
 #endif
 

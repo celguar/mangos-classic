@@ -282,6 +282,16 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
                     return;
                 }
             }
+            
+#ifdef ENABLE_PLAYERBOTS
+            if (player->GetPlayerbotAI())
+            {
+                player->GetPlayerbotAI()->HandleCommand(type, msg, *GetPlayer());
+                GetPlayer()->m_speakTime = 0;
+                GetPlayer()->m_speakCount = 0;
+            }
+            else
+#endif
 
 #ifdef ENABLE_PLAYERBOTS
             if (player->GetPlayerbotAI())
@@ -458,6 +468,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
             }
 #endif
         } break;
+
         case CHAT_MSG_RAID_LEADER:
         {
             std::string msg;

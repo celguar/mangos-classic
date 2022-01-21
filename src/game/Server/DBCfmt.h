@@ -44,6 +44,11 @@ const char EmotesEntryfmt[] = "nxxiiix";
 char const EmotesTextSoundEntryfmt[] = "niiii";
 #endif
 const char EmotesTextEntryfmt[] = "nxixxxxxxxxxxxxxxxx";
+
+#ifdef ENABLE_PLAYERBOTS
+char const EmotesTextSoundEntryfmt[] = "niiii";
+#endif
+
 const char FactionEntryfmt[] = "niiiiiiiiiiiiiiiiiissssssssxxxxxxxxxx";
 const char FactionTemplateEntryfmt[] = "niiiiiiiiiiiii";
 const char GameObjectArtKitfmt[] = "nxxxxxxx";
