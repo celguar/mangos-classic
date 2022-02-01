@@ -1,15 +1,4 @@
 #####################################
-# MaNGOS Configuration file         
-# 
-# 	To overwrite configuration fields with environment variables
-# 	use the following pattern to generate environment variable names:
-#
-# 		For Rate.Health:
-# 			export Mangosd_Rate_Health=1.2
-#
-# 		For DataDir:
-# 			export Mangosd_DataDir=/tmp
-#
 #####################################
 
 [MangosdConf]
@@ -625,6 +614,16 @@ LogColors = ""
 #        Default: 0 (true)
 #                 1 (false)
 #
+#    InstantFlightPaths
+#        Flight paths will take players to their destination instantly, instead of making them wait to fly there.
+#        Default: 0 (false)
+#                 1 (true)
+#
+#    TaxiFlightFarVisibility
+#        Visibility of taxi flying characters is increased up to 400y, making them visible from afar.
+#        Default: 0 (false)
+#                 1 (true)
+#
 #    AlwaysMaxSkillForLevel
 #        Players will automatically gain max level dependent (weapon/defense) skill when logging in, leveling up etc.
 #        Default: 0 (false)
@@ -838,6 +837,8 @@ AlwaysShowQuestGreeting = 0
 TaxiFlightChatFix = 0
 LongFlightPathsPersistence = 0
 AllFlightPaths = 0
+InstantFlightPaths = 0
+TaxiFlightFarVisibility = 0
 AlwaysMaxSkillForLevel = 0
 ActivateWeather = 1
 CastUnstuck = 1

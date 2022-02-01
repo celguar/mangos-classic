@@ -4872,7 +4872,7 @@ void Spell::EffectResurrect(SpellEffectIndex eff_idx)
 
 void Spell::EffectAddExtraAttacks(SpellEffectIndex /*eff_idx*/)
 {
-    if (!unitTarget || !unitTarget->IsAlive())
+    if (!unitTarget || !unitTarget->IsAlive() || unitTarget->IsExtraAttacksLocked())
         return;
 
     unitTarget->m_extraAttacks += damage;

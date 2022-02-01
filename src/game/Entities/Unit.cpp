@@ -429,6 +429,7 @@ Unit::Unit() :
 
     m_noThreat = false;
     m_extraAttacksExecuting = false;
+    m_doExtraAttacks = false;
     m_debuggingMovement = false;
 
     m_baseSpeedWalk = 1.f;
@@ -505,6 +506,9 @@ void Unit::Update(const uint32 diff)
         else
             m_lastManaUseTimer -= diff;
     }
+
+    // try extra attack
+    DoExtraAttacks(GetVictim());
 
     if (uint32 base_att = getAttackTimer(BASE_ATTACK))
         setAttackTimer(BASE_ATTACK, (diff >= base_att ? 0 : base_att - diff));
@@ -1412,6 +1416,11 @@ void Unit::JustKilledCreature(Unit* killer, Creature* victim, Player* responsibl
             if (map->IsRaid() && victim->GetCreatureInfo()->ExtraFlags & CREATURE_EXTRA_FLAG_INSTANCE_BIND)
             {
                 static_cast<DungeonMap*>(map)->PermBindAllPlayers(creditedPlayer);
+
+                /* World of Warcraft Armory */
+                if (creditedPlayer)
+                    creditedPlayer->CreateWowarmoryFeed(3, victim->GetCreatureInfo()->Entry, 0, 0);
+                /* World of Warcraft Armory */
             }
             static_cast<DungeonMap*>(map)->GetPersistanceState()->UpdateEncounterState(ENCOUNTER_CREDIT_KILL_CREATURE, victim->GetEntry());
         }
@@ -7153,6 +7162,9 @@ int32 Unit::SpellBaseDamageBonusDone(SpellSchoolMask schoolMask)
 
     if (GetTypeId() == TYPEID_PLAYER)
     {
+        // Base value
+        DoneAdvertisedBenefit += ((Player*)this)->GetBaseSpellPowerBonus();
+
         // Damage bonus from stats
         AuraList const& mDamageDoneOfStatPercent = GetAurasByType(SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT);
         for (auto i : mDamageDoneOfStatPercent)
@@ -7297,6 +7309,9 @@ int32 Unit::SpellBaseHealingBonusDone(SpellSchoolMask schoolMask)
     // Healing bonus of spirit, intellect and strength
     if (GetTypeId() == TYPEID_PLAYER)
     {
+        // Base value
+        AdvertisedBenefit += ((Player*)this)->GetBaseSpellPowerBonus();
+
         // Healing bonus from stats
         AuraList const& mHealingDoneOfStatPercent = GetAurasByType(SPELL_AURA_MOD_SPELL_HEALING_OF_STAT_PERCENT);
         for (auto i : mHealingDoneOfStatPercent)
