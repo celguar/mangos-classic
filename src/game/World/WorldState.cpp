@@ -424,6 +424,9 @@ bool WorldState::IsConditionFulfilled(uint32 conditionId, uint32 state) const
     if (conditionId == WAR_EFFORT_DAYS_LEFT)
         return m_aqData.GetDaysRemaining() == state;
 
+    if (conditionId == WAR_EFFORT_GATES_OPEN)
+        return m_aqData.IsGateClosed ? 0 : 1 == state;
+
     auto itr = m_aqWorldstateMapReverse.find(conditionId);
     if (itr != m_aqWorldstateMapReverse.end())
     {

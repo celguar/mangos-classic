@@ -1108,15 +1108,24 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(ProcExecutionData& data)
                     coeff = .092f * speed;
                 }
 
+                // Apply Improved Seal of Rightousness talent
+                // Modifier is applied on base damage only (changed patch 2.1.0)
+                uint32 impSoRList[] = { 20224, 20225, 20330, 20331, 20332 };
+                for (uint32 i : impSoRList) {
+                    SpellModifier* mod = ((Player*)this)->GetSpellMod(SPELLMOD_ALL_EFFECTS, i);
+                    if (mod && mod->type == SPELLMOD_PCT && mod->value > 0)
+                        damageBasePoints += damageBasePoints * (float)mod->value / 100.0f;
+                }
+
                 int32 damagePoint = int32(damageBasePoints + 0.03f * (GetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE) + GetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE)) / 2.0f) + 1;
 
                 // apply damage bonuses manually
                 if (damagePoint >= 0)
                 {
                     // currently uses same spell damage fetch as flametongue - need to verify whether SP is supposed to be applied pre-triggered spell bonuses or post
-                    int32 bonusDamage = SpellBaseDamageBonusDone(GetSpellSchoolMask(dummySpell)) + pVictim->SpellBaseDamageBonusTaken(GetSpellSchoolMask(dummySpell));
-                    if (Aura* aura = GetAura(43743, EFFECT_INDEX_0)) // Improved Seal of Righteousness
-                        bonusDamage += aura->GetAmount();
+                    int32 bonusDamage = SpellDamageBonusDone(pVictim, dummySpell, damagePoint, SPELL_DIRECT_DAMAGE); + pVictim->SpellBaseDamageBonusTaken(GetSpellSchoolMask(dummySpell));
+                    //if (Aura* aura = GetAura(43743, EFFECT_INDEX_0)) // Improved Seal of Righteousness
+                    //    bonusDamage += aura->GetAmount();
                     damagePoint += bonusDamage * coeff * CalculateLevelPenalty(dummySpell);
                 }
 

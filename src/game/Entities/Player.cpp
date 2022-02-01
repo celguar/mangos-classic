@@ -621,6 +621,8 @@ Player::Player(WorldSession* session): Unit(), m_taxiTracker(*this), m_mover(thi
 
     for (auto& enchantMod : m_enchantmentFlatMod)
         enchantMod = 0;
+	
+    m_baseSpellPower = 0;
 
     // Player summoning
     m_summon_expire = 0;
@@ -1590,6 +1592,18 @@ void Player::Update(const uint32 diff)
 
     if (IsHasDelayedTeleport() && !m_semaphoreTeleport_Near)
         TeleportTo(m_teleport_dest, m_teleport_options);
+
+    // increase visibility of taxi flying characters for others
+    if (IsTaxiFlying() && sWorld.getConfig(CONFIG_BOOL_FAR_VISIBLE_TAXI))
+    {
+        if (!GetVisibilityData().IsVisibilityOverridden())
+            GetVisibilityData().SetVisibilityDistanceOverride(VisibilityDistanceType::Gigantic);
+    }
+    else
+    {
+        if (GetVisibilityData().IsVisibilityOverridden())
+            GetVisibilityData().SetVisibilityDistanceOverride(VisibilityDistanceType::Normal);
+    }
 
 #ifdef BUILD_PLAYERBOT
     if (m_playerbotAI)
@@ -4228,6 +4242,7 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             CharacterDatabase.PExecute("DELETE FROM mail_items WHERE receiver = '%u'", lowguid);
             CharacterDatabase.PExecute("DELETE FROM character_pet WHERE owner = '%u'", lowguid);
             CharacterDatabase.PExecute("DELETE FROM guild_eventlog WHERE PlayerGuid1 = '%u' OR PlayerGuid2 = '%u'", lowguid, lowguid);
+            CharacterDatabase.PExecute("DELETE FROM character_armory_feed WHERE guid = '%u'", lowguid);
             CharacterDatabase.CommitTransaction();
             break;
         }
@@ -7363,7 +7378,7 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType, bool sp
             return;
 
         // not allow proc extra attack spell at extra attack
-        if (m_extraAttacks && IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
+        if (GetExtraAttacks() && IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
             return;
 
         float chance = (float)spellInfo->procChance;
@@ -7403,7 +7418,7 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType, bool sp
             }
 
             // not allow proc extra attack spell at extra attack
-            if (m_extraAttacks && IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
+            if (GetExtraAttacks() && IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
                 continue;
 
             // some weapon enchantments have proc flags which need to be checked
@@ -9879,6 +9894,18 @@ Item* Player::StoreItem(ItemPosCountVec const& dest, Item* pItem, bool update)
         lastItem = _StoreItem(pos, pItem, count, true, update);
     }
 
+    /* World of Warcraft Armory */
+    if (lastItem)
+    {
+        ItemPrototype const* pProto = lastItem->GetProto();
+        if (pProto && pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR))
+        {
+            if (lastItem->GetOwner())
+                lastItem->GetOwner()->CreateWowarmoryFeed(2, pProto->ItemId, lastItem->GetGUIDLow(), pProto->Quality);
+        }
+    }
+    /* World of Warcraft Armory */
+
     return lastItem;
 }
 
@@ -9986,6 +10013,16 @@ Item* Player::EquipNewItem(uint16 pos, uint32 item, bool update)
     if (Item* pItem = Item::CreateItem(item, 1, this))
     {
         ItemAddedQuestCheck(item, 1);
+
+        /* World of Warcraft Armory */
+        ItemPrototype const* pProto = pItem->GetProto();
+        if (pProto && pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR))
+        {
+            if (pItem->GetOwner())
+                pItem->GetOwner()->CreateWowarmoryFeed(2, item, pItem->GetGUIDLow(), pProto->Quality);
+        }
+        /* World of Warcraft Armory */
+
         return EquipItem(pos, pItem, update);
     }
 
@@ -14091,6 +14128,9 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
         return false;
     }
 
+    // Cleanup old Wowarmory feeds
+    InitWowarmoryFeeds();
+
     // overwrite possible wrong/corrupted guid
     SetGuidValue(OBJECT_FIELD_GUID, guid);
 
@@ -15459,15 +15499,12 @@ void Player::SendSavedInstances()
 
     for (BoundInstancesMap::const_iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end(); ++itr)
     {
-        if (itr->second.perm)                               // only permanent binds are sent
-        {
-            hasBeenSaved = true;
-            break;
-        }
+        hasBeenSaved = true;
+        break;
     }
 
     // Send opcode 811. true or false means, whether you have current raid instances
-    data.Initialize(SMSG_UPDATE_INSTANCE_OWNERSHIP);
+    data.Initialize(SMSG_UPDATE_INSTANCE_OWNERSHIP, 4);
     data << uint32(hasBeenSaved);
     GetSession()->SendPacket(data);
 
@@ -15476,12 +15513,9 @@ void Player::SendSavedInstances()
 
     for (BoundInstancesMap::const_iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end(); ++itr)
     {
-        if (itr->second.perm)
-        {
-            data.Initialize(SMSG_UPDATE_LAST_INSTANCE);
-            data << uint32(itr->second.state->GetMapId());
-            GetSession()->SendPacket(data);
-        }
+        data.Initialize(SMSG_UPDATE_LAST_INSTANCE, 4);
+        data << uint32(itr->second.state->GetMapId());
+        GetSession()->SendPacket(data);
     }
 }
 
@@ -15777,9 +15811,101 @@ void Player::SaveToDB()
     if (m_session->isLogingOut() || !sWorld.getConfig(CONFIG_BOOL_STATS_SAVE_ONLY_ON_LOGOUT))
         _SaveStats();
 
+    /* World of Warcraft Armory */
+    // Place this code AFTER CharacterDatabase.CommitTransaction(); to avoid some character saving errors.
+    // Wowarmory feeds
+    if (!m_wowarmory_feeds.empty())
+    {
+        std::ostringstream sWowarmory;
+        if (m_wowarmory_feeds.size() > 20)
+        {
+            uint32 numPerTime = 20;
+            uint32 counter = 1;
+            for (WowarmoryFeeds::iterator iter = m_wowarmory_feeds.begin(); iter < m_wowarmory_feeds.end(); ++iter)
+            {
+                //                      guid                    type                        data                    date                            counter                   difficulty                        item_guid                      item_quality
+                sWowarmory << "(" << (*iter).guid << ", " << (*iter).type << ", " << (*iter).data << ", " << uint64((*iter).date) << ", " << (*iter).counter << ", " << uint32((*iter).difficulty) << ", " << uint32((*iter).item_guid) << ", " << uint32((*iter).item_quality) << ")";
+                if (iter != m_wowarmory_feeds.end() - 1 && counter < numPerTime)
+                    sWowarmory << ",";
+
+                if (counter >= numPerTime || iter == m_wowarmory_feeds.end() - 1)
+                {
+                    std::ostringstream sWowarmoryPartial;
+                    sWowarmoryPartial << "INSERT IGNORE INTO character_armory_feed (guid,type,data,date,counter,difficulty,item_guid,item_quality) VALUES ";
+                    sWowarmoryPartial << sWowarmory.str().c_str();
+                    CharacterDatabase.PExecute(sWowarmoryPartial.str().c_str());
+                    sWowarmory.str("");
+                    sWowarmory.clear();
+                    counter = 1;
+                }
+
+                ++counter;
+            }
+        }
+        else
+        {
+            sWowarmory << "INSERT IGNORE INTO character_armory_feed (guid,type,data,date,counter,difficulty,item_guid,item_quality) VALUES ";
+            for (WowarmoryFeeds::iterator iter = m_wowarmory_feeds.begin(); iter < m_wowarmory_feeds.end(); ++iter)
+            {
+                //                      guid                    type                        data                    date                            counter                   difficulty                        item_guid                      item_quality
+                sWowarmory << "(" << (*iter).guid << ", " << (*iter).type << ", " << (*iter).data << ", " << uint64((*iter).date) << ", " << (*iter).counter << ", " << uint32((*iter).difficulty) << ", " << uint32((*iter).item_guid) << ", " << uint32((*iter).item_quality) << ")";
+                if (iter != m_wowarmory_feeds.end() - 1)
+                    sWowarmory << ",";
+            }
+            CharacterDatabase.PExecute(sWowarmory.str().c_str());
+        }
+        // Clear old saved feeds from storage - they are not required for server core.
+        InitWowarmoryFeeds();
+    }
+    /* World of Warcraft Armory */
+
     // save pet (hunter pet level and experience and all type pets health/mana).
     if (Pet* pet = GetPet())
         pet->SavePetToDB(PET_SAVE_AS_CURRENT, this);
+}
+
+void Player::InitWowarmoryFeeds()
+{
+    // Clear feeds
+    m_wowarmory_feeds.clear();
+}
+
+void Player::CreateWowarmoryFeed(uint32 type, uint32 data, uint32 item_guid, uint32 item_quality)
+{
+    if (GetGUIDLow() == 0)
+    {
+        sLog.outError("[Wowarmory]: player is not initialized, unable to create log entry!");
+        return;
+    }
+
+    /*
+    1 - TYPE_ACHIEVEMENT_FEED
+    2 - TYPE_ITEM_FEED
+    3 - TYPE_BOSS_FEED
+     */
+
+    if (type <= 0 || type > 3)
+    {
+        sLog.outError("[Wowarmory]: unknown feed type: %d, ignore.", type);
+        return;
+    }
+
+    if (data == 0)
+    {
+        sLog.outError("[Wowarmory]: empty data (GUID: %u), ignore.", GetGUIDLow());
+        return;
+    }
+
+    WowarmoryFeedEntry feed;
+    feed.guid = GetGUIDLow();
+    feed.type = type;
+    feed.data = data;
+    feed.difficulty = 0;
+    feed.item_guid = item_guid;
+    feed.item_quality = item_quality;
+    feed.counter = 0;
+    feed.date = time(NULL);
+    m_wowarmory_feeds.push_back(feed);
 }
 
 // fast save function for item/money cheating preventing - save only inventory and money state
@@ -16288,8 +16414,14 @@ void Player::_SaveStats()
 
     stmt = CharacterDatabase.CreateStatement(insertStats, "INSERT INTO character_stats (guid, maxhealth, maxpower1, maxpower2, maxpower3, maxpower4, maxpower5, "
             "strength, agility, stamina, intellect, spirit, armor, resHoly, resFire, resNature, resFrost, resShadow, resArcane, "
-            "blockPct, dodgePct, parryPct, critPct, rangedCritPct, attackPower, rangedAttackPower) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            "blockPct, dodgePct, parryPct, critPct, rangedCritPct, attackPower, rangedAttackPower, "
+            "holyCritPct, fireCritPct, natureCritPct, frostCritPct, shadowCritPct, arcaneCritPct, "
+            "attackPowerMod, rangedAttackPowerMod, holyDamage, fireDamage, natureDamage, frostDamage, shadowDamage, arcaneDamage, healBonus, "
+            "defenseRating, dodgeRating, parryRating, blockRating, "
+            "meleeHitRating, rangedHitRating, spellHitRating, meleeCritRating, rangedCritRating, spellCritRating, meleeHasteRating, rangedHasteRating, spellHasteRating, "
+            "expertise, expertiseRating, "
+            "mainHandDamageMin, mainHandDamageMax, mainHandSpeed, offHandDamageMin, offHandDamageMax, offHandSpeed, rangedDamageMin, rangedDamageMax, rangedSpeed, manaRegen, manaInterrupt, pvpRank) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
     stmt.addUInt32(GetGUIDLow());
     stmt.addUInt32(GetMaxHealth());
@@ -16305,8 +16437,97 @@ void Player::_SaveStats()
     stmt.addFloat(GetFloatValue(PLAYER_PARRY_PERCENTAGE));
     stmt.addFloat(GetFloatValue(PLAYER_CRIT_PERCENTAGE));
     stmt.addFloat(GetFloatValue(PLAYER_RANGED_CRIT_PERCENTAGE));
-    stmt.addUInt32(GetUInt32Value(UNIT_FIELD_ATTACK_POWER));
-    stmt.addUInt32(GetUInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER));
+    stmt.addUInt32((uint32)(GetTotalAttackPowerValue(BASE_ATTACK)));
+    stmt.addUInt32((uint32)(GetTotalAttackPowerValue(RANGED_ATTACK)));
+
+    // new stats
+    // spell crits
+    for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+        stmt.addFloat(m_modSpellCritChance[i]);
+
+    // attack power mods
+    stmt.addUInt32(GetUInt32Value(UNIT_FIELD_ATTACK_POWER_MODS));
+    stmt.addUInt32(GetUInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER_MODS));
+
+    // spell damage
+    for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+        stmt.addInt32(SpellBaseDamageBonusDone(GetSchoolMask(i)));
+
+    // healing bonus
+    int32 AdvertisedBenefit = 0;
+
+    AuraList const& mHealingDone = GetAurasByType(SPELL_AURA_MOD_HEALING_DONE);
+    for (auto i : mHealingDone)
+        if ((i->GetModifier()->m_miscvalue & SPELL_SCHOOL_MASK_ALL) != 0)
+            AdvertisedBenefit += i->GetModifier()->m_amount;
+
+    // Healing bonus of spirit, intellect and strength
+    if (GetTypeId() == TYPEID_PLAYER)
+    {
+        // Healing bonus from stats
+        AuraList const& mHealingDoneOfStatPercent = GetAurasByType(SPELL_AURA_MOD_SPELL_HEALING_OF_STAT_PERCENT);
+        for (auto i : mHealingDoneOfStatPercent)
+        {
+            // stat used dependent from misc value (stat index)
+            Stats usedStat = Stats(i->GetSpellProto()->EffectMiscValue[i->GetEffIndex()]);
+            AdvertisedBenefit += int32(GetStat(usedStat) * i->GetModifier()->m_amount / 100.0f);
+        }
+    }
+
+    stmt.addInt32(AdvertisedBenefit);
+
+    // defense rating
+    int16 defRating = GetSkillBonus(95);
+    stmt.addInt32(defRating);
+
+    // dodge bonus
+    int32 dodgeRating = GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
+    stmt.addInt32(dodgeRating);
+
+    // parry Rating
+    int32 parryRating = GetTotalAuraModifier(SPELL_AURA_MOD_PARRY_PERCENT);
+    stmt.addInt32(parryRating);
+
+    // block rating
+    int32 blockRating = GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_PERCENT);
+    stmt.addInt32(blockRating);
+
+    // ratings
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE));
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE));
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_HIT_CHANCE));
+    stmt.addInt32(m_modCritChance[BASE_ATTACK]);
+    stmt.addInt32(m_modCritChance[RANGED_ATTACK]);
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL));
+
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_MELEE_HASTE));
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_RANGED_HASTE));
+    stmt.addInt32(0); // spell haste
+    stmt.addInt32(0); // expertise
+    stmt.addInt32(0); // expertise rating
+
+    // weapon damage
+    // main hand
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MINDAMAGE));
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MAXDAMAGE));
+    stmt.addFloat(GetAPMultiplier(BASE_ATTACK, false));
+
+    // off hand
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MINOFFHANDDAMAGE));
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MAXOFFHANDDAMAGE));
+    stmt.addFloat(GetAPMultiplier(OFF_ATTACK, false));
+
+    // ranged
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MINRANGEDDAMAGE));
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MAXRANGEDDAMAGE));
+    stmt.addFloat(GetAPMultiplier(OFF_ATTACK, false));
+
+    // mana regen
+    stmt.addFloat(m_modManaRegen);
+    stmt.addFloat(m_modManaRegenInterrupt);
+
+    // pvp rank
+    stmt.addInt32(GetHonorRankInfo().visualRank);
 
     stmt.Execute();
 }
@@ -17207,9 +17428,19 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     // prevent stealth flight
     // RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TALK);
 
-    GetSession()->SendActivateTaxiReply(ERR_TAXIOK);
+    if (sWorld.getConfig(CONFIG_BOOL_INSTANT_TAXI))
+    {
+        TaxiNodesEntry const* lastnode = sTaxiNodesStore.LookupEntry(nodes[nodes.size() - 1]);
+        m_taxiTracker.Clear(true);
+        TeleportTo(lastnode->map_id, lastnode->x, lastnode->y, lastnode->z, GetOrientation());
+        return false;
+    }
+    else
+    {
+        GetSession()->SendActivateTaxiReply(ERR_TAXIOK);
 
-    GetMotionMaster()->MoveTaxi();
+        GetMotionMaster()->MoveTaxi();
+    }
 
     return true;
 }

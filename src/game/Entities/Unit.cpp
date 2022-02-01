@@ -423,6 +423,7 @@ Unit::Unit() :
 
     m_noThreat = false;
     m_extraAttacksExecuting = false;
+    m_doExtraAttacks = false;
     m_debuggingMovement = false;
 
     m_baseSpeedWalk = 1.f;
@@ -499,6 +500,9 @@ void Unit::Update(const uint32 diff)
         else
             m_lastManaUseTimer -= diff;
     }
+
+    // try extra attack
+    DoExtraAttacks(GetVictim());
 
     if (uint32 base_att = getAttackTimer(BASE_ATTACK))
         setAttackTimer(BASE_ATTACK, (diff >= base_att ? 0 : base_att - diff));
@@ -1381,6 +1385,11 @@ void Unit::JustKilledCreature(Unit* killer, Creature* victim, Player* responsibl
             if (map->IsRaid() && victim->GetCreatureInfo()->ExtraFlags & CREATURE_EXTRA_FLAG_INSTANCE_BIND)
             {
                 static_cast<DungeonMap*>(map)->PermBindAllPlayers(creditedPlayer);
+
+                /* World of Warcraft Armory */
+                if (creditedPlayer)
+                    creditedPlayer->CreateWowarmoryFeed(3, victim->GetCreatureInfo()->Entry, 0, 0);
+                /* World of Warcraft Armory */
             }
             static_cast<DungeonMap*>(map)->GetPersistanceState()->UpdateEncounterState(ENCOUNTER_CREDIT_KILL_CREATURE, victim->GetEntry());
         }
@@ -2579,6 +2588,9 @@ void Unit::AttackerStateUpdate(Unit* pVictim, WeaponAttackType attType, bool ext
     if (attType == RANGED_ATTACK)
         return;                                             // ignore ranged case
 
+    if (GetExtraAttacks() && !extra)
+        AddExtraAttackOnUpdate();
+
     // melee attack spell casted at main hand attack only - but only if its not already being executed
     if (attType == BASE_ATTACK && m_currentSpells[CURRENT_MELEE_SPELL] && !m_currentSpells[CURRENT_MELEE_SPELL]->IsExecutedCurrently())
     {
@@ -2627,6 +2639,23 @@ void Unit::AttackerStateUpdate(Unit* pVictim, WeaponAttackType attType, bool ext
 
 void Unit::DoExtraAttacks(Unit* pVictim)
 {
+    if (!pVictim || !m_doExtraAttacks || !IsInCombat() || !m_extraAttacks)
+        return;
+
+    uint8 swingError = 0;
+    if (!CanReachWithMeleeAttack(pVictim))
+        swingError = SWING_ERROR_NOT_IN_RANGE;
+    else if (!HasInArc(pVictim, 2 * M_PI_F / 3))
+        swingError = SWING_ERROR_BAD_FACING;
+    else if (!pVictim->IsAlive())
+        swingError = SWING_ERROR_TARGET_NOT_ALIVE;
+    else if (!CanAttackInCombat(pVictim))
+        swingError = SWING_ERROR_CANT_ATTACK_TARGET;
+
+    if (swingError)
+        return;
+
+    m_doExtraAttacks = false;
     m_extraAttacksExecuting = true;
     while (m_extraAttacks)
     {
@@ -7066,6 +7095,9 @@ int32 Unit::SpellBaseDamageBonusDone(SpellSchoolMask schoolMask)
 
     if (GetTypeId() == TYPEID_PLAYER)
     {
+        // Base value
+        DoneAdvertisedBenefit += ((Player*)this)->GetBaseSpellPowerBonus();
+
         // Damage bonus from stats
         AuraList const& mDamageDoneOfStatPercent = GetAurasByType(SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT);
         for (auto i : mDamageDoneOfStatPercent)
@@ -7270,6 +7302,9 @@ int32 Unit::SpellBaseHealingBonusDone(SpellSchoolMask schoolMask)
     // Healing bonus of spirit, intellect and strength
     if (GetTypeId() == TYPEID_PLAYER)
     {
+        // Base value
+        AdvertisedBenefit += ((Player*)this)->GetBaseSpellPowerBonus();
+
         // Healing bonus from stats
         AuraList const& mHealingDoneOfStatPercent = GetAurasByType(SPELL_AURA_MOD_SPELL_HEALING_OF_STAT_PERCENT);
         for (auto i : mHealingDoneOfStatPercent)

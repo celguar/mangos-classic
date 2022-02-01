@@ -136,6 +136,14 @@ enum TrainerSpellState
     TRAINER_SPELL_GREEN_DISABLED = 10                       // custom value, not send to client: formally green but learn not allowed
 };
 
+// These errors are only printed in client console.
+enum TrainingFailureReason
+{
+    TRAIN_FAIL_UNAVAILABLE = 0,                             // Trainer service %d unavailable.
+    TRAIN_FAIL_NOT_ENOUGH_MONEY = 1,                        // Not enough money for trainer service %d.
+    TRAIN_FAIL_NOT_ENOUGH_SKILL = 2                         // Not enough skill points for trainer service %d.
+};
+
 enum ActionButtonUpdateState
 {
     ACTIONBUTTON_UNCHANGED      = 0,
@@ -876,6 +884,22 @@ class TradeData
         ObjectGuid m_items[TRADE_SLOT_COUNT];               // traded itmes from m_player side including non-traded slot
 };
 
+/* World of Warcraft Armory */
+struct WowarmoryFeedEntry
+{
+    uint32 guid;         // Player GUID
+    time_t date;         // Log date
+    uint32 type;         // TYPE_ACHIEVEMENT_FEED, TYPE_ITEM_FEED, TYPE_BOSS_FEED
+    uint32 data;         // TYPE_ITEM_FEED: item_entry, TYPE_BOSS_FEED: creature_entry
+    uint32 item_guid;    // Can be 0
+    uint32 item_quality; // Can be 0
+    uint8  difficulty;   // Can be 0
+    int    counter;      // Can be 0
+};
+
+typedef std::vector<WowarmoryFeedEntry> WowarmoryFeeds;
+/* World of Warcraft Armory */
+
 class Player : public Unit
 {
         friend class WorldSession;
@@ -1609,6 +1633,8 @@ class Player : public Unit
         void UpdateMaxPower(Powers power) override;
         void UpdateAttackPowerAndDamage(bool ranged = false) override;
         void UpdateDamagePhysical(WeaponAttackType attType) override;
+
+        void ApplySpellPowerBonus(int32 amount, bool apply);
         void UpdateSpellDamageBonus();
 
         void CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage, uint8 index = 0);
@@ -1617,6 +1643,7 @@ class Player : public Unit
         float GetMeleeCritFromAgility() const;
         float GetDodgeFromAgility(float amount) const;
         float GetSpellCritFromIntellect() const;
+        uint32 GetBaseSpellPowerBonus() const { return m_baseSpellPower; }
 
         void UpdateBlockPercentage();
         void UpdateCritPercentage(WeaponAttackType attType);
@@ -2125,6 +2152,12 @@ class Player : public Unit
 
         void SendCinematicStart(uint32 CinematicSequenceId);
 
+        /* World of Warcraft Armory */
+        void CreateWowarmoryFeed(uint32 type, uint32 data, uint32 item_guid, uint32 item_quality);
+        void InitWowarmoryFeeds();
+        WowarmoryFeeds m_wowarmory_feeds;
+        /* World of Warcraft Armory */
+
         /*********************************************************/
         /***                 INSTANCE SYSTEM                   ***/
         /*********************************************************/
@@ -2380,6 +2413,8 @@ class Player : public Unit
         ActionButtonList m_actionButtons;
 
         float m_auraBaseMod[BASEMOD_END][MOD_END];
+
+        uint16 m_baseSpellPower;
 
         uint32 m_enchantmentFlatMod[MAX_ATTACK]; // TODO: Stat system - incorporate generically, exposes a required hidden weapon stat that does not apply when unarmed
 

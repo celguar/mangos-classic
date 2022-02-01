@@ -776,6 +776,7 @@ class ChatHandler
         bool HandleVariablePrint(char* args);
         bool HandleWarEffortCommand(char* args);
         bool HandleWarEffortPhaseCommand(char* args);
+        bool HandleWarEffortGateCommand(char* args);
         bool HandleWarEffortCounterCommand(char* args);
         bool HandleScourgeInvasionCommand(char* args);
         bool HandleScourgeInvasionStateCommand(char* args);

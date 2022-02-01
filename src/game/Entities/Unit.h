@@ -1206,8 +1206,12 @@ class Unit : public WorldObject
          * @return true if we can reach pVictim with a melee attack
          */
         bool CanReachWithMeleeAttack(Unit const* pVictim, float flat_mod = 0.0f) const;
-        uint32 m_extraAttacks;
         void DoExtraAttacks(Unit* pVictim);
+        bool IsExtraAttacksLocked() const { return m_extraAttacksExecuting; }
+        void AddExtraAttack() { ++m_extraAttacks; }
+        uint32 GetExtraAttacks() const { return m_extraAttacks; }
+        void AddExtraAttackOnUpdate() { m_doExtraAttacks = true; };
+        void SetExtraAttaks(uint32 attacks) { m_extraAttacks = attacks; }
 
         bool IsAttackedBy(Unit* attacker) const
         {
@@ -2541,7 +2545,9 @@ class Unit : public WorldObject
         bool m_debuggingMovement;
 
         // guard to prevent chaining extra attacks
+        uint32 m_extraAttacks;
         bool m_extraAttacksExecuting;
+        bool m_doExtraAttacks;
 
         uint64 m_auraUpdateMask;
 

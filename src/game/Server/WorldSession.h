@@ -597,6 +597,8 @@ class WorldSession
         void HandleBuyBankSlotOpcode(WorldPacket& recvPacket);
         void HandleTrainerListOpcode(WorldPacket& recvPacket);
         void HandleTrainerBuySpellOpcode(WorldPacket& recvPacket);
+        void SendTrainingSuccess(ObjectGuid guid, uint32 spellId);
+        void SendTrainingFailure(ObjectGuid guid, uint32 serviceId, uint32 errorCode);
 
         void HandlePetitionShowListOpcode(WorldPacket& recvPacket);
         void HandleGossipHelloOpcode(WorldPacket& recvPacket);

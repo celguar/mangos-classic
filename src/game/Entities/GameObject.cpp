@@ -292,9 +292,12 @@ bool GameObject::Create(uint32 dbGuid, uint32 guidlow, uint32 name_id, Map* map,
     if (InstanceData* iData = map->GetInstanceData())
         iData->OnObjectCreate(this);
 
-    // Check if GameObject is Large
-    if (GetGOInfo()->IsLargeGameObject())
+    // set large visibility, skip if map already has same or better visibility (e.g. BG)
+    if (GetGOInfo()->IsLargeGameObject() && GetVisibilityData().GetVisibilityDistance() < VISIBILITY_DISTANCE_LARGE)
         GetVisibilityData().SetVisibilityDistanceOverride(VisibilityDistanceType::Large);
+    // set maximum visibility for some object types
+    if (GetGOInfo()->IsInfiniteGameObject() && !GetVisibilityData().IsVisibilityOverridden() && GetVisibilityData().GetVisibilityDistance() < MAX_VISIBILITY_DISTANCE)
+        GetVisibilityData().SetVisibilityDistanceOverride(VisibilityDistanceType::Infinite);
 
     return true;
 }

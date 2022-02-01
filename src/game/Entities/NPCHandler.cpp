@@ -238,6 +238,7 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket& recv_data)
     Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_TRAINER);
     if (!unit)
     {
+        SendTrainingFailure(guid, spellId, TRAIN_FAIL_UNAVAILABLE);
         DEBUG_LOG("WORLD: HandleTrainerBuySpellOpcode - %s not found or you can't interact with him.", guid.GetString().c_str());
         return;
     }
@@ -250,7 +251,10 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket& recv_data)
     TrainerSpellData const* tSpells = unit->GetTrainerTemplateSpells();
 
     if (!cSpells && !tSpells)
+    {
+        SendTrainingFailure(guid, spellId, TRAIN_FAIL_UNAVAILABLE);
         return;
+    }
 
     // Try find spell in npc_trainer
     TrainerSpell const* trainer_spell = cSpells ? cSpells->Find(spellId) : nullptr;
@@ -261,16 +265,25 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket& recv_data)
 
     // Not found anywhere, cheating?
     if (!trainer_spell)
+    {
+        SendTrainingFailure(guid, spellId, TRAIN_FAIL_UNAVAILABLE);
         return;
+    }
 
     // can't be learn, cheat? Or double learn with lags...
     uint32 reqLevel = 0;
     if (!_player->IsSpellFitByClassAndRace(trainer_spell->learnedSpell, &reqLevel))
+    {
+        SendTrainingFailure(guid, spellId, TRAIN_FAIL_NOT_ENOUGH_SKILL);
         return;
+    }
 
     reqLevel = trainer_spell->isProvidedReqLevel ? trainer_spell->reqLevel : std::max(reqLevel, trainer_spell->reqLevel);
     if (_player->GetTrainerSpellState(trainer_spell, reqLevel) != TRAINER_SPELL_GREEN)
+    {
+        SendTrainingFailure(guid, spellId, TRAIN_FAIL_NOT_ENOUGH_SKILL);
         return;
+    }
 
     SpellEntry const* proto = sSpellTemplate.LookupEntry<SpellEntry>(trainer_spell->spell);
     SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(proto->EffectTriggerSpell[0]);
@@ -280,24 +293,10 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket& recv_data)
 
     // check money requirement
     if (_player->GetMoney() < nSpellCost)
+    {
+        SendTrainingFailure(guid, spellId, TRAIN_FAIL_NOT_ENOUGH_MONEY);
         return;
-
-    _player->ModifyMoney(-int32(nSpellCost));
-
-    SendPlaySpellVisual(guid, 0xB3);                        // visual effect on trainer
-
-    WorldPacket data(SMSG_PLAY_SPELL_IMPACT, 8 + 4);        // visual effect on player
-    data << _player->GetObjectGuid();
-    data << uint32(0x016A);                                 // index from SpellVisualKit.dbc
-    SendPacket(data);
-
-    // learn explicitly to prevent lost money at lags, learning spell will be only show spell animation
-    //[-ZERO] _player->learnSpell(trainer_spell->spell, false);
-
-    data.Initialize(SMSG_TRAINER_BUY_SUCCEEDED, 12);
-    data << ObjectGuid(guid);
-    data << uint32(spellId);                                // should be same as in packet from client
-    SendPacket(data);
+    }
 
     Spell* spell;
     if (proto->SpellVisual == 222)
@@ -308,7 +307,34 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket& recv_data)
     SpellCastTargets targets;
     targets.setUnitTarget(_player);
 
-    spell->SpellStart(&targets);
+    SpellCastResult cast_result = spell->SpellStart(&targets);
+    spell->update(1); // Update the spell right now. Prevents desynch => take twice the money if you click really fast.
+
+    // Only charge player if cast of learning spell was successful.
+    if (cast_result == SPELL_CAST_OK)
+    {
+        _player->ModifyMoney(-int32(nSpellCost));
+        SendTrainingSuccess(guid, spellId);
+    }
+    else
+        SendTrainingFailure(guid, spellId, TRAIN_FAIL_UNAVAILABLE);
+}
+
+void WorldSession::SendTrainingSuccess(ObjectGuid guid, uint32 spellId)
+{
+    WorldPacket data(SMSG_TRAINER_BUY_SUCCEEDED, 12);
+    data << ObjectGuid(guid);
+    data << uint32(spellId);                                // should be same as in packet from client
+    SendPacket(data);
+}
+
+void WorldSession::SendTrainingFailure(ObjectGuid guid, uint32 serviceId, uint32 errorCode)
+{
+    WorldPacket data(SMSG_TRAINER_BUY_FAILED, 16);
+    data << ObjectGuid(guid);
+    data << uint32(serviceId);
+    data << uint32(errorCode);
+    SendPacket(data);
 }
 
 void WorldSession::HandleGossipHelloOpcode(WorldPacket& recv_data)
