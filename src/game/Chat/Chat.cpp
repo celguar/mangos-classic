@@ -842,6 +842,7 @@ ChatCommand* ChatHandler::getCommandTable()
     {
         { "show",           SEC_ADMINISTRATOR,  false, &ChatHandler::HandleWarEffortCommand,                    "", nullptr },
         { "phase",          SEC_ADMINISTRATOR,  false, &ChatHandler::HandleWarEffortPhaseCommand,               "", nullptr },
+        { "gate",           SEC_ADMINISTRATOR,  false, &ChatHandler::HandleWarEffortGateCommand,                "", nullptr },
         { "counter",        SEC_ADMINISTRATOR,  false, &ChatHandler::HandleWarEffortCounterCommand,             "", nullptr },
         { nullptr,          0,                  false, nullptr,                                                 "", nullptr }
     };
@@ -2043,7 +2044,7 @@ bool ChatHandler::CheckEscapeSequences(const char* message)
                                 return false;
                             }
 
-                            for (uint8 i = 0; i < MAX_LOCALE; ++i)
+                            for (uint8 i = 0; i < MAX_DBC_LOCALE; ++i)
                             {
                                 uint32 skillLineNameLength = strlen(skillLine->name[i]);
                                 if (skillLineNameLength > 0 && strncmp(skillLine->name[i], buffer, skillLineNameLength) == 0)
@@ -2056,7 +2057,7 @@ bool ChatHandler::CheckEscapeSequences(const char* message)
                             }
                         }
                         bool foundName = false;
-                        for (uint8 i = 0; i < MAX_LOCALE; ++i)
+                        for (uint8 i = 0; i < MAX_DBC_LOCALE; ++i)
                         {
                             if (*linkedSpell->SpellName[i] && strcmp(linkedSpell->SpellName[i], buffer) == 0)
                             {

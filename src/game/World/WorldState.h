@@ -66,6 +66,7 @@ enum GoId
 enum Conditions
 {
     WAR_EFFORT_DAYS_LEFT = 2113,
+    WAR_EFFORT_GATES_OPEN = 2114,
 };
 
 enum Events
@@ -134,6 +135,96 @@ enum GameEvents
     GAME_EVENT_SCOURGE_INVASION_100_INVASIONS           = 97,
     GAME_EVENT_SCOURGE_INVASION_150_INVASIONS           = 98,
     GAME_EVENT_SCOURGE_INVASION_INVASIONS_DONE          = 99,
+};
+
+enum AQQuests
+{
+    QUEST_ALLIANCE_COPPER_BARS_1 = 8492,
+    QUEST_ALLIANCE_COPPER_BARS_2 = 8493,
+    QUEST_HORDE_COPPER_BARS_1 = 8532,
+    QUEST_HORDE_COPPER_BARS_2 = 8533,
+
+    QUEST_ALLIANCE_PURPLE_LOTUS_1 = 8505,
+    QUEST_ALLIANCE_PURPLE_LOTUS_2 = 8506,
+    QUEST_HORDE_PURPLE_LOTUS_1 = 8582,
+    QUEST_HORDE_PURPLE_LOTUS_2 = 8583,
+
+    QUEST_HORDE_PEACEBLOOM_1 = 8549,
+    QUEST_HORDE_PEACEBLOOM_2 = 8550,
+
+    QUEST_ALLIANCE_LINEN_BANDAGE_1 = 8517,
+    QUEST_ALLIANCE_LINEN_BANDAGE_2 = 8518,
+
+    QUEST_ALLIANCE_RAINBOW_FIN_ALBACORE_1 = 8524,
+    QUEST_ALLIANCE_RAINBOW_FIN_ALBACORE_2 = 8525,
+
+    QUEST_ALLIANCE_LIGHT_LEATHER_1 = 8511,
+    QUEST_ALLIANCE_LIGHT_LEATHER_2 = 8512,
+
+    QUEST_HORDE_WOOL_BANDAGES_1 = 8604,
+    QUEST_HORDE_WOOL_BANDAGES_2 = 8605,
+
+    QUEST_ALLIANCE_STRANGLEKELP_1 = 8503,
+    QUEST_ALLIANCE_STRANGLEKELP_2 = 8504,
+
+    QUEST_ALLIANCE_MEDIUM_LEATHER_1 = 8513,
+    QUEST_ALLIANCE_MEDIUM_LEATHER_2 = 8514,
+
+    QUEST_HORDE_LEAN_WOLF_STEAKS_1 = 8611,
+    QUEST_HORDE_LEAN_WOLF_STEAKS_2 = 8612,
+
+    QUEST_HORDE_TIN_BARS_1 = 8542,
+    QUEST_HORDE_TIN_BARS_2 = 8543,
+
+    QUEST_ALLIANCE_SILK_BANDAGES_1 = 8520,
+    QUEST_ALLIANCE_SILK_BANDAGES_2 = 8521,
+
+    QUEST_ALLIANCE_IRON_BARS_1 = 8494,
+    QUEST_ALLIANCE_IRON_BARS_2 = 8495,
+
+    QUEST_ALLIANCE_ROAST_RAPTOR_1 = 8526,
+    QUEST_ALLIANCE_ROAST_RAPTOR_2 = 8527,
+
+    QUEST_HORDE_FIREBLOOM_1 = 8580,
+    QUEST_HORDE_FIREBLOOM_2 = 8581,
+
+    QUEST_HORDE_HEAVY_LEATHER_1 = 8588,
+    QUEST_HORDE_HEAVY_LEATHER_2 = 8589,
+
+    QUEST_ALLIANCE_SPOTTED_YELLOWTAIL_1 = 8528,
+    QUEST_ALLIANCE_SPOTTED_YELLOWTAIL_2 = 8529,
+    QUEST_HORDE_SPOTTED_YELLOWTAIL_1 = 8613,
+    QUEST_HORDE_SPOTTED_YELLOWTAIL_2 = 8614,
+
+    QUEST_ALLIANCE_THICK_LEATHER_1 = 8515,
+    QUEST_ALLIANCE_THICK_LEATHER_2 = 8516,
+    QUEST_HORDE_THICK_LEATHER_1 = 8590,
+    QUEST_HORDE_THICK_LEATHER_2 = 8591,
+
+    QUEST_HORDE_MITHRIL_BARS_1 = 8545,
+    QUEST_HORDE_MITHRIL_BARS_2 = 8546,
+
+    QUEST_ALLIANCE_RUNECLOTH_BANDAGES_1 = 8522,
+    QUEST_ALLIANCE_RUNECLOTH_BANDAGES_2 = 8523,
+    QUEST_HORDE_RUNECLOTH_BANDAGES_1 = 8609,
+    QUEST_HORDE_RUNECLOTH_BANDAGES_2 = 8610,
+
+    QUEST_ALLIANCE_ARTHAS_TEARS_1 = 8509,
+    QUEST_ALLIANCE_ARTHAS_TEARS_2 = 8510,
+
+    QUEST_ALLIANCE_THORIUM_BARS_1 = 8499,
+    QUEST_ALLIANCE_THORIUM_BARS_2 = 8500,
+
+    QUEST_HORDE_BAKED_SALMON_1 = 8615,
+    QUEST_HORDE_BAKED_SALMON_2 = 8616,
+
+    QUEST_HORDE_RUGGED_LEATHER_1 = 8600,
+    QUEST_HORDE_RUGGED_LEATHER_2 = 8601,
+
+    QUEST_HORDE_MAGEWEAVE_BANDAGE_1 = 8607,
+    QUEST_HORDE_MAGEWEAVE_BANDAGE_2 = 8608,
+
+    QUEST_BANG_A_GONG = 8743,
 };
 
 enum AQResources
@@ -211,7 +302,8 @@ struct AhnQirajData
     std::set<uint32> m_spawnedDbGuids;
     uint32 m_phase2Tier;
     uint32 m_killedBosses;
-    AhnQirajData() : m_phase(PHASE_0_DISABLED), m_timer(0), m_phase2Tier(0), m_killedBosses(0)
+    bool IsGateClosed;
+    AhnQirajData() : m_phase(PHASE_0_DISABLED), m_timer(0), m_phase2Tier(0), m_killedBosses(0), IsGateClosed(false)
     {
         memset(m_WarEffortCounters, 0, sizeof(m_WarEffortCounters));
     }
@@ -358,14 +450,20 @@ class WorldState
 
         void AddWarEffortProgress(AQResources resource, uint32 count);
         void HandleWarEffortPhaseTransition(uint32 newPhase);
+        void HandleWarEffortGateSwitch(bool close);
         void StartWarEffortEvent();
         void StopWarEffortEvent();
+        void HandleAQGate();
+        void SetAQGateGuid(uint32 entry, uint32 dbGuid) { m_aqGateGuids[entry] = dbGuid; }
         void SpawnWarEffortGos();
         void ChangeWarEffortGoSpawns(AQResources resource, int32 forcedTier = -1);
         void ChangeWarEffortPhase2Tier(uint32 remainingDays);
         void DespawnWarEffortGuids(std::set<std::pair<uint32, Team>>& guids);
         void SetSilithusBossKilled(AQSilithusBoss boss);
         AQPhase GetAqPhase() { return (AQPhase)m_aqData.m_phase; }
+        bool IsGateClosed() { return (AQPhase)m_aqData.IsGateClosed; }
+        uint32 GetModMaxResources(AQResources resource, uint32 defaultMax);
+        uint32 GetResourceItemStack(AQResources resource);
         std::pair<AQResourceGroup, Team> GetResourceInfo(AQResources resource);
         std::pair<uint32, uint32> GetResourceCounterAndMax(AQResourceGroup group, Team team);
         std::string GetAQPrintout();
@@ -443,6 +541,7 @@ class WorldState
         std::vector<uint32> m_emeraldDragonsChosenPositions;
         AhnQirajData m_aqData;
         std::map<uint32, AQResources> m_aqWorldstateMapReverse;
+        std::map<uint32, uint32> m_aqGateGuids;
 
         LoveIsInTheAir m_loveIsInTheAirData;
         GuidVector m_loveIsInTheAirCapitalsPlayers;
