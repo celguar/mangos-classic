@@ -33,9 +33,10 @@ class Worker;
 class MapUpdater
 {
     public:
-        MapUpdater() : _cancelationToken(false), pending_requests(0) {}
+        MapUpdater() : _cancelationToken(false), _enable_updates_loop(false), pending_once_requests(0), pending_loop_requests(0) {}
         MapUpdater(size_t num_threads);
         MapUpdater(const MapUpdater&) = delete;
+        ~MapUpdater();
         
         void activate(size_t num_threads);
         void deactivate();
@@ -43,19 +44,39 @@ class MapUpdater
         void join();
         bool activated();
         void update_finished();
-        void schedule_update(Worker* worker);
+        void schedule_update(Map& map, Worker* worker);
+
+        void waitUpdateOnces();
+        void enableUpdateLoop(bool enable);
+        void waitUpdateLoops();
 
     private:
-        ProducerConsumerQueue<Worker *> _queue;
+        void onceMapFinished();
+        void loopMapFinished();
 
-        std::vector<std::thread> _workerThreads;
+        //this will ensure once_map_workerThreads match the pending_once_maps count
+        void spawnMissingOnceUpdateThreads();
+
+        ProducerConsumerQueue<Worker *> _loop_queue;
+        ProducerConsumerQueue<Worker *> _once_queue;
+
+        std::vector<std::thread> _loop_workerThreads;
+        std::vector<std::thread> _once_workerThreads;
         std::atomic<bool> _cancelationToken;
+        std::atomic<bool> _enable_updates_loop;
 
         std::mutex _lock;
-        std::condition_variable _condition;
-        size_t pending_requests;
+        std::condition_variable _loops_condition; //notified when an update loop request is finished
+        std::condition_variable _onces_condition; //notified when an update once request is finished
+        size_t pending_loop_requests;
+        size_t pending_once_requests;
 
-        void WorkerThread();
+        /* Loop workers keep running and processing _loop_queue, updating maps and requeuing them afterwards.
+        When onceMapsFinished becomes true, the worker finish the current request and delete the request instead of requeuing it.
+        */
+        void LoopWorkerThread(std::atomic<bool>* onceMapsFinished);
+        //Single update, descrease pending_once_maps when done
+        void OnceWorkerThread();
 };
 
 #endif //_MAP_UPDATER_H_INCLUDED
