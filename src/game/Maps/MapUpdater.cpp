@@ -19,10 +19,15 @@
 #include "MapUpdater.h"
 #include "MapWorkers.h"
 
-MapUpdater::MapUpdater(size_t num_threads) : _cancelationToken(false), pending_requests(0)
+//MapUpdater::MapUpdater(size_t num_threads) : _cancelationToken(false), pending_requests(0)
+//{
+//    for (size_t i = 0; i < num_threads; ++i)
+//        _workerThreads.push_back(std::thread(&MapUpdater::WorkerThread, this));
+//}
+MapUpdater::~MapUpdater()
 {
-    for (size_t i = 0; i < num_threads; ++i)
-        _workerThreads.push_back(std::thread(&MapUpdater::WorkerThread, this));
+    if (activated())
+        deactivate();
 }
 
 void MapUpdater::activate(size_t num_threads)
@@ -30,71 +35,167 @@ void MapUpdater::activate(size_t num_threads)
     if (activated())
         return;
 
+    //spawn instances & battlegrounds threads
     for (size_t i = 0; i < num_threads; ++i)
-        _workerThreads.push_back(std::thread(&MapUpdater::WorkerThread, this));
+        _loop_workerThreads.push_back(std::thread(&MapUpdater::LoopWorkerThread, this, &_enable_updates_loop));
+
+    //continents threads are spawned later when request are received
+
+    //for (size_t i = 0; i < num_threads; ++i)
+    //    _workerThreads.push_back(std::thread(&MapUpdater::WorkerThread, this));
 }
 
 void MapUpdater::deactivate()
 {
     _cancelationToken = true;
 
-    _queue.Cancel();
+    _loop_queue.Cancel();
+    _once_queue.Cancel();
 
-    for (auto& thread : _workerThreads)
+    waitUpdateOnces();
+    waitUpdateLoops();
+
+    for (auto& thread : _once_workerThreads)
         thread.join();
+
+    _once_workerThreads.clear();
+
+    for (auto& thread : _loop_workerThreads)
+        thread.join();
+
+    _loop_workerThreads.clear();
 }
 
-void MapUpdater::wait()
+void MapUpdater::waitUpdateOnces()
 {
     std::unique_lock<std::mutex> lock(_lock);
 
-    while (pending_requests > 0)
-        _condition.wait(lock);
+    while (pending_once_requests > 0)
+        _onces_condition.wait(lock);
+
+    lock.unlock();
 }
 
-void MapUpdater::join()
+void MapUpdater::enableUpdateLoop(bool enable)
 {
-    wait();
-    deactivate();
+    _enable_updates_loop = enable;
 }
+
+void MapUpdater::waitUpdateLoops()
+{
+    std::unique_lock<std::mutex> lock(_lock);
+
+    while (pending_loop_requests > 0)
+        _loops_condition.wait(lock);
+
+    lock.unlock();
+}
+
+void MapUpdater::spawnMissingOnceUpdateThreads()
+{
+    for (uint32 i = _once_workerThreads.size(); i < pending_once_requests; i++)
+        _once_workerThreads.push_back(std::thread(&MapUpdater::OnceWorkerThread, this));
+}
+
+//void MapUpdater::join()
+//{
+//    wait();
+//    deactivate();
+//}
 
 bool MapUpdater::activated()
 {
-    return _workerThreads.size() > 0;
+    return _loop_workerThreads.size() > 0;
 }
 
-void MapUpdater::update_finished()
+void MapUpdater::schedule_update(Map& map, Worker* worker)
 {
     std::lock_guard<std::mutex> lock(_lock);
 
-    --pending_requests;
-    _condition.notify_all();
+    // MapInstanced re schedule the instances it contains by itself, so we want to call it only once
+    // Also currently test maps needs to be updated once per world update
+    bool useLagMitigation = false;
+    if (useLagMitigation && map.Instanceable() && map.HasRealPlayers())
+    {
+        pending_loop_requests++;
+        _loop_queue.Push(std::move(worker));
+    }
+    else
+    {
+        pending_once_requests++;
+        _once_queue.Push(std::move(worker));
+    }
+
+    spawnMissingOnceUpdateThreads();
 }
 
-void MapUpdater::schedule_update(Worker* worker)
-{
-    std::lock_guard<std::mutex> lock(_lock);
-
-    ++pending_requests;
-    _queue.Push(std::move(worker));
-}
-
-void MapUpdater::WorkerThread()
+void MapUpdater::LoopWorkerThread(std::atomic<bool>* enable_instance_updates_loop)
 {
     while (true)
     {
         Worker* request = nullptr;
 
-        _queue.WaitAndPop(request);
+        _loop_queue.WaitAndPop(request);
 
         if (_cancelationToken)
         {
-            delete request;
+            if (request)
+                loopMapFinished();
             return;
         }
 
+        MANGOS_ASSERT(request);
+        request->execute();
+
+        //repush at end of queue, or delete if loop has been disabled by MapManager
+        if (!(*enable_instance_updates_loop))
+        {
+            delete request;
+            loopMapFinished();
+        }
+        else {
+            _loop_queue.Push(std::move(request));
+        }
+    }
+}
+
+void MapUpdater::OnceWorkerThread()
+{
+    while (true)
+    {
+        Worker* request = nullptr;
+
+        _once_queue.WaitAndPop(request);
+
+        if (_cancelationToken)
+        {
+            if (request)
+                onceMapFinished();
+            return;
+        }
+
+        MANGOS_ASSERT(request);
         request->execute();
 
         delete request;
+        onceMapFinished();
     }
+}
+
+void MapUpdater::onceMapFinished()
+{
+    std::lock_guard<std::mutex> lock(_lock);
+    MANGOS_ASSERT(pending_once_requests > 0);
+    --pending_once_requests;
+    if (pending_once_requests == 0)
+        _onces_condition.notify_all();
+}
+
+void MapUpdater::loopMapFinished()
+{
+    std::lock_guard<std::mutex> lock(_lock);
+    MANGOS_ASSERT(pending_loop_requests > 0);
+    --pending_loop_requests;
+    if (pending_loop_requests == 0)
+        _loops_condition.notify_all();
 }

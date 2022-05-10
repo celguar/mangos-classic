@@ -161,6 +161,13 @@ class MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockab
         void DoForAllMaps(const std::function<void(Map*)>& worker);
         void DoForAllMapsWithMapId(uint32 mapId, std::function<void(Map*)> worker);
 
+        void MapCrashed(Map* map);
+        void SetMapCrashed(Map* map) { crashedMapsStatus[map->GetId()][map->GetInstanceId()] = MAP_CRASH_CRASHED; }
+        bool IsMapCrashed(Map* map) { return crashedMapsStatus[map->GetId()][map->GetInstanceId()] != MAP_CRASH_NOCRASH;}
+        bool IsContinentCrashed(uint32 mapId) { return crashedMapsStatus[mapId][0] != MAP_CRASH_NOCRASH; }
+        MapCrashStatus GetMapCrashStatus(Map* map) { return crashedMapsStatus[map->GetId()][map->GetInstanceId()]; }
+        void SetMapCrashStatus(Map* map, MapCrashStatus status) { crashedMapsStatus[map->GetId()][map->GetInstanceId()] = status; }
+
     private:
 
         // debugging code, should be deleted some day
@@ -189,6 +196,8 @@ class MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockab
 
         uint32 i_MaxInstanceId;
         MapUpdater m_updater;
+        std::list<Map*> crashedMaps; //those map have crashed, remove them as soon as possible. Contains either BattlegroundMap or InstanceMap
+        std::map<uint32, std::map<uint32, MapCrashStatus>> crashedMapsStatus;
 };
 
 template<typename Do>

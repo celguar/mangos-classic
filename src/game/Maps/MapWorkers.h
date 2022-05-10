@@ -43,18 +43,22 @@ class MapUpdateWorker : public Worker
 {
     public:
         MapUpdateWorker(Map& map, uint32 diff, MapUpdater& updater) :
-            Worker(updater), m_map(map), m_diff(diff)
+            Worker(updater), m_map(map), m_diff(diff), m_loopCount(0)
         {}
 
         void execute() override
         {
-            m_map.Update(m_diff);
-            GetWorker().update_finished();
+            m_map.DoUpdate(m_diff, uint32(100));
+            m_loopCount++;
+            if (m_loopCount > 1)
+                sLog.outBasic("Instance Map %u delay mitigation, additional runs: %u", m_map.GetId(), m_loopCount - 1);
+            //GetWorker().update_finished();
         }
 
     private:
         Map& m_map;
         uint32 m_diff;
+        uint32 m_loopCount;
 };
 
 class GridCrawler : public Worker

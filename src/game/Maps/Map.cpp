@@ -48,6 +48,21 @@
 #include "playerbot.h"
 #endif
 
+int filter(unsigned int code, struct _EXCEPTION_POINTERS* ep)
+{
+    sLog.outError("Map Updater exception happened!");
+    if (code == EXCEPTION_ACCESS_VIOLATION)
+    {
+        sLog.outError("Map Updater exception catched!");
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+    else
+    {
+        sLog.outError("Map Updater exception not catched!");
+        return EXCEPTION_CONTINUE_SEARCH;
+    };
+}
+
 Map::~Map()
 {
     UnloadAll(true);
@@ -142,7 +157,7 @@ void Map::LoadMapAndVMap(int gx, int gy)
 
 Map::Map(uint32 id, time_t expiry, uint32 InstanceId)
     : i_mapEntry(sMapStore.LookupEntry(id)),
-      i_id(id), i_InstanceId(InstanceId), m_unloadTimer(0),
+      i_id(id), i_InstanceId(InstanceId), m_unloadTimer(0), _lastMapUpdate(0),
       m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE), m_persistentState(nullptr),
       m_activeNonPlayersIter(m_activeNonPlayers.end()), m_onEventNotifiedIter(m_onEventNotifiedObjects.end()),
       i_gridExpiry(expiry), m_TerrainData(sTerrainMgr.LoadTerrain(id)),
@@ -735,6 +750,124 @@ void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<MaNGOS::Obje
                 Visit(cell, worldVisitor);
             }
         }
+    }
+}
+
+void Map::DoUpdate(uint32 maxDiff, uint32 minimumTimeSinceLastUpdate /* = 0*/)
+{
+    uint32 now = WorldTimer::getMSTime();
+    uint32 diff = WorldTimer::getMSTimeDiff(_lastMapUpdate, now);
+    //freeze thread if last update was less than minimumTimeSinceLastUpdate ms ago
+    if (diff < minimumTimeSinceLastUpdate) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(minimumTimeSinceLastUpdate - diff));
+        diff += minimumTimeSinceLastUpdate;
+}
+    if (diff > maxDiff)
+        diff = maxDiff;
+    _lastMapUpdate = now;
+
+    __try
+    {
+        Update(diff);
+    }
+    __except (filter(GetExceptionCode(), GetExceptionInformation()))
+    {
+        sMapMgr.MapCrashed(this);
+    }
+}
+
+void WorldMap::HandleCrash()
+{
+    if (HavePlayers())
+    {
+        sLog.outError("MAP ANTI CRASH: World Map: %u (%s) has %u players, kicking...", GetId(), GetMapName(), m_mapRefManager.getSize());
+        std::list<Player*> players;
+        // dont kick players in this loop at this will invalidate our iterator
+        for (auto& itr : m_mapRefManager)
+        {
+            players.push_back(itr.getSource());
+        }
+        for (auto plr : players)
+        {
+            ChatHandler(plr).SendSysMessage("Continent crashed!");
+            plr->GetSession()->KickPlayer(true, true, false); // kick to character selection
+        }
+        sLog.outError("MAP ANTI CRASH: World Map: %u (%s) %u players kicked!", GetId(), GetMapName(), players.size());
+    }
+}
+
+void DungeonMap::HandleCrash()
+{
+    if (HavePlayers())
+    {
+        sLog.outError("MAP ANTI CRASH: Dungeon Map: %u (%s) has %u players, teleporting...", GetId(), GetMapName(), m_mapRefManager.getSize());
+        std::list<Player*> players;
+        //dont teleport players in this loop at this will invalidate our iterator
+        for (auto& itr : m_mapRefManager)
+        {
+            players.push_back(itr.getSource());
+        }
+        for (auto plr : players)
+        {
+            ChatHandler(plr).SendSysMessage("Dungeon crashed!");
+            //plr->GetSession()->KickPlayer(true, true, false);
+            bool tpResult = false;
+            AreaTrigger const* at = sObjectMgr.GetGoBackTrigger(GetId());
+            if (at)
+                tpResult = plr->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, plr->GetOrientation());
+
+            if (at && !tpResult)
+            {
+                ObjectGuid plrGuid = plr->GetObjectGuid();
+                plr->GetSession()->KickPlayer(true, true, false);
+
+                Player::SavePositionInDB(plrGuid, at->target_mapId,
+                    at->target_X, at->target_Y, at->target_Z, 0.f,
+                    sTerrainMgr.GetZoneId(at->target_mapId,
+                        at->target_X, at->target_Y, at->target_Z));
+
+                tpResult = true;
+            }
+
+            float x, y, z, o = 0.f;
+            uint32 mapId = 0;
+            plr->GetHomebindLocation(x, y, z, mapId);
+            if (!tpResult)
+                tpResult = plr->TeleportTo(mapId, x, y, z, plr->GetOrientation());
+
+            if (!tpResult) //just to be extra sure
+                plr->GetSession()->KickPlayer(true, true, false);
+        }
+        sLog.outError("MAP ANTI CRASH: Dungeon Map: %u (%s) %u players teleported out!", GetId(), GetMapName(), players.size());
+    }
+
+    /*if (m_resetAfterUnload == true)
+        DeleteRespawnTimes();*/
+
+}
+
+void BattleGroundMap::HandleCrash()
+{
+    GetBG()->SetStatus(STATUS_WAIT_LEAVE); // avoid deserter
+
+    if (HavePlayers())
+    {
+        sLog.outError("MAP ANTI CRASH: Battleground Map: %u (%s) has %u players, teleporting...", GetId(), GetMapName(), m_mapRefManager.getSize());
+        std::list<Player*> players;
+        //dont teleport players in this loop at this will invalidate our iterator
+        for (auto& itr : m_mapRefManager)
+        {
+            ChatHandler(itr.getSource()).SendSysMessage("Battleground crashed!");
+            players.push_back(itr.getSource());
+        }
+        for (auto plr : players)
+        {
+            ChatHandler(plr).SendSysMessage("Battleground crashed!");
+            bool tpResult = plr->TeleportTo(plr->GetBattleGroundEntryPoint());
+            if (!tpResult)
+                plr->GetSession()->KickPlayer(true, true, false);
+        }
+        sLog.outError("MAP ANTI CRASH: Battleground Map: %u (%s) %u players teleported out!", GetId(), GetMapName(), players.size());
     }
 }
 
@@ -1446,7 +1579,6 @@ void Map::AddObjectToRemoveList(WorldObject* obj)
     MANGOS_ASSERT(obj->GetMapId() == GetId() && obj->GetInstanceId() == GetInstanceId());
 
     obj->CleanupsBeforeDelete();                            // remove or simplify at least cross referenced links
-
     std::unique_lock<std::mutex> lock(i_objectsToRemove_lock);
     i_objectsToRemove.insert(obj);
     // DEBUG_LOG("Object (GUID: %u TypeId: %u ) added to removing list.",obj->GetGUIDLow(),obj->GetTypeId());

@@ -838,12 +838,12 @@ void WorldSession::LogoutPlayer()
 }
 
 /// Kick a player out of the World
-void WorldSession::KickPlayer(bool save, bool inPlace)
+void WorldSession::KickPlayer(bool save, bool inPlace, bool kickSession)
 {
     m_playerSave = save;
     if (inPlace)
     {
-        m_kickSession = true;
+        m_kickSession = kickSession;
         LogoutPlayer();
         return;
     }
@@ -862,7 +862,7 @@ void WorldSession::KickPlayer(bool save, bool inPlace)
     else
         LogoutRequest(time(nullptr) - 20, false);
 #else
-    LogoutRequest(time(nullptr) - 20, false, true);
+    LogoutRequest(time(nullptr) - 20, save, true);
 #endif
 }
 

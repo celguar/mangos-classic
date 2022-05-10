@@ -37,6 +37,7 @@ MapManager::MapManager()
     : i_gridCleanUpDelay(sWorld.getConfig(CONFIG_UINT32_INTERVAL_GRIDCLEAN))
 {
     i_timer.SetInterval(sWorld.getConfig(CONFIG_UINT32_INTERVAL_MAPUPDATE));
+    crashedMaps.clear();
 }
 
 MapManager::~MapManager()
@@ -140,6 +141,9 @@ Map* MapManager::CreateMap(uint32 id, const WorldObject* obj)
         }
     }
 
+    if (m)
+        SetMapCrashStatus(m, MAP_CRASH_NOCRASH);
+
     return m;
 }
 
@@ -187,6 +191,14 @@ void MapManager::DeleteInstance(uint32 mapid, uint32 instanceId)
     }
 }
 
+void MapManager::MapCrashed(Map* map)
+{
+    sLog.outError("MAP ANTI CRASH: Map: %u (%s) crashed! InstanceId: %u", map->GetId(), map->GetMapName(), map->GetInstanceId());
+    crashedMaps.push_back(map);
+    SetMapCrashed(map);
+    return;
+}
+
 void MapManager::Update(uint32 diff)
 {
     i_timer.Update(diff);
@@ -195,14 +207,77 @@ void MapManager::Update(uint32 diff)
 
     for (auto& map : i_maps)
     {
+        // skip crashed or restarting world maps
+        if (IsMapCrashed(map.second))
+            continue;
+
         if (m_updater.activated())
-            m_updater.schedule_update(new MapUpdateWorker(*map.second, (uint32)i_timer.GetCurrent(), m_updater));
+            m_updater.schedule_update(*map.second, new MapUpdateWorker(*map.second, (uint32)i_timer.GetCurrent(), m_updater));
         else
-            map.second->Update((uint32)i_timer.GetCurrent());
+            map.second->DoUpdate((uint32)i_timer.GetCurrent());
     }
 
+    bool fasterUpdates = false;
+    uint32 maxDiff = sWorld.GetMaxDiff();
+    fasterUpdates = maxDiff > 100;
+
     if (m_updater.activated())
-        m_updater.wait();
+    {
+        /* We keep instances updates looping while continents are updated.
+        Once all continents are done, we wait for the current instances updates to finish and stop.
+        */
+        m_updater.enableUpdateLoop(false);
+        m_updater.waitUpdateOnces();
+        m_updater.enableUpdateLoop(false);
+        m_updater.waitUpdateLoops();
+    }
+
+    // handle Instances crash
+    for (auto crashedMap : crashedMaps)
+    {
+        const uint32 mapId = crashedMap->GetId();
+        bool isBg = crashedMap->IsBattleGround();
+        bool isContinent = crashedMap->IsContinent();
+        //const std::string mapName = isContinent ? mapId == 0 ? "Eastern Kingdoms" : "Kalimdor" : crashedMap->GetMapName();
+        const std::string mapName = crashedMap->GetMapName();
+
+        crashedMap->HandleCrash();
+        //crashedMap->RemoveAllObjectsInRemoveList();
+        MapMapType::iterator iter = i_maps.begin();
+        while (iter != i_maps.end())
+        {
+            if (iter->second == crashedMap)
+            {
+                if (isContinent)
+                {
+                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Unloading grids...", mapId, mapName);
+                    crashedMap->UnloadAll(true);
+                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Deactivating...", mapId, mapName);
+                    i_maps.erase(iter);
+                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Restarting...", mapId, mapName);
+                    Map* m = new WorldMap(mapId, i_gridCleanUpDelay);
+                    i_maps[MapID(mapId)] = m;
+                    m->Initialize();
+                    SetMapCrashStatus(crashedMap, MAP_CRASH_NOCRASH);
+                    delete crashedMap;
+                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Activated!", mapId, mapName);
+                    iter++;
+                }
+                else
+                {
+                    sLog.outError("MAP ANTI CRASH: %s Map: %u (%s) Deactivating...", isBg ? "Battleground" : "Dungeon", mapId, mapName);
+                    i_maps.erase(iter);
+                    SetMapCrashStatus(crashedMap, MAP_CRASH_NOCRASH);
+                    sLog.outError("MAP ANTI CRASH: %s Map: %u (%s) Removed!", isBg ? "Battleground" : "Dungeon", mapId, mapName);
+                    iter++;
+                }
+            }
+            else
+                ++iter;
+        }
+
+    }
+    crashedMaps.clear();
 
     // remove all maps which can be unloaded
     MapMapType::iterator iter = i_maps.begin();

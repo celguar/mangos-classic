@@ -580,6 +580,23 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recv_data)
 
     WorldPacket data(SMSG_CHARACTER_LOGIN_FAILED, 1);
 
+    QueryResult* result = CharacterDatabase.PQuery("SELECT map FROM characters WHERE guid = '%u'", playerGuid.GetCounter());
+    if (result)
+    {
+        int32 mapId = -1;
+        Field* fields = result->Fetch();
+        mapId = fields[0].GetUInt32();
+        delete result;
+
+        if (mapId != -1 && (mapId == 0 || mapId == 1) && sMapMgr.IsContinentCrashed((uint32)mapId))
+        {
+            sLog.outError("HandlePlayerLoginOpcode> Player try to login in crashed map #%u, AccountId = %u", (uint32)mapId, GetAccountId());
+            data << (uint8)CHAR_LOGIN_NO_WORLD;
+            SendPacket(data, true);
+            return;
+        }
+    }
+
     if (PlayerLoading())
     {
         sLog.outError("HandlePlayerLoginOpcode> Player try to login again while already in loading stage, AccountId = %u", GetAccountId());
@@ -660,6 +677,27 @@ void PlayerbotMgr::LoginPlayerBot(ObjectGuid playerGuid)
 void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 {
     ObjectGuid playerGuid = holder->GetGuid();
+
+    QueryResult* result = CharacterDatabase.PQuery("SELECT map FROM characters WHERE guid = %u", playerGuid.GetCounter());
+    if (result)
+    {
+        int32 mapId = -1;
+        Field* fields = result->Fetch();
+        mapId = fields[0].GetUInt32();
+        delete result;
+
+        if (mapId != -1 && (mapId == 0 || mapId == 1) && sMapMgr.IsContinentCrashed((uint32)mapId))
+        {
+            KickPlayer(false, false, false); // kick to character selection
+            delete holder;                   // delete all unprocessed queries
+            m_playerLoading = false;
+            sLog.outError("HandlePlayerLoginOpcode> Player try to login in crashed map #%u, AccountId = %u", (uint32)mapId, GetAccountId());
+            WorldPacket data(SMSG_CHARACTER_LOGIN_FAILED, 1);
+            data << (uint8)CHAR_LOGIN_NO_WORLD;
+            SendPacket(data, true);
+            return;
+        }
+    }
 
     Player* pCurrChar = new Player(this);
     SetPlayer(pCurrChar, playerGuid);

@@ -66,6 +66,13 @@ void WorldSession::HandleMoveWorldportAckOpcode()
 
     // get the destination map entry, not the current one, this will fix homebind and reset greeting
     MapEntry const* mEntry = sMapStore.LookupEntry(loc.mapid);
+
+    // stop if continent crashed
+    if (mEntry->IsContinent() && sMapMgr.IsContinentCrashed(mEntry->MapID))
+    {
+        GetPlayer()->SetSemaphoreTeleportFar(false);
+        return;
+    }
     
     auto returnHomeFunc = [this, player = GetPlayer(), old_loc, loc]()
     {
