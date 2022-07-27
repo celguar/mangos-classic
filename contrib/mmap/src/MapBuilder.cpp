@@ -56,7 +56,7 @@ void rcModAlmostUnwalkableTriangles(rcContext* ctx, const float walkableSlopeAng
 
             // Check if the face is walkable.
             if (norm[1] <= walkableThr)
-                areas[i] = NAV_GROUND_STEEP; //Slopes between 50 and 60. Walkable for mobs, unwalkable for players.
+                areas[i] = NAV_AREA_GROUND_STEEP; //Slopes between 50 and 60. Walkable for mobs, unwalkable for players.
         }
     }
 }
