@@ -61,6 +61,7 @@
 #include "Loot/LootMgr.h"
 #include "World/WorldState.h"
 #include "Anticheat/Anticheat.hpp"
+#include "AI/ScriptDevAI/scripts/custom/Transmogrification.h"
 
 #ifdef BUILD_DEPRECATED_PLAYERBOT
 #include "PlayerBot/Base/PlayerbotAI.h"
@@ -10180,6 +10181,9 @@ void Player::SetVisibleItemSlot(uint8 slot, Item* pItem)
         // Use SetInt16Value to prevent set high part to FFFF for negative value
         SetInt16Value(PLAYER_VISIBLE_ITEM_1_PROPERTIES + (slot * MAX_VISIBLE_ITEM_OFFSET), 0, pItem->GetItemRandomPropertyId());
         SetUInt32Value(PLAYER_VISIBLE_ITEM_1_PROPERTIES + 1 + (slot * MAX_VISIBLE_ITEM_OFFSET), pItem->GetItemSuffixFactor());
+
+        if (uint32 entry = sTransmogrification->GetFakeEntry(pItem->GetObjectGuid()))
+            SetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + pItem->GetSlot() * MAX_VISIBLE_ITEM_OFFSET, entry);
     }
     else
     {
@@ -10302,6 +10306,8 @@ void Player::MoveItemFromInventory(uint8 bag, uint8 slot, bool update)
             it->RemoveFromWorld();
             it->DestroyForPlayer(this);
         }
+
+        sTransmogrification->DeleteFakeFromDB(it->GetObjectGuid());
     }
 }
 

@@ -920,6 +920,8 @@ void World::LoadConfigSettings(bool reload)
     
     setConfig(CONFIG_BOOL_REGEN_ZONE_AREA_ON_STARTUP, "Spawns.ZoneArea", false);
 
+    sTransmogrification->LoadConfig(reload);
+
     sLog.outString();
 }
 
@@ -1525,6 +1527,14 @@ void World::SetInitialWorldSettings()
 #ifndef BUILD_AHBOT
     auctionbot.Init();
 #endif
+#endif
+
+    sTransmogrification->LoadConfig(false);
+    CharacterDatabase.Execute("DELETE FROM custom_transmogrification WHERE NOT EXISTS (SELECT 1 FROM item_instance WHERE item_instance.guid = custom_transmogrification.GUID)");
+#ifdef PRESETS
+    // Clean even if disabled
+    // Dont delete even if player has more presets than should
+    CharacterDatabase.Execute("DELETE FROM `custom_transmogrification_sets` WHERE NOT EXISTS(SELECT 1 FROM characters WHERE characters.guid = custom_transmogrification_sets.Owner)");
 #endif
 
     sLog.outString("---------------------------------------");
