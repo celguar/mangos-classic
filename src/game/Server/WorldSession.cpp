@@ -40,6 +40,7 @@
 #include "GMTickets/GMTicketMgr.h"
 #include "Loot/LootMgr.h"
 #include "Anticheat/Anticheat.hpp"
+#include "AI/ScriptDevAI/scripts/custom/Transmogrification.h"
 
 #include <mutex>
 #include <deque>
