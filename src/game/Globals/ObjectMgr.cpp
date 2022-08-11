@@ -3527,6 +3527,48 @@ void ObjectMgr::LoadStandingList()
     sLog.outString(">> Loaded %u Horde and %u Ally honor standing definitions", static_cast<uint32>(HordeHonorStandingList.size()), static_cast<uint32>(AllyHonorStandingList.size()));
 }
 
+void ObjectMgr::SetCityRanks()
+{
+    CharacterDatabase.Execute("UPDATE `characters` SET `extra_flags` = `extra_flags` & ~0x0400");
+
+    std::map<uint8, std::pair<uint32, uint32>> highestStandingInRace =
+    {
+        {RACE_HUMAN, {0,0}},
+        {RACE_ORC, {0,0}},
+        {RACE_DWARF, {0,0}},
+        {RACE_NIGHTELF, {0,0}},
+        {RACE_UNDEAD, {0,0}},
+        {RACE_TAUREN, {0,0}},
+        {RACE_GNOME, {0,0}},
+        {RACE_TROLL, {0,0}},
+    };
+
+    for (uint8 i = 1; i < MAX_RACES; ++i)
+    {
+        QueryResult* result = CharacterDatabase.PQuery("SELECT `guid`, `honor_standing` FROM `characters` WHERE `honor_standing` > 0 and `race` = %u ORDER BY `honor_standing` ASC LIMIT 1", i);
+
+        if (result)
+        {
+            do
+            {
+                Field* fields = result->Fetch();
+                uint32 guid = fields[0].GetUInt32();
+                uint32 honorStanding = fields[1].GetUInt32();
+
+                highestStandingInRace[i] = std::make_pair(guid, honorStanding);
+            } while (result->NextRow());
+            delete result;
+        }
+    }
+
+    for (auto& standing : highestStandingInRace)
+    {
+        uint32 lowGuid = standing.second.first;
+
+        if (lowGuid > 0)
+            CharacterDatabase.PExecute("UPDATE `characters` SET `extra_flags` = `extra_flags` | 0x0400 WHERE `guid` = %u", standing.second.first);
+    }
+}
 
 void ObjectMgr::FlushRankPoints(uint32 dateTop)
 {
@@ -3589,6 +3631,12 @@ void ObjectMgr::FlushRankPoints(uint32 dateTop)
     // cleanin ALL cp before dateTop
     CharacterDatabase.PExecute("DELETE FROM character_honor_cp WHERE date <= %u", dateTop - 7);
     CharacterDatabase.CommitTransaction();
+
+    if (sWorld.getConfig(CONFIG_BOOL_ENABLE_CITY_PROTECTOR))
+    {
+        sLog.outString("[MAINTENANCE] Assign city titles.");
+        SetCityRanks();
+    }
 
     sLog.outString();
     sLog.outString(">> Flushed all ranking points");

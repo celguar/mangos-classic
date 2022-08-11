@@ -14409,6 +14409,9 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
 
     uint32 extraflags = fields[31].GetUInt32();
 
+    if ((extraflags & PLAYER_EXTRA_CITY_PROTECTOR) && sWorld.getConfig(CONFIG_BOOL_ENABLE_CITY_PROTECTOR))
+        SetCityTitle();
+
     m_stableSlots = fields[32].GetUInt32();
     if (m_stableSlots > MAX_PET_STABLES)
     {
@@ -19065,6 +19068,20 @@ bool Player::isHonorOrXPTarget(Unit* pVictim) const
             return false;
     }
     return true;
+}
+
+bool Player::IsCityProtector() { return m_ExtraFlags & PLAYER_EXTRA_CITY_PROTECTOR; }
+
+void Player::SetCityTitle()
+{
+    SetByteValue(PLAYER_BYTES_3, 2, getRace());
+    m_ExtraFlags |= PLAYER_EXTRA_CITY_PROTECTOR;
+}
+
+void Player::RemoveCityTitle()
+{
+    SetByteValue(PLAYER_BYTES_3, 2, 0);
+    m_ExtraFlags &= ~PLAYER_EXTRA_CITY_PROTECTOR;
 }
 
 void Player::RewardSinglePlayerAtKill(Unit* pVictim)
