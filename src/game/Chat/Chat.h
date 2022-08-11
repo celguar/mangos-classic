@@ -246,6 +246,7 @@ class ChatHandler
         bool HandleCharacterLevelCommand(char* args);
         bool HandleCharacterRenameCommand(char* args);
         bool HandleCharacterReputationCommand(char* args);
+        bool HandleCharacterCityTitleCommand(char* args);
 
         bool HandleChannelListCommand(char* args);
         bool HandleChannelStaticCommand(char* args);

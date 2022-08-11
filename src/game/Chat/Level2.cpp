@@ -3665,6 +3665,27 @@ bool ChatHandler::HandleCharacterReputationCommand(char* args)
     return true;
 }
 
+bool ChatHandler::HandleCharacterCityTitleCommand(char* args)
+{
+    Player* target;
+    if (!ExtractPlayerTarget(&args, &target))
+        return false;
+
+    bool value;
+    if (!ExtractOnOff(&args, value))
+    {
+        PSendSysMessage("Syntax: .title on | off");
+        return false;
+    }
+
+    if (value)
+        target->SetCityTitle();
+    else
+        target->RemoveCityTitle();
+
+    return true;
+}
+
 // change standstate
 bool ChatHandler::HandleModifyStandStateCommand(char* args)
 {

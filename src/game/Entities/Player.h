@@ -499,6 +499,7 @@ enum PlayerExtraFlags
 
     // death prevention
     PLAYER_EXTRA_GM_UNKILLABLE         = 0x0400,
+    PLAYER_EXTRA_CITY_PROTECTOR        = 0x0800,
 };
 
 // 2^n values
@@ -1774,6 +1775,9 @@ class Player : public Unit
         void RewardPlayerAndGroupAtCast(WorldObject* pRewardSource, uint32 spellid = 0);
         void RewardPlayerAndGroupAtEventExplored(uint32 questId, WorldObject const* pEventObject);
         bool isHonorOrXPTarget(Unit* pVictim) const;
+        bool IsCityProtector();
+        void SetCityTitle();
+        void RemoveCityTitle();
 
         template<typename T>
         bool CheckForGroup(T functor) const
