@@ -920,6 +920,64 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_FIRST))
         pCurrChar->RemoveAtLoginFlag(AT_LOGIN_FIRST);
 
+    // add collector to all accounts if enabled
+    if (sWorld.getConfig(CONFIG_BOOL_COLLECTORS_EDITION) && !HasAccountFlag(ACCOUNT_FLAG_COLLECTOR))
+    {
+        AddAccountFlag(ACCOUNT_FLAG_COLLECTOR);
+        LoginDatabase.PExecute("UPDATE account SET flags = flags | 0x%x WHERE id = %u", GetAccountId(), ACCOUNT_FLAG_COLLECTOR);
+    }
+
+    // create collector's edition reward
+    if (HasAccountFlag(ACCOUNT_FLAG_COLLECTOR))
+    {
+        uint32 itemid = 0;
+        uint32 questid = 0;
+        switch (pCurrChar->getRace())
+        {
+        case RACE_HUMAN:
+            itemid = 14646;
+            questid = 5805;
+            break;
+        case RACE_ORC:
+        case RACE_TROLL:
+            itemid = 14649;
+            questid = 5843;
+            break;
+        case RACE_DWARF:
+        case RACE_GNOME:
+            itemid = 14647;
+            questid = 5843;
+            break;
+        case RACE_NIGHTELF:
+            itemid = 14648;
+            questid = 5842;
+            break;
+        case RACE_UNDEAD:
+            itemid = 14651;
+            questid = 5847;
+            break;
+        case RACE_TAUREN:
+            itemid = 14650;
+            questid = 5844;
+            break;
+        }
+
+        if (itemid && questid)
+        {
+            if (!pCurrChar->HasQuest(questid) && !pCurrChar->HasItemCount(itemid, 1, true) && !pCurrChar->GetQuestRewardStatus(questid))
+            {
+                ItemPrototype const* pProto = ObjectMgr::GetItemPrototype(itemid);
+                if (pProto)
+                {
+                    uint32 noSpaceForCount = 0;
+                    ItemPosCountVec dest;
+                    uint8 msg = pCurrChar->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemid, 1, &noSpaceForCount);
+                    Item* item = pCurrChar->StoreNewItem(dest, itemid, true);
+                }
+            }
+        }
+    }
+
     // show time before shutdown if shutdown planned.
     if (sWorld.IsShutdowning())
         sWorld.ShutdownMsg(true, pCurrChar);

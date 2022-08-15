@@ -1135,6 +1135,58 @@ bool ChatHandler::HandleAccountSetPasswordCommand(char* args)
     return false;
 }
 
+// Set collector's edition
+bool ::ChatHandler::HandleAccountSetEditionCommand(char* args)
+{
+    char* accountStr = ExtractOptNotLastArg(&args);
+
+    std::string targetAccountName;
+    Player* targetPlayer = nullptr;
+    uint32 targetAccountId = ExtractAccountId(&accountStr, &targetAccountName, &targetPlayer);
+    if (!targetAccountId)
+        return false;
+
+    bool value;
+    if (!ExtractOnOff(&args, value))
+    {
+        SendSysMessage(LANG_USE_BOL);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    if (value)
+    {
+        if (targetPlayer && targetPlayer->GetSession()->HasAccountFlag(ACCOUNT_FLAG_COLLECTOR))
+        {
+            SendSysMessage("Target account already has Collector's Edition enabled");
+            return false;
+        }
+        if (targetPlayer)
+            targetPlayer->GetSession()->AddAccountFlag(ACCOUNT_FLAG_COLLECTOR);
+
+        LoginDatabase.PExecute("UPDATE account SET flags = flags | 0x%x WHERE id = %u", targetAccountId, ACCOUNT_FLAG_COLLECTOR);
+        SendSysMessage("Target account Collector's Edition enabled");
+        return true;
+    }
+    else
+    {
+        if (targetPlayer && !targetPlayer->GetSession()->HasAccountFlag(ACCOUNT_FLAG_COLLECTOR))
+        {
+            SendSysMessage("Target account does not have Collector's Edition enabled");
+            return false;
+        }
+        if (targetPlayer)
+            targetPlayer->GetSession()->AddAccountFlag(ACCOUNT_FLAG_COLLECTOR);
+
+        LoginDatabase.PExecute("UPDATE account SET flags = flags & ~0x%x WHERE id = %u", targetAccountId, ACCOUNT_FLAG_COLLECTOR);
+        SendSysMessage("Target account Collector's Edition disabled");
+        return true;
+    }
+
+    //PSendSysMessage(LANG_COMMAND_FLYMODE_STATUS, GetNameLink(target).c_str(), args);
+    return true;
+}
+
 bool ChatHandler::HandleMaxSkillCommand(char* /*args*/)
 {
     Player* SelectedPlayer = getSelectedPlayer();
