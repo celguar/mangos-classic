@@ -211,6 +211,10 @@ void MapManager::Update(uint32 diff)
         if (IsMapCrashed(map.second))
             continue;
 
+        // skip updating maps until restarted
+        if (crashedMaps.size())
+            break;
+
         if (m_updater.activated())
             m_updater.schedule_update(*map.second, new MapUpdateWorker(*map.second, (uint32)i_timer.GetCurrent(), m_updater));
         else
@@ -235,11 +239,12 @@ void MapManager::Update(uint32 diff)
     // handle Instances crash
     for (auto crashedMap : crashedMaps)
     {
-        const uint32 mapId = crashedMap->GetId();
+        uint32 mapId = crashedMap->GetId();
+        uint32 instanceId = crashedMap->GetInstanceId();
         bool isBg = crashedMap->IsBattleGround();
         bool isContinent = crashedMap->IsContinent();
         //const std::string mapName = isContinent ? mapId == 0 ? "Eastern Kingdoms" : "Kalimdor" : crashedMap->GetMapName();
-        const std::string mapName = crashedMap->GetMapName();
+        std::string mapName = crashedMap->GetMapName();
 
         crashedMap->HandleCrash();
         //crashedMap->RemoveAllObjectsInRemoveList();
@@ -258,7 +263,7 @@ void MapManager::Update(uint32 diff)
                     Map* m = new WorldMap(mapId, i_gridCleanUpDelay);
                     i_maps[MapID(mapId)] = m;
                     m->Initialize();
-                    SetMapCrashStatus(crashedMap, MAP_CRASH_NOCRASH);
+                    SetMapCrashStatus(mapId, instanceId, MAP_CRASH_NOCRASH);
                     delete crashedMap;
                     sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Activated!", mapId, mapName);
                     iter++;

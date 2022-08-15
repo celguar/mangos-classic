@@ -167,6 +167,7 @@ class MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockab
         bool IsContinentCrashed(uint32 mapId) { return crashedMapsStatus[mapId][0] != MAP_CRASH_NOCRASH; }
         MapCrashStatus GetMapCrashStatus(Map* map) { return crashedMapsStatus[map->GetId()][map->GetInstanceId()]; }
         void SetMapCrashStatus(Map* map, MapCrashStatus status) { crashedMapsStatus[map->GetId()][map->GetInstanceId()] = status; }
+        void SetMapCrashStatus(uint32 mapId, uint32 instanceId, MapCrashStatus status) { crashedMapsStatus[mapId][instanceId] = status; }
 
     private:
 
