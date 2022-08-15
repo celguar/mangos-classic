@@ -207,6 +207,7 @@ class ChatHandler
         bool HandleAccountSetAddonCommand(char* args);
         bool HandleAccountSetGmLevelCommand(char* args);
         bool HandleAccountSetPasswordCommand(char* args);
+        bool HandleAccountSetEditionCommand(char* args);
 
 #ifdef BUILD_AHBOT
         bool HandleAHBotRebuildCommand(char* args);
