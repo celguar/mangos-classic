@@ -19224,6 +19224,22 @@ void Player::ResurrectUsingRequestDataFinish()
     SpawnCorpseBones();
 }
 
+void Player::SetCanFly(bool enable)
+{
+    if (enable)
+    {
+        m_movementInfo.moveFlags = (MOVEFLAG_LEVITATING | MOVEFLAG_SWIMMING | MOVEFLAG_CAN_FLY | MOVEFLAG_FLYING);
+        //addUnitState(UNIT_STAT_FLYING_ALLOWED);
+    }
+    else
+    {
+        m_movementInfo.moveFlags = (MOVEFLAG_NONE);
+        //clearUnitState(UNIT_STATE_FLYING_ALLOWED);
+    }
+
+    SendHeartBeat();
+}
+
 void Player::UpdateClientControl(Unit const* target, bool enabled, bool forced) const
 {
     if (target)
