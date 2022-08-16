@@ -1073,7 +1073,7 @@ void Map::Update(const uint32& t_diff)
                     {
                         shouldUpdateBot = true;
                     }
-                }
+                }*/
             }
 
             // Save the active characters for later logs
