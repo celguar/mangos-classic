@@ -3027,6 +3027,9 @@ int Map::CalculateDifficulty(Map* map, Player* /*player*/)
     //float difficulty = 0.0;//changed from 1.0
     if (map)
     {
+        if (map->IsBattleGround())
+            return 0;
+
         if (diff_Multiplier.find(map->GetId()) == diff_Multiplier.end()) {
             //Catch Alls  ----------------------5 Dungeons and 40 Raids
             if (map->IsRaid()) {
