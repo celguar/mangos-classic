@@ -267,13 +267,12 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
             }
             
 #ifdef ENABLE_PLAYERBOTS
-            if (player->GetPlayerbotAI())
+            if (player->GetPlayerbotAI() && lang != LANG_ADDON)
             {
                 player->GetPlayerbotAI()->HandleCommand(type, msg, *GetPlayer());
                 GetPlayer()->m_speakTime = 0;
                 GetPlayer()->m_speakCount = 0;
             }
-            else
 #endif
 
             GetPlayer()->Whisper(msg, lang, player->GetObjectGuid());
@@ -318,7 +317,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
             for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
             {
                 Player* player = itr->getSource();
-                if (player && player->GetPlayerbotAI())
+                if (player && player->GetPlayerbotAI() && lang != LANG_ADDON)
                 {
                     player->GetPlayerbotAI()->HandleCommand(type, msg, *GetPlayer());
                     GetPlayer()->m_speakTime = 0;
@@ -358,7 +357,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
                 for (PlayerBotMap::const_iterator it = mgr->GetPlayerBotsBegin(); it != mgr->GetPlayerBotsEnd(); ++it)
                 {
                     Player* const bot = it->second;
-                    if (bot->GetGuildId() == GetPlayer()->GetGuildId())
+                    if (bot->GetGuildId() == GetPlayer()->GetGuildId() && lang != LANG_ADDON)
                         bot->GetPlayerbotAI()->HandleCommand(type, msg, *GetPlayer());
                 }
             }
