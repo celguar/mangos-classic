@@ -19655,6 +19655,8 @@ void Player::learnClassLevelSpells(bool includeHighLevelQuestRewards)
             {
                 CastSpell(this, tSpell->spell, TRIGGERED_OLD_TRIGGERED);
             }
+            else
+                CastSpell(this, tSpell->spell, TRIGGERED_OLD_TRIGGERED);
         }
     }
 }
