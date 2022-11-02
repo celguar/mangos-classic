@@ -52,8 +52,13 @@ bool WorldSession::CheckChatMessage(std::string& msg, bool addon/* = false*/)
     // check max length: as of pre-2.3.x disconnects the player
     if (msg.length() > 255)
     {
-        KickPlayer();
-        return false;
+        if (GetOS() != CLIENT_OS_WIN) // Hermes Proxy
+            utf8limit(msg, 255);
+        else
+        {
+            KickPlayer();
+            return false;
+        }
     }
 
     // skip remaining checks for addon messages or higher sec level accounts
