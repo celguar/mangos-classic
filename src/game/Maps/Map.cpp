@@ -1035,7 +1035,7 @@ void Map::Update(const uint32& t_diff)
             continue;
 
         // update objects beyond visibility distance
-        if (!player->GetPlayerbotAI() && !player->isAFK())
+        if (!player->GetPlayerbotAI() && !player->isAFK() && !player->IsStopped() && !urand(0, 9))
             player->GetCamera().UpdateVisibilityForOwner(false, true);
 
         VisitNearbyCellsOf(player, grid_object_update, world_object_update);
@@ -1193,12 +1193,8 @@ void Map::Remove(Player* player, bool remove)
     SendRemoveTransports(player);
     UpdateObjectVisibility(player, cell, p);
 
-#ifdef ENABLE_PLAYERBOTS
-    if (!player->GetPlayerbotAI())
-        player->ResetMap();
-#else
     player->ResetMap();
-#endif
+
     if (remove)
         DeleteFromWorld(player);
 }
