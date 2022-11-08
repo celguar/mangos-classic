@@ -1074,7 +1074,7 @@ void Map::Update(const uint32& t_diff)
 
                 if (isInActiveArea && IsContinent())
                 {
-                    if (avgDiff > 150 && find(ActiveZones.begin(), ActiveZones.end(), obj->GetZoneId()) == ActiveZones.end())
+                    if (avgDiff > 150 && find(m_activeZones.begin(), m_activeZones.end(), obj->GetZoneId()) == m_activeZones.end())
                         isInActiveArea = false;
                 }
 

@@ -111,6 +111,7 @@ uint32 World::m_currentDiffSum = 0;
 uint32 World::m_currentDiffSumIndex = 0;
 uint32 World::m_averageDiff = 0;
 uint32 World::m_maxDiff = 0;
+list<uint32> World::m_histDiff;
 
 /// World constructor
 World::World(): mail_timer(0), mail_timer_expires(0), m_NextWeeklyQuestReset(0), m_opcodeCounters(NUM_MSG_TYPES)
