@@ -107,7 +107,6 @@ uint32 World::m_relocation_ai_notify_delay = 1000u;
 uint32 World::m_currentMSTime = 0;
 TimePoint World::m_currentTime = TimePoint();
 uint32 World::m_currentDiff = 0;
-#ifdef ENABLE_PLAYERBOTS
 uint32 World::m_currentDiffSum = 0;
 uint32 World::m_currentDiffSumIndex = 0;
 uint32 World::m_averageDiff = 0;
