@@ -286,19 +286,19 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
     // send MSG_MOVE_TELEPORT to observers around old position
     SendTeleportToObservers(dest.coord_x, dest.coord_y, dest.coord_z, dest.orientation);
 
-    plMover->SetDelayedZoneUpdate(false, 0);
-
-    plMover->SetPosition(dest.coord_x, dest.coord_y, dest.coord_z, dest.orientation, true);
-    plMover->m_movementInfo.ChangePosition(dest.coord_x, dest.coord_y, dest.coord_z, dest.orientation);
-
 #ifdef ENABLE_PLAYERBOTS
     // interrupt moving for bot if any
-    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->empty())
+    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->GetCurrentMovementGeneratorType() != IDLE_MOTION_TYPE)
     {
         if (MovementGenerator* movgen = plMover->GetMotionMaster()->top())
             movgen->Interrupt(*plMover);
     }
 #endif
+
+    plMover->SetDelayedZoneUpdate(false, 0);
+
+    plMover->SetPosition(dest.coord_x, dest.coord_y, dest.coord_z, dest.orientation, true);
+    plMover->m_movementInfo.ChangePosition(dest.coord_x, dest.coord_y, dest.coord_z, dest.orientation);
 
     plMover->SetFallInformation(0, dest.coord_z);
 
@@ -322,7 +322,7 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
 
 #ifdef ENABLE_PLAYERBOTS
     // reset moving for bot if any
-    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->empty())
+    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->GetCurrentMovementGeneratorType() != IDLE_MOTION_TYPE)
     {
         if (MovementGenerator* movgen = plMover->GetMotionMaster()->top())
             movgen->Reset(*plMover);

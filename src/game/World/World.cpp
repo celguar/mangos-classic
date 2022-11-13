@@ -111,6 +111,7 @@ uint32 World::m_currentDiffSum = 0;
 uint32 World::m_currentDiffSumIndex = 0;
 uint32 World::m_averageDiff = 0;
 uint32 World::m_maxDiff = 0;
+list<uint32> World::m_histDiff;
 
 /// World constructor
 World::World(): mail_timer(0), mail_timer_expires(0), m_NextWeeklyQuestReset(0), m_opcodeCounters(NUM_MSG_TYPES)
@@ -1555,14 +1556,31 @@ void World::Update(uint32 diff)
     m_currentDiff = diff;
     m_currentDiffSum += diff;
     m_currentDiffSumIndex++;
-    if (m_currentDiffSumIndex && m_currentDiffSumIndex % 600 == 0)
+
+    m_histDiff.push_back(diff);
+    m_maxDiff = std::max(m_maxDiff, diff);
+
+    while(m_histDiff.size() >= 600)
     {
-        m_averageDiff = (uint32)(m_currentDiffSum / m_currentDiffSumIndex);
-        if (m_maxDiff < m_averageDiff)
-            m_maxDiff = m_averageDiff;
-        sLog.outBasic("Avg Diff: %u. Sessions online: %u.", m_averageDiff, (uint32)GetActiveSessionCount());
-        sLog.outBasic("Max Diff (last 5 min): %u.", m_maxDiff);
+        m_currentDiffSum -= m_histDiff.front();
+        m_histDiff.pop_front();
     }
+
+    m_averageDiff = (uint32)(m_currentDiffSum / m_histDiff.size());
+
+    if (m_currentDiffSumIndex && m_currentDiffSumIndex % 60 == 0)
+    {
+       //m_averageDiff = (uint32)(m_currentDiffSum / m_currentDiffSumIndex);
+        //if (m_maxDiff < m_averageDiff)
+        //    m_maxDiff = m_averageDiff;
+        sLog.outBasic("Avg Diff: %u. Sessions online: %u.", m_averageDiff, (uint32)GetActiveSessionCount());
+        sLog.outBasic("Max Diff: %u.", m_maxDiff);
+    }
+    if (m_currentDiffSum % 3000 == 0)
+    {
+        m_maxDiff = *std::max_element(m_histDiff.begin(), m_histDiff.end());
+    }
+    /*
     if (m_currentDiffSum > 300000)
     {
         m_currentDiffSum = 0;
@@ -1589,6 +1607,7 @@ void World::Update(uint32 diff)
             }
         }
     }
+    */
 
     ///- Update the different timers
     for (auto& m_timer : m_timers)
@@ -2156,7 +2175,7 @@ void World::ShutdownServ(uint32 time, uint32 options, uint8 exitcode)
     }
 
 #ifdef ENABLE_PLAYERBOTS
-    sRandomPlayerbotMgr.LogoutAllBots();
+    //sRandomPlayerbotMgr.LogoutAllBots();
 #endif
 }
 
