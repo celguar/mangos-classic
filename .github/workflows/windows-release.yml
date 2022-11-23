@@ -1,18 +1,22 @@
-name: Windows release build
+name: Windows Release
 
-#
-on:
-  schedule:
-    # every day at 6am
-    - cron:  '0 6 * * *'
+# use manual run
+on: [workflow_dispatch]
+
+# use schedule
+#on:
+#  schedule:
+#    # every day at 6am
+#    - cron:  '0 6 * * *'
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  CORE_TYPE: "cmangos"
   BUILD_TYPE: RelWithDebInfo
   REPO_DIR : ${{github.workspace}}
   BUILD_DIR: ${{github.workspace}}/bin/builddir
   BOOST_TOOLSET: "msvc"
-  BOOST_VERSION: "1.79.0.beta1"
+  BOOST_VERSION: "1.78.0"
   BOOST_INSTALL_DIR: "${{github.workspace}}/bin"
 
 jobs:
@@ -24,40 +28,46 @@ jobs:
     strategy:
       matrix:
        include:
-          - OPTIONAL_DEFINES: ""
-            TYPE: "default"
+          #- OPTIONAL_DEFINES: ""
+          #  TYPE: "default"
 
-          - OPTIONAL_DEFINES: "-DBUILD_EXTRACTORS=ON -DBUILD_PLAYERBOT=ON -DBUILD_AHBOT=ON -DBUILD_RECASTDEMOMOD=ON -DBUILD_GIT_ID=ON"
-            TYPE: "with-all"
+          - OPTIONAL_DEFINES: "-DBUILD_EXTRACTORS=ON -DBUILD_IKE3_BOTS=ON -DBUILD_AHBOT=ON -DBUILD_GIT_ID=ON"
+            TYPE: "with-bots"
 
-          - OPTIONAL_DEFINES: "-DBUILD_PLAYERBOT=ON -DBUILD_AHBOT=ON"
-            TYPE: "with-playerbot-ahbot"
+          #- OPTIONAL_DEFINES: "-DBUILD_PLAYERBOT=ON -DBUILD_AHBOT=ON"
+          #  TYPE: "with-playerbot-ahbot"
 
-          - OPTIONAL_DEFINES: "-DBUILD_PLAYERBOT=ON"
-            TYPE: "with-playerbot"
+          #- OPTIONAL_DEFINES: "-DBUILD_PLAYERBOT=ON"
+          #  TYPE: "with-playerbot"
 
-          - OPTIONAL_DEFINES: "-DBUILD_AHBOT=ON"
-            TYPE: "with-ahbot"
+          #- OPTIONAL_DEFINES: "-DBUILD_AHBOT=ON"
+          #  TYPE: "with-ahbot"
 
     steps:
-      - name: Checkout
+      - name: Checkout CMaNGOS Classic
         uses: actions/checkout@v2
         with:
           path: ${{env.REPO_DIR}}
+          
+      - name: Checkout Bots
+        uses: actions/checkout@v2
+        with:
+          ref: master
+          repository: celguar/mangosbot-bots
+          path: "${{env.REPO_DIR}}/src/modules/Bots"
 
       - uses: FranzDiebold/github-env-vars-action@v2
       - name: Create Build Environment
         run: |
-          echo "ARCHIVE_FILENAME=$env:CI_REPOSITORY_NAME-${{matrix.TYPE}}-$env:CI_SHA_SHORT.zip" >> $env:GITHUB_ENV
+          echo "ARCHIVE_FILENAME=classic-with-bots.zip" >> $env:GITHUB_ENV
           cmake -E make_directory ${{ env.BUILD_DIR }}
-
       # install dependencies
       - name: Cache Windows boost
         uses: actions/cache@v2
         id: cache-boost
         with:
           path: "${{env.BOOST_INSTALL_DIR}}/boost"
-          key: ${{ runner.os }}-${{ hashFiles('.github/workflows/windows-release.yml') }}
+          key: ${{ runner.os }}-boost
 
       - if: steps.cache-boost.outputs.cache-hit != 'true'
         name: Install boost
@@ -89,7 +99,7 @@ jobs:
       - name: Archive files
         run: |
           cd bin
-          7z a -tzip ${{env.ARCHIVE_FILENAME}} "x64_${{env.BUILD_TYPE}}"
+          7z a -tzip ${{env.ARCHIVE_FILENAME}} "x64_${{env.BUILD_TYPE}}/*"
       - name: Archive this artefact
         uses: actions/upload-artifact@v2
         with:
@@ -98,35 +108,19 @@ jobs:
 
   upload:
     runs-on: windows-2022
-    permissions:
-      contents: write  # for marvinpinto/action-automatic-releases to generate pre-release
+    permissions: write-all
     needs: build
 
     steps:
-      - name: Download artifact snapshot-default
+      #- name: Download artifact snapshot-default
+      #  uses: actions/download-artifact@v1
+      #  with:
+      #    name: snapshot-default
+      #    path: all_snapshots
+      - name: Download artifact snapshot-with-bots
         uses: actions/download-artifact@v1
         with:
-          name: snapshot-default
-          path: all_snapshots
-      - name: Download artifact snapshot-with-all
-        uses: actions/download-artifact@v1
-        with:
-          name: snapshot-with-all
-          path: all_snapshots
-      - name: Download artifact snapshot-with-playerbot-ahbot
-        uses: actions/download-artifact@v1
-        with:
-          name: snapshot-with-playerbot-ahbot
-          path: all_snapshots
-      - name: Download artifact snapshot-with-playerbot
-        uses: actions/download-artifact@v1
-        with:
-          name: snapshot-with-playerbot
-          path: all_snapshots
-      - name: Download artifact snapshot-with-ahbot
-        uses: actions/download-artifact@v1
-        with:
-          name: snapshot-with-ahbot
+          name: snapshot-with-bots
           path: all_snapshots
 
       - name: Get current date
@@ -139,7 +133,7 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
           prerelease: false
-          title: "Development Build(${{ steps.date.outputs.date }})"
+          title: "Windows Release (${{ steps.date.outputs.date }})"
           files: all_snapshots
 
   notify-success:
@@ -156,33 +150,27 @@ jobs:
           echo "GIT_BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
           shortSHA=`echo ${GITHUB_SHA} | cut -c1-8`
           echo "GIT_SHORT_SHA=${shortSHA}" >> $GITHUB_ENV
-          projectNames="${GITHUB_REPOSITORY#*/}"
-          expension="${projectNames#*-}"
+          projectNames="CMaNGOS Classic with ike3 bots"
+          coreType="cmangos"
+          expension="classic"
+          echo "CORE_TYPE=${coreType}" >> $GITHUB_ENV
           echo "EXPENSION_NAME=${expension}" >> $GITHUB_ENV
-          echo "DEFAULT_ARCH_NAME=${projectNames}-default-${shortSHA}.zip" >> $GITHUB_ENV
-          echo "ALL_ARCH_NAME=${projectNames}-with-all-${shortSHA}.zip" >> $GITHUB_ENV
-          echo "AB_ARCH_NAME=${projectNames}-with-ahbot-${shortSHA}.zip" >> $GITHUB_ENV
-          echo "PB_ARCH_NAME=${projectNames}-with-playerbot-${shortSHA}.zip" >> $GITHUB_ENV
-          echo "PB_AB_ARCH_NAME=${projectNames}-with-playerbot-ahbot-${shortSHA}.zip" >> $GITHUB_ENV
-
+          echo "ALL_ARCH_NAME=${expension}-with-bots.zip" >> $GITHUB_ENV
       - name: Notify
         uses: rjstone/discord-webhook-notify@v1.0.4
         with:
           severity: info
-          username: ${{env.EXPENSION_NAME}}-core
+          username: ${{env.CORE_TYPE}}-${{env.EXPENSION_NAME}}
           description: |
-            **${{env.EXPENSION_NAME}} prebuilt have just been released**
+            **Windows release success!**
           details: |
-            **Branch:** ${{env.GIT_BRANCH}}
-            __**Winodws prebuild Binaries**__
-            - [Default download](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.DEFAULT_ARCH_NAME}})
-            - [All options on](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.ALL_ARCH_NAME}})
-            - [AhBot enabled](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.AB_ARCH_NAME}})
-            - [PlayerBot enabled](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.PB_ARCH_NAME}})
-            - [AhBot and PlayerBot enabled](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.PB_AB_ARCH_NAME}})
-          footer: By CMaNGOS team!
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_RELEASE }}
-          avatarUrl: https://github.githubassets.com/images/modules/logos_page/Octocat.png
+            - **Core branch:** ${{env.GIT_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.GIT_BRANCH}}))
+            - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
+            - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
+            - [**Download Windows Binaries**](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.ALL_ARCH_NAME}})
+          footer: Build success
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
+          avatarUrl: https://github.githubassets.com/favicons/favicon-success.png
 
   notify:
     name: Discord Notification
@@ -198,20 +186,21 @@ jobs:
         run: |
           echo "GIT_BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
           echo "GIT_SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-
+          coreType="cmangos"
+          expension="classic"
+          echo "CORE_TYPE=${coreType}" >> $GITHUB_ENV
+          echo "EXPENSION_NAME=${expension}" >> $GITHUB_ENV
       - name: Notify
         uses: rjstone/discord-webhook-notify@v1.0.4
         with:
           severity: error
-          username: ${{env.EXPENSION_NAME}}-core
+          username: ${{env.CORE_TYPE}}-${{env.EXPENSION_NAME}}
           description: |
-            **Windows buid failed**
+            **Windows release failed!**
           details: |
-            - **Branch:** ${{env.GIT_BRANCH}}
-            - **Pusher:** ${{github.event.pusher.name}}
-            - **Author:** ${{github.event.head_commit.author.name}}
-            - **Commit:** [${{github.repository}}/${{env.GIT_SHORT_SHA}}](${{github.server_url}}/${{ github.repository }}/commit/${{github.sha}})
+            - **Core branch:** ${{env.GIT_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.GIT_BRANCH}}))
+            - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
             - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
-          footer: CMaNGOS police called!
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          avatarUrl: https://github.githubassets.com/images/modules/logos_page/Octocat.png
+          footer: Release fail
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
+          avatarUrl: https://github.githubassets.com/favicons/favicon-failure.png
