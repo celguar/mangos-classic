@@ -1230,6 +1230,12 @@ void Map::Update(const uint32& t_diff)
     for (auto wObj : objToUpdate)
     {
         wObj->Update(t_diff);
+        // update visibility of far visible objects
+        if (wObj->GetVisibilityData().GetVisibilityDistance() > GetVisibilityDistance() && !urand(0, 4))
+        {
+            wObj->GetViewPoint().Call_UpdateVisibilityForOwner();
+            wObj->UpdateObjectVisibility();
+        }
         ++count;
     }
 
