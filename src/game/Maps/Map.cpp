@@ -1051,10 +1051,6 @@ void Map::Update(const uint32& t_diff)
             player->GetVisibilityData().SetVisibilityDistanceOverride(VisibilityDistanceType::Tiny);
 #endif
 
-        // update objects beyond visibility distance
-        if (!player->GetPlayerbotAI() && !player->isAFK() && !player->IsStopped() && !urand(0, 9))
-            player->GetCamera().UpdateVisibilityForOwner(false, true);
-
         VisitNearbyCellsOf(player, grid_object_update, world_object_update);
 
         // If player is using far sight, visit that object too
@@ -1134,6 +1130,12 @@ void Map::Update(const uint32& t_diff)
     for (auto wObj : objToUpdate)
     {
         wObj->Update(t_diff);
+        // update visibility of far visible objects
+        if (wObj->GetVisibilityData().GetVisibilityDistance() > GetVisibilityDistance() && !urand(0, 4))
+        {
+            wObj->GetViewPoint().Call_UpdateVisibilityForOwner();
+            wObj->UpdateObjectVisibility();
+        }
         ++count;
     }
 
