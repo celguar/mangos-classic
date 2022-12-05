@@ -773,14 +773,19 @@ void Map::DoUpdate(uint32 maxDiff, uint32 minimumTimeSinceLastUpdate /* = 0*/)
         diff = maxDiff;
     _lastMapUpdate = now;
 
-    __try
+    if (sWorld.getConfig(CONFIG_BOOL_ANTICRASH))
     {
+        __try
+        {
+            Update(diff);
+        }
+        __except (filter(GetExceptionCode(), GetExceptionInformation()))
+        {
+            sMapMgr.MapCrashed(this);
+        }
+    }
+    else
         Update(diff);
-    }
-    __except (filter(GetExceptionCode(), GetExceptionInformation()))
-    {
-        sMapMgr.MapCrashed(this);
-    }
 }
 
 void WorldMap::HandleCrash()
