@@ -561,6 +561,8 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_BOOL_COLLECTORS_EDITION, "Custom.CollectorsEdition", true);
 
+    setConfig(CONFIG_BOOL_ANTICRASH, "Anticrash.Enabled", false);
+
     setConfigMinMax(CONFIG_UINT32_MAINTENANCE_DAY, "MaintenanceDay", 4, 0, 6);
 
     setConfig(CONFIG_BOOL_ALWAYS_SHOW_QUEST_GREETING, "AlwaysShowQuestGreeting", false);
