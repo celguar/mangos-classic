@@ -263,6 +263,9 @@ int Master::Run()
     // send all still queued mass mails (before DB connections shutdown)
     sMassMailMgr.Update(true);
 
+    // kick and save all players
+    sWorld.KickAll(true);
+
     ///- Wait for DB delay threads to end
     CharacterDatabase.HaltDelayThread();
     WorldDatabase.HaltDelayThread();
