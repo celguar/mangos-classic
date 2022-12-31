@@ -21,6 +21,7 @@
 
 #include "Platform/Define.h"
 #include "Util/ProducerConsumerQueue.h"
+#include "Maps/Map.h"
 
 #include <mutex>
 #include <thread>

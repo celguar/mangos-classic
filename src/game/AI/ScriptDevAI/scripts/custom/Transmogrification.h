@@ -1,7 +1,7 @@
 #ifndef DEF_TRANSMOGRIFICATION_H
 #define DEF_TRANSMOGRIFICATION_H
 
-#include "World.h"
+#include "World/World.h"
 
 #include <unordered_map>
 
