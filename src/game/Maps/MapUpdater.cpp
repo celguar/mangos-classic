@@ -115,7 +115,11 @@ void MapUpdater::schedule_update(Map& map, Worker* worker)
     // MapInstanced re schedule the instances it contains by itself, so we want to call it only once
     // Also currently test maps needs to be updated once per world update
     bool useLagMitigation = false;
-    if (useLagMitigation && map.Instanceable() && map.HasRealPlayers())
+    if (useLagMitigation && map.Instanceable() 
+#ifdef ENABLE_PLAYERBOTS
+        && map.HasRealPlayers()
+#endif
+        )
     {
         pending_loop_requests++;
         _loop_queue.Push(std::move(worker));
