@@ -31,7 +31,7 @@
 #include "Server/WorldSession.h"
 #include "Entities/Object.h"
 #include "Chat/Chat.h"
-#include "Language.h"
+#include "Tools/Language.h"
 #include "DBScripts/ScriptMgr.h"
 #include "World/World.h"
 #include "Groups/Group.h"
