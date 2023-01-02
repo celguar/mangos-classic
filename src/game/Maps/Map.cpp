@@ -39,8 +39,6 @@
 #include "Chat/Chat.h"
 #include "Weather/Weather.h"
 #include "AI/ScriptDevAI/ScriptDevAIMgr.h"
-#include "Errors.h"
-#pragma init_seg(lib)
 
 #ifdef BUILD_METRICS
  #include "Metric/Metric.h"
