@@ -51,6 +51,7 @@
 #include "playerbot/playerbot.h"
 #endif
 
+#ifdef _WIN32
 int filter(unsigned int code, struct _EXCEPTION_POINTERS* ep)
 {
     sLog.outError("Map Updater exception happened!");
@@ -65,6 +66,7 @@ int filter(unsigned int code, struct _EXCEPTION_POINTERS* ep)
         return EXCEPTION_CONTINUE_SEARCH;
     };
 }
+#endif
 
 Map::~Map()
 {
@@ -809,14 +811,18 @@ void Map::DoUpdate(uint32 maxDiff, uint32 minimumTimeSinceLastUpdate /* = 0*/)
 
     if (sWorld.getConfig(CONFIG_BOOL_ANTICRASH))
     {
+#ifdef _WIN32
         __try
         {
+#endif
             Update(diff);
+#ifdef _WIN32
         }
         __except (filter(GetExceptionCode(), GetExceptionInformation()))
         {
             sMapMgr.MapCrashed(this);
         }
+#endif
     }
     else
         Update(diff);
