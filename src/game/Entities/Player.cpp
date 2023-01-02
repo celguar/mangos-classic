@@ -62,6 +62,7 @@
 #include "World/WorldState.h"
 #include "Anticheat/Anticheat.hpp"
 #include "AI/ScriptDevAI/scripts/custom/Transmogrification.h"
+#include "AI/ScriptDevAI/scripts/custom/Transmogrification.cpp"
 
 #ifdef BUILD_PLAYERBOT
 #include "PlayerBot/Base/PlayerbotAI.h"
