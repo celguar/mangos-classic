@@ -61,8 +61,11 @@
 #include "Loot/LootMgr.h"
 #include "World/WorldState.h"
 #include "Anticheat/Anticheat.hpp"
+#ifdef _WIN32
 #include "AI/ScriptDevAI/scripts/custom/Transmogrification.h"
+#else
 #include "AI/ScriptDevAI/scripts/custom/Transmogrification.cpp"
+#endif
 
 #ifdef BUILD_PLAYERBOT
 #include "PlayerBot/Base/PlayerbotAI.h"
