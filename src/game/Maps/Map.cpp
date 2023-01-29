@@ -776,14 +776,19 @@ void Map::DoUpdate(uint32 maxDiff, uint32 minimumTimeSinceLastUpdate /* = 0*/)
         diff = maxDiff;
     _lastMapUpdate = now;
 
-    __try
+    if (sWorld.getConfig(CONFIG_BOOL_ANTICRASH))
     {
+        __try
+        {
+            Update(diff);
+        }
+        __except (filter(GetExceptionCode(), GetExceptionInformation()))
+        {
+            sMapMgr.MapCrashed(this);
+        }
+    }
+    else
         Update(diff);
-    }
-    __except (filter(GetExceptionCode(), GetExceptionInformation()))
-    {
-        sMapMgr.MapCrashed(this);
-    }
 }
 
 void WorldMap::HandleCrash()
@@ -1061,9 +1066,6 @@ void Map::Update(const uint32& t_diff)
             continue;
         }
 #endif
-        // update objects beyond visibility distance
-        if (!player->GetPlayerbotAI() && !player->isAFK() && !player->IsStopped() && !urand(0, 9))
-            player->GetCamera().UpdateVisibilityForOwner(false, true);
 
         VisitNearbyCellsOf(player, grid_object_update, world_object_update);
 
@@ -1139,6 +1141,12 @@ void Map::Update(const uint32& t_diff)
     for (auto wObj : objToUpdate)
     {
         wObj->Update(t_diff);
+        // update visibility of far visible objects
+        if (wObj->GetVisibilityData().GetVisibilityDistance() > GetVisibilityDistance() && !urand(0, 4))
+        {
+            wObj->GetViewPoint().Call_UpdateVisibilityForOwner();
+            wObj->UpdateObjectVisibility();
+        }
         ++count;
     }
 
