@@ -255,25 +255,25 @@ void MapManager::Update(uint32 diff)
             {
                 if (isContinent)
                 {
-                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Unloading grids...", mapId, mapName);
+                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Unloading grids...", mapId, mapName.c_str());
                     crashedMap->UnloadAll(true);
-                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Deactivating...", mapId, mapName);
+                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Deactivating...", mapId, mapName.c_str());
                     i_maps.erase(iter);
-                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Restarting...", mapId, mapName);
+                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Restarting...", mapId, mapName.c_str());
                     Map* m = new WorldMap(mapId, i_gridCleanUpDelay);
                     i_maps[MapID(mapId)] = m;
                     m->Initialize();
                     SetMapCrashStatus(mapId, instanceId, MAP_CRASH_NOCRASH);
                     delete crashedMap;
-                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Activated!", mapId, mapName);
+                    sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Activated!", mapId, mapName.c_str());
                     iter++;
                 }
                 else
                 {
-                    sLog.outError("MAP ANTI CRASH: %s Map: %u (%s) Deactivating...", isBg ? "Battleground" : "Dungeon", mapId, mapName);
+                    sLog.outError("MAP ANTI CRASH: %s Map: %u (%s) Deactivating...", isBg ? "Battleground" : "Dungeon", mapId, mapName.c_str());
                     i_maps.erase(iter);
                     SetMapCrashStatus(crashedMap, MAP_CRASH_NOCRASH);
-                    sLog.outError("MAP ANTI CRASH: %s Map: %u (%s) Removed!", isBg ? "Battleground" : "Dungeon", mapId, mapName);
+                    sLog.outError("MAP ANTI CRASH: %s Map: %u (%s) Removed!", isBg ? "Battleground" : "Dungeon", mapId, mapName.c_str());
                     iter++;
                 }
             }
