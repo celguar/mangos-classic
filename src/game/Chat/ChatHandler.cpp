@@ -371,15 +371,16 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
 
 #ifdef ENABLE_PLAYERBOTS
             PlayerbotMgr *mgr = GetPlayer()->GetPlayerbotMgr();
-            if (mgr)
+            if (mgr && GetPlayer()->GetGuildId())
             {
                 for (PlayerBotMap::const_iterator it = mgr->GetPlayerBotsBegin(); it != mgr->GetPlayerBotsEnd(); ++it)
                 {
                     Player* const bot = it->second;
-                    if (bot->GetGuildId() == GetPlayer()->GetGuildId() && lang != LANG_ADDON)
+                    if (bot->GetGuildId() == GetPlayer()->GetGuildId())
                         bot->GetPlayerbotAI()->HandleCommand(type, msg, *GetPlayer(), lang);
                 }
             }
+            sRandomPlayerbotMgr.HandleCommand(type, msg, *_player, "", GetPlayer()->GetTeam(), lang);
 #endif
 
             break;
