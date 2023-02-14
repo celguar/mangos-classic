@@ -291,8 +291,9 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
                 GetPlayer()->m_speakTime = 0;
                 GetPlayer()->m_speakCount = 0;
             }
-#endif
 
+            if (msg.find("BOT\t") != 0) //These are spoofed SendAddonMessage with channel "WHISPER".
+#endif
             GetPlayer()->Whisper(msg, lang, player->GetObjectGuid());
 
             if (lang != LANG_ADDON && !m_anticheat->IsSilenced())
