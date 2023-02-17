@@ -712,6 +712,7 @@ class GameObject : public WorldObject
         void Update(const uint32 diff) override;
         void Heartbeat() override;
         GameObjectInfo const* GetGOInfo() const;
+        GameObjectInfo* GetGOInfo();
 
         bool IsTransport() const;
         bool IsMoTransport() const;
@@ -761,6 +762,7 @@ class GameObject : public WorldObject
             m_respawnTime = respawn > 0 ? time(nullptr) + respawn : 0;
             m_respawnDelay = respawn > 0 ? uint32(respawn) : 0;
         }
+        void SetDeleteAfterUse(bool deleteAfterUse) { m_deleteAfterUse = deleteAfterUse; }
         void Respawn();
         bool IsSpawned() const
         {
@@ -899,12 +901,15 @@ class GameObject : public WorldObject
         void SetGameObjectGroup(GameObjectGroup* group);
         void ClearGameObjectGroup();
         GameObjectGroup* GetGameObjectGroup() const { return m_goGroup; }
+
     protected:
         uint32      m_spellId;
         time_t      m_respawnTime;                          // (secs) time of next respawn (or despawn if GO have owner()),
         uint32      m_respawnDelay;                         // (secs) if 0 then current GO state no dependent from timer
         bool        m_respawnOverriden;
         bool        m_respawnOverrideOnce;
+        bool        m_deleteAfterUse;
+
         bool        m_forcedDespawn;
         LootState   m_lootState;
         bool        m_spawnedByDefault;
@@ -924,6 +929,7 @@ class GameObject : public WorldObject
         GuidSet m_UniqueUsers;                              // all players who use item, some items activated after specific amount unique uses
 
         GameObjectInfo const* m_goInfo;
+        GameObjectInfo m_goInfoOverride;                    // Override game object info values
 
         Position m_stationaryPosition;
 
