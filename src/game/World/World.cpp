@@ -52,6 +52,7 @@
 #include "VMapFactory.h"
 #include "MotionGenerators/MoveMap.h"
 #include "GameEvents/GameEventMgr.h"
+#include "Hardcore/HardcoreMgr.h"
 #include "Pools/PoolManager.h"
 #include "Database/DatabaseImpl.h"
 #include "Grids/GridNotifiersImpl.h"
@@ -832,6 +833,19 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_BOOL_PATH_FIND_OPTIMIZE, "PathFinder.OptimizePath", true);
     setConfig(CONFIG_BOOL_PATH_FIND_NORMALIZE_Z, "PathFinder.NormalizeZ", false);
 
+    // Start Hardcore Config
+    setConfig(CONFIG_BOOL_HARDCORE_ENABLED, "Hardcore.Enable", false);
+    setConfig(CONFIG_BOOL_HARDCORE_SPAWN_GRAVE, "Hardcore.SpawnGrave", false);
+    setConfig(CONFIG_UINT32_HARDCORE_GRAVE_GAMEOBJECT_ID, "Hardcore.GraveGameObjectID", 61);
+    setConfig(CONFIG_FLOAT_HARDCORE_DROP_GEAR, "Hardcore.DropGear", 0.0f);
+    setConfig(CONFIG_FLOAT_HARDCORE_DROP_ITEMS, "Hardcore.DropItems", 0.0f);
+    setConfig(CONFIG_FLOAT_HARDCORE_DROP_MONEY, "Hardcore.DropMoney", 0.0f);
+    setConfig(CONFIG_UINT32_HARDCORE_LOOT_GAMEOBJECT_ID, "Hardcore.LootGameObjectID", 2850);
+    setConfig(CONFIG_BOOL_HARDCORE_REVIVE_DISABLED, "Hardcore.ReviveDisabled", false);
+    setConfig(CONFIG_BOOL_HARDCORE_REVIVE_ON_GRAVEYARD, "Hardcore.ReviveOnGraveyard", false);
+    setConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN, "Hardcore.LevelDown", 0.0f);
+    // End Hardcore Config
+
     // Start Solocraft Config
     setConfig(CONFIG_BOOL_SOLOCRAFT_ENABLED, "Solocraft.Enable", true);
     setConfig(CONFIG_BOOL_SOLOCRAFT_ANNOUNCE, "Solocraft.Announce", true);
@@ -958,6 +972,13 @@ void World::SetInitialWorldSettings()
 
     ///- Remove the bones (they should not exist in DB though) and old corpses after a restart
     CharacterDatabase.PExecute("DELETE FROM corpse WHERE corpse_type = '0' OR time < (UNIX_TIMESTAMP()-'%u')", 3 * DAY);
+
+    // Load Hardcore manager
+    if(sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
+    {
+        sLog.outString("Loading hardcore manager initial config...");
+        sHardcoreMgr.PreLoad();
+    }
 
     /// load spell_dbc first! dbc's need them
     sLog.outString("Loading spell_template...");
@@ -1489,6 +1510,13 @@ void World::SetInitialWorldSettings()
 #ifdef ENABLE_PLAYERBOTS
     sPlayerbotAIConfig.Initialize();
 #endif
+
+    // Load Hardcore manager
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
+    {
+        sLog.outString("Loading hardcore manager...");
+        sHardcoreMgr.Load();
+    }
 
     sTransmogrification->LoadConfig(false);
     CharacterDatabase.Execute("DELETE FROM custom_transmogrification WHERE NOT EXISTS (SELECT 1 FROM item_instance WHERE item_instance.guid = custom_transmogrification.GUID)");

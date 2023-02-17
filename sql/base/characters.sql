@@ -1602,6 +1602,39 @@ CREATE TABLE `custom_solocraft_character_stats` (
   PRIMARY KEY (`GUID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+CREATE TABLE IF NOT EXISTS `custom_hardcore_loot_gameobjects` (
+  `id` int(11) unsigned NOT NULL,
+  `player` int(11) unsigned NOT NULL COMMENT 'Player identifier',
+  `loot_table` int(11) unsigned NOT NULL COMMENT 'custom_hardcore_loot_tables identifier',
+  `gameobject_loot_template` int(11) unsigned NOT NULL COMMENT 'gameobject_loot_template entry',
+  `money` int(11) unsigned NOT NULL DEFAULT '0',
+  `position_x` float NOT NULL DEFAULT '0',
+  `position_y` float NOT NULL DEFAULT '0',
+  `position_z` float NOT NULL DEFAULT '0',
+  `orientation` float NOT NULL DEFAULT '0',
+  `map` int(11) NOT NULL DEFAULT '0' COMMENT 'Map identifier',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+CREATE TABLE IF NOT EXISTS `custom_hardcore_loot_tables` (
+  `id` int(11) unsigned NOT NULL,
+  `item` int(11) unsigned NOT NULL COMMENT 'Item identifier',
+  `amount` tinyint(3) NOT NULL DEFAULT '1' COMMENT 'Amount of items',
+  PRIMARY KEY (`id`, `item`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+CREATE TABLE IF NOT EXISTS `custom_hardcore_grave_gameobjects` (
+  `id` int(11) unsigned NOT NULL,
+  `player` int(11) unsigned NOT NULL COMMENT 'Player identifier',
+  `gameobject_template` int(11) unsigned NOT NULL COMMENT 'gameobject_template entry',
+  `position_x` float NOT NULL DEFAULT '0',
+  `position_y` float NOT NULL DEFAULT '0',
+  `position_z` float NOT NULL DEFAULT '0',
+  `orientation` float NOT NULL DEFAULT '0',
+  `map` int(11) NOT NULL DEFAULT '0' COMMENT 'Map identifier',
+  PRIMARY KEY (`id`, `player`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;

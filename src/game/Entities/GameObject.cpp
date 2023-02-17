@@ -77,6 +77,7 @@ GameObject::GameObject() : WorldObject(),
     m_respawnDelay = 25;
     m_respawnOverriden = false;
     m_respawnOverrideOnce = false;
+    m_deleteAfterUse = false;
     m_forcedDespawn = false;
 
     m_lootState = GO_READY;
@@ -199,6 +200,7 @@ bool GameObject::Create(uint32 dbGuid, uint32 guidlow, uint32 name_id, Map* map,
     Object::_Create(dbGuid, guidlow, goinfo->id, HIGHGUID_GAMEOBJECT);
 
     m_goInfo = goinfo;
+    m_goInfoOverride = *goinfo;
 
     if (goinfo->type >= MAX_GAMEOBJECT_TYPE)
     {
@@ -632,11 +634,20 @@ void GameObject::Update(const uint32 diff)
             }
 
             // Remove wild summoned after use
-            if (!HasStaticDBSpawnData() && (!GetSpellId() || GetGOInfo()->GetDespawnPossibility() || GetGOInfo()->IsDespawnAtAction() || m_forcedDespawn))
+            if (!HasStaticDBSpawnData() && (!GetSpellId() || GetGOInfo()->GetDespawnPossibility() || GetGOInfo()->IsDespawnAtAction() || m_forcedDespawn) || m_deleteAfterUse)
             {
                 if (Unit* owner = GetOwner())
+                {
                     owner->RemoveGameObject(this, false);
+                }
+
                 Delete();
+
+                if (m_deleteAfterUse)
+                {
+                    DeleteFromDB();
+                }
+
                 return;
             }
 
@@ -993,7 +1004,12 @@ WorldObject* GameObject::GetSpawner() const
 
 GameObjectInfo const* GameObject::GetGOInfo() const
 {
-    return m_goInfo;
+    return &m_goInfoOverride;
+}
+
+GameObjectInfo* GameObject::GetGOInfo()
+{
+    return &m_goInfoOverride;
 }
 
 /*********************************************************/
