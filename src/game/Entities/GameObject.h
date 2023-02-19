@@ -759,7 +759,10 @@ class GameObject : public WorldObject
             m_respawnTime = respawn > 0 ? time(nullptr) + respawn : 0;
             m_respawnDelay = respawn > 0 ? uint32(respawn) : 0;
         }
-        void SetDeleteAfterUse(bool deleteAfterUse) { m_deleteAfterUse = deleteAfterUse; }
+        
+        void SetIsHardcoreLoot(bool hardcoreLoot) { m_hardcoreLoot = hardcoreLoot; }
+        bool IsHardcoreLoot() const { return m_hardcoreLoot; }
+
         void Respawn();
         bool IsSpawned() const
         {
@@ -905,7 +908,7 @@ class GameObject : public WorldObject
         uint32      m_respawnDelay;                         // (secs) if 0 then current GO state no dependent from timer
         bool        m_respawnOverriden;
         bool        m_respawnOverrideOnce;
-        bool        m_deleteAfterUse;
+        bool        m_hardcoreLoot;
 
         bool        m_forcedDespawn;
         LootState   m_lootState;
