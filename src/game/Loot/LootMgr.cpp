@@ -1996,9 +1996,7 @@ InventoryResult Loot::SendItem(Player* target, LootItem* lootItem, bool sendErro
         msg = target->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, lootItem->itemId, lootItem->count);
         if (msg == EQUIP_ERR_OK)
         {
-            Item* newItem = target->StoreNewItem(dest, lootItem->itemId, true, lootItem->randomPropertyId);
-
-            sHardcoreMgr.OnItemLooted(*this, newItem, target);
+            Item* newItem = target->StoreNewItem(dest, lootItem->itemId, true, lootItem->randomPropertyId, this);
 
             if (lootItem->freeForAll)
             {

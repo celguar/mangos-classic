@@ -546,9 +546,6 @@ void HardcorePlayerLoot::Create()
                 }
             }
 
-            // Reload cached loot table
-            LoadLootTemplates_Gameobject();
-
             // Spawn generated game objects
             Spawn();
         }
@@ -906,6 +903,11 @@ void HardcoreMgr::Load()
     LoadGraves();
 }
 
+void HardcoreMgr::OnPlayerRevived(Player* player)
+{
+    LevelDown(player);
+}
+
 void HardcoreMgr::OnPlayerDeath(Player* player)
 {
     CreateLoot(player);
@@ -919,8 +921,6 @@ void HardcoreMgr::OnPlayerReleaseSpirit(Player* player, bool teleportedToGraveya
         player->ResurrectPlayer(1.0f);
         player->SpawnCorpseBones();
     }
-
-    LevelDown(player);
 }
 
 void HardcoreMgr::PreLoadLoot()
@@ -1043,11 +1043,11 @@ bool HardcoreMgr::FillLoot(Loot& loot)
     return false;
 }
 
-void HardcoreMgr::OnItemLooted(Loot& loot, Item* item, Player* player)
+void HardcoreMgr::OnItemLooted(Loot* loot, Item* item, Player* player)
 {
-    if (item)
+    if (item && loot)
     {
-        const GameObject* gameObject = (GameObject*)loot.GetLootTarget();
+        const GameObject* gameObject = (GameObject*)loot->GetLootTarget();
         if (gameObject && gameObject->IsHardcoreLoot())
         {
             // Look for the items in the loot cache
@@ -1071,10 +1071,6 @@ void HardcoreMgr::OnItemLooted(Loot& loot, Item* item, Player* player)
                         {
                             item->SetUInt32Value(ITEM_FIELD_DURABILITY, hardcoreItem->m_durability);
                         }
-
-                        item->SendCreateUpdateToPlayer(player);
-                        item->SetState(ITEM_CHANGED, player);
-                        item->SaveToDB();
                     }
 
                     // Remove the item from the loot table

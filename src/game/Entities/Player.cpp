@@ -4395,6 +4395,8 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
         if (InstanceData* instanceData = GetMap()->GetInstanceData())
             instanceData->OnPlayerResurrect(this);
 
+    sHardcoreMgr.OnPlayerRevived(this);
+
     if (!applySickness)
         return;
 
@@ -9874,7 +9876,7 @@ void Player::RemoveAmmo()
 }
 
 // Return stored item (if stored to stack, it can diff. from pItem). And pItem ca be deleted in this case.
-Item* Player::StoreNewItem(ItemPosCountVec const& dest, uint32 item, bool update, int32 randomPropertyId)
+Item* Player::StoreNewItem(ItemPosCountVec const& dest, uint32 item, bool update, int32 randomPropertyId, Loot* loot)
 {
     uint32 count = 0;
     for (auto itr : dest)
@@ -9883,6 +9885,7 @@ Item* Player::StoreNewItem(ItemPosCountVec const& dest, uint32 item, bool update
     Item* pItem = Item::CreateItem(item, count, this, randomPropertyId);
     if (pItem)
     {
+        sHardcoreMgr.OnItemLooted(loot, pItem, this);
         ItemAddedQuestCheck(item, count);
         pItem = StoreItem(dest, pItem, update);
     }
