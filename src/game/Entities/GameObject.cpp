@@ -77,7 +77,7 @@ GameObject::GameObject() : WorldObject(),
     m_respawnDelay = 25;
     m_respawnOverriden = false;
     m_respawnOverrideOnce = false;
-    m_deleteAfterUse = false;
+    m_hardcoreLoot = false;
     m_forcedDespawn = false;
 
     m_lootState = GO_READY;
@@ -634,7 +634,7 @@ void GameObject::Update(const uint32 diff)
             }
 
             // Remove wild summoned after use
-            if (!HasStaticDBSpawnData() && (!GetSpellId() || GetGOInfo()->GetDespawnPossibility() || GetGOInfo()->IsDespawnAtAction() || m_forcedDespawn) || m_deleteAfterUse)
+            if (!HasStaticDBSpawnData() && (!GetSpellId() || GetGOInfo()->GetDespawnPossibility() || GetGOInfo()->IsDespawnAtAction() || m_forcedDespawn) || m_hardcoreLoot)
             {
                 if (Unit* owner = GetOwner())
                 {
@@ -643,7 +643,7 @@ void GameObject::Update(const uint32 diff)
 
                 Delete();
 
-                if (m_deleteAfterUse)
+                if (m_hardcoreLoot)
                 {
                     DeleteFromDB();
                 }

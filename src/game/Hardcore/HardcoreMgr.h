@@ -10,8 +10,14 @@ struct HardcoreLootItem
 {
     HardcoreLootItem(uint32 id, uint8 amount);
     HardcoreLootItem(uint32 id, uint8 amount, const std::vector<ItemSlot>& slots);
+    HardcoreLootItem(uint32 id, uint8 amount, uint32 randomPropertyId, uint32 durability, const std::string& enchantments);
+    HardcoreLootItem(uint32 id, uint8 amount, uint32 randomPropertyId, uint32 durability, const std::string& enchantments, const std::vector<ItemSlot>& slots);
 
     uint32 m_id;
+    bool m_isGear;
+    uint32 m_randomPropertyId;
+    uint32 m_durability;
+    std::string m_enchantments;
     uint8 m_amount;
     std::vector<ItemSlot> m_slots;
 };
@@ -19,7 +25,7 @@ struct HardcoreLootItem
 class HardcoreLootGameObject
 {
 private:
-    HardcoreLootGameObject(uint32 id, uint32 playerId, uint32 lootTableId, uint32 lootTableEntry, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items);
+    HardcoreLootGameObject(uint32 id, uint32 playerId, uint32 lootTableId, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items);
 
 public:
     static HardcoreLootGameObject Load(uint32 id, uint32 playerId);
@@ -30,12 +36,19 @@ public:
     bool IsSpawned() const;
     void Destroy();
 
+    uint32 GetId() const { return m_id; }
+    uint32 GetGUID() const { return m_guid; }
+    uint32 GetPlayerId() const { return m_playerId; }
+    bool HasItems() const { return !m_items.empty(); }
+    const std::vector<HardcoreLootItem>& GetItems() const { return m_items; }
+    const HardcoreLootItem* GetItem(uint32 itemId) const;
+    bool RemoveItem(uint32 itemId);
+
 private:
     uint32 m_id;
     uint32 m_playerId;
     uint32 m_guid;
     uint32 m_lootTableId;
-    uint32 m_lootTableEntry;
     uint32 m_money;
     float m_positionX;
     float m_positionY;
@@ -50,6 +63,10 @@ class HardcorePlayerLoot
 public:
     HardcorePlayerLoot(uint32 playerId);
     void LoadGameObject(uint32 gameObjectId);
+    HardcoreLootGameObject* FindGameObjectByGUID(const uint32 guid);
+    bool RemoveGameObject(uint32 gameObjectId);
+
+    bool HasGameObjects() const { return !m_gameObjects.empty(); }
 
     void Spawn();
     void DeSpawn();
@@ -124,7 +141,12 @@ public:
     void OnPlayerReleaseSpirit(Player* player, bool teleportedToGraveyard);
 
     void CreateLoot(Player* player);
+    bool RemoveLoot(uint32 playerId);
     void RemoveAllLoot();
+    // Called by LootMgr::FillLoot
+    bool FillLoot(Loot& loot);
+    // Callet by Loot::SendItem
+    void OnItemLooted(Loot& loot, Item* item, Player* player);
 
     void CreateGrave(Player* player);
     void RemoveAllGraves();
@@ -141,6 +163,7 @@ public:
     bool ShouldLevelDown(Player* player = nullptr);
 
 private:
+    HardcoreLootGameObject* FindLootByGUID(const uint32 guid);
     void PreLoadLoot();
     void LoadLoot();
 
