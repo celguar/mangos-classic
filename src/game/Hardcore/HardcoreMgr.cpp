@@ -7,6 +7,10 @@
 
 HardcoreLootItem::HardcoreLootItem(uint32 id, uint8 amount)
 : m_id(id)
+, m_isGear(false)
+, m_randomPropertyId(0)
+, m_durability(0)
+, m_enchantments(0)
 , m_amount(amount)
 {
 
@@ -14,18 +18,44 @@ HardcoreLootItem::HardcoreLootItem(uint32 id, uint8 amount)
 
 HardcoreLootItem::HardcoreLootItem(uint32 id, uint8 amount, const std::vector<ItemSlot>& slots)
 : m_id(id)
+, m_isGear(false)
+, m_randomPropertyId(0)
+, m_durability(0)
+, m_enchantments(0)
 , m_amount(amount)
 , m_slots(slots)
 {
 
 }
 
-HardcoreLootGameObject::HardcoreLootGameObject(uint32 id, uint32 playerId, uint32 lootTableId, uint32 lootTableEntry, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items)
+HardcoreLootItem::HardcoreLootItem(uint32 id, uint8 amount, uint32 randomPropertyId, uint32 durability, const std::string& enchantments, const std::vector<ItemSlot>& slots)
+: m_id(id)
+, m_isGear(true)
+, m_randomPropertyId(randomPropertyId)
+, m_durability(durability)
+, m_enchantments(enchantments)
+, m_amount(amount)
+, m_slots(slots)
+{
+
+}
+
+HardcoreLootItem::HardcoreLootItem(uint32 id, uint8 amount, uint32 randomPropertyId, uint32 durability, const std::string& enchantments)
+: m_id(id)
+, m_isGear(true)
+, m_randomPropertyId(randomPropertyId)
+, m_durability(durability)
+, m_enchantments(enchantments)
+, m_amount(amount)
+{
+
+}
+
+HardcoreLootGameObject::HardcoreLootGameObject(uint32 id, uint32 playerId, uint32 lootTableId, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items)
 : m_id(id)
 , m_playerId(playerId)
 , m_guid(0)
 , m_lootTableId(lootTableId)
-, m_lootTableEntry(lootTableEntry)
 , m_money(money)
 , m_positionX(positionX)
 , m_positionY(positionY)
@@ -40,26 +70,25 @@ HardcoreLootGameObject::HardcoreLootGameObject(uint32 id, uint32 playerId, uint3
 HardcoreLootGameObject HardcoreLootGameObject::Load(uint32 id, uint32 playerId)
 {
     std::vector<HardcoreLootItem> items;
-    uint32 lootTableId, lootTableEntry, money, mapId;
+    uint32 lootTableId, money, mapId;
     float positionX, positionY, positionZ, orientation;
 
     // Load the gameobject info
-    QueryResult* result = CharacterDatabase.PQuery("SELECT loot_table, gameobject_loot_template, money, position_x, position_y, position_z, orientation, map FROM custom_hardcore_loot_gameobjects WHERE id = '%d'", id);
+    QueryResult* result = CharacterDatabase.PQuery("SELECT loot_table, money, position_x, position_y, position_z, orientation, map FROM custom_hardcore_loot_gameobjects WHERE id = '%d'", id);
     if (result)
     {
         Field* fields = result->Fetch();
         lootTableId = fields[0].GetUInt32();
-        lootTableEntry = fields[1].GetUInt32();
-        money = fields[2].GetUInt32();
-        positionX = fields[3].GetFloat();
-        positionY = fields[4].GetFloat();
-        positionZ = fields[5].GetFloat();
-        orientation = fields[6].GetFloat();
-        mapId = fields[7].GetUInt32();
+        money = fields[1].GetUInt32();
+        positionX = fields[2].GetFloat();
+        positionY = fields[3].GetFloat();
+        positionZ = fields[4].GetFloat();
+        orientation = fields[5].GetFloat();
+        mapId = fields[6].GetUInt32();
         delete result;
 
         // Load the gameobject items from the custom_hardcore_loot_tables
-        QueryResult* result2 = CharacterDatabase.PQuery("SELECT item, amount FROM custom_hardcore_loot_tables WHERE id = '%d'", lootTableId);
+        QueryResult* result2 = CharacterDatabase.PQuery("SELECT item, amount, random_property_id, durability, enchantments FROM custom_hardcore_loot_tables WHERE id = '%d'", lootTableId);
         if (result2)
         {
             do
@@ -67,53 +96,17 @@ HardcoreLootGameObject HardcoreLootGameObject::Load(uint32 id, uint32 playerId)
                 Field* fields = result2->Fetch();
                 const uint32 itemId = fields[0].GetUInt32();
                 const uint8 amount = fields[1].GetUInt8();
-                items.emplace_back(itemId, amount);
+                const uint32 randomPropertyId = fields[2].GetUInt32();
+                const uint32 durability = fields[3].GetUInt32();
+                const std::string enchantments = fields[4].GetString();
+                items.emplace_back(itemId, amount, randomPropertyId, durability, enchantments);
             } 
             while (result2->NextRow());
             delete result2;
         }
-
-        // Remove old loot tables from gameobject_loot_template if existing
-        if (lootTableEntry)
-        {
-            if (WorldDatabase.DirectPExecute("DELETE FROM gameobject_loot_template WHERE entry = '%d'", lootTableEntry))
-            {
-                lootTableEntry = 0;
-            }
-        }
-
-        // Add loot table to gameobject_loot_template
-        if (!lootTableEntry && !items.empty())
-        {
-            // Generate valid loot table entry
-            QueryResult* result = WorldDatabase.PQuery("SELECT entry FROM gameobject_loot_template ORDER BY entry DESC LIMIT 1");
-            if (result)
-            {
-                Field* fields = result->Fetch();
-                lootTableEntry = fields[0].GetUInt32() + 1;
-                delete result;
-            }
-
-            if (lootTableEntry)
-            {
-                std::stringstream comment; comment << "Hardcore loot (" << playerId << ")";
-                for (const HardcoreLootItem& item : items)
-                {
-                    WorldDatabase.DirectPExecute("INSERT INTO gameobject_loot_template (entry, item, mincountOrRef, maxcount, comments) VALUES ('%d', '%d', '%d', '%d', '%s')",
-                        lootTableEntry,
-                        item.m_id,
-                        item.m_amount,
-                        item.m_amount,
-                        comment.str().c_str());
-                }
-
-                // Update the loot table entry in the custom_hardcore_loot_gameobjects
-                CharacterDatabase.DirectPExecute("UPDATE custom_hardcore_loot_gameobjects SET gameobject_loot_template = '%d' WHERE `id` = '%d'", lootTableEntry, id);
-            }
-        }
     }
 
-    return HardcoreLootGameObject(id, playerId, lootTableId, lootTableEntry, money, positionX, positionY, positionZ, orientation, mapId, items);
+    return HardcoreLootGameObject(id, playerId, lootTableId, /*lootTableEntry,*/ money, positionX, positionY, positionZ, orientation, mapId, items);
 }
 
 HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items)
@@ -128,16 +121,6 @@ HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 mo
         delete result;
     }
 
-    // Generate valid loot table entry
-    uint32 newLootTableEntry = 0;
-    QueryResult* result2 = WorldDatabase.PQuery("SELECT entry FROM gameobject_loot_template ORDER BY entry DESC LIMIT 1");
-    if (result2)
-    {
-        Field* fields = result2->Fetch();
-        newLootTableEntry = fields[0].GetUInt32() + 1;
-        delete result2;
-    }
-
     // Generate valid game object id
     uint32 newGOId = 1;
     QueryResult* result3 = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_loot_gameobjects ORDER BY id DESC LIMIT 1");
@@ -149,28 +132,22 @@ HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 mo
     }
 
     // Create loot table in custom_hardcore_loot_tables and gameobject_loot_template
-    std::stringstream comment; comment << "Hardcore loot (" << playerId << ")";
     for (const HardcoreLootItem& item : items)
     {
-        CharacterDatabase.DirectPExecute("INSERT INTO custom_hardcore_loot_tables (id, item, amount) VALUES ('%d', '%d', '%d')",
+        CharacterDatabase.DirectPExecute("INSERT INTO custom_hardcore_loot_tables (id, item, amount, random_property_id, durability, enchantments) VALUES ('%d', '%d', '%d', '%d', '%d', '%s')",
             newLootTableId,
             item.m_id,
-            item.m_amount);
-
-        WorldDatabase.DirectPExecute("INSERT INTO gameobject_loot_template (entry, item, mincountOrRef, maxcount, comments) VALUES ('%d', '%d', '%d', '%d', '%s')",
-            newLootTableEntry,
-            item.m_id,
             item.m_amount,
-            item.m_amount,
-            comment.str().c_str());
+            item.m_randomPropertyId,
+            item.m_durability,
+            item.m_enchantments.c_str());
     }
 
     // Create game object in custom_hardcore_loot_gameobjects
-    CharacterDatabase.DirectPExecute("INSERT INTO custom_hardcore_loot_gameobjects (id, player, loot_table, gameobject_loot_template, money, position_x, position_y, position_z, orientation, map) VALUES ('%d', '%d', '%d', '%d', '%d', '%f', '%f', '%f', '%f', '%d')",
+    CharacterDatabase.DirectPExecute("INSERT INTO custom_hardcore_loot_gameobjects (id, player, loot_table, money, position_x, position_y, position_z, orientation, map) VALUES ('%d', '%d', '%d', '%d', '%f', '%f', '%f', '%f', '%d')",
         newGOId,
         playerId,
         newLootTableId,
-        newLootTableEntry,
         money,
         positionX,
         positionY,
@@ -178,7 +155,7 @@ HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 mo
         orientation,
         mapId);
 
-    return HardcoreLootGameObject(newGOId, playerId, newLootTableId, newLootTableEntry, money, positionX, positionY, positionZ, orientation, mapId, items);
+    return HardcoreLootGameObject(newGOId, playerId, newLootTableId, money, positionX, positionY, positionZ, orientation, mapId, items);
 }
 
 void HardcoreLootGameObject::Spawn()
@@ -209,14 +186,14 @@ void HardcoreLootGameObject::Spawn()
                     if (pGameObject->LoadFromDB(goLowGUID, map, goLowGUID, 0))
                     {
                         // Assign loot table to the gameobject
-                        pGameObject->GetGOInfo()->chest.lootId = m_lootTableEntry;
+                        pGameObject->GetGOInfo()->chest.lootId = m_lootTableId;
 
                         // Assign gold
                         pGameObject->GetGOInfo()->MinMoneyLoot = m_money;
                         pGameObject->GetGOInfo()->MaxMoneyLoot = m_money;
 
-                        // Prevent respawning
-                        pGameObject->SetDeleteAfterUse(true);
+                        // Set flag for hardcore loot
+                        pGameObject->SetIsHardcoreLoot(true);
 
                         // Spawn the loot into the world
                         sObjectMgr.AddGameobjectToGrid(goLowGUID, sObjectMgr.GetGOData(goLowGUID));
@@ -295,9 +272,40 @@ void HardcoreLootGameObject::Destroy()
 
     // Remove loot table from custom_hardcore_loot_tables database
     CharacterDatabase.DirectPExecute("DELETE FROM custom_hardcore_loot_tables WHERE id = '%d'", m_lootTableId);
+}
 
-    // Remove loot table from gameobject_loot_template database
-    WorldDatabase.DirectPExecute("DELETE FROM gameobject_loot_template WHERE entry = '%d'", m_lootTableEntry);
+const HardcoreLootItem* HardcoreLootGameObject::GetItem(uint32 itemId) const
+{
+    for (const HardcoreLootItem& item : m_items)
+    {
+        if (item.m_id == itemId)
+        {
+            return &item;
+        }
+    }
+
+    return nullptr;
+}
+
+bool HardcoreLootGameObject::RemoveItem(uint32 itemId)
+{
+    const HardcoreLootItem* item = GetItem(itemId);
+    if (item)
+    {
+        // Remove the item from the database
+        if (CharacterDatabase.DirectPExecute("DELETE FROM custom_hardcore_loot_tables WHERE id = '%d' AND item = '%d'", m_lootTableId, itemId))
+        {
+            // Remove the item from cache
+            m_items.erase(std::remove_if(m_items.begin(), m_items.end(), [&item](const HardcoreLootItem& itemInList)
+            {
+                return (item->m_id == itemInList.m_id);
+            }), m_items.end());
+
+            return true;
+        }
+    }
+
+    return false;
 }
 
 HardcorePlayerLoot::HardcorePlayerLoot(uint32 playerId)
@@ -309,6 +317,34 @@ HardcorePlayerLoot::HardcorePlayerLoot(uint32 playerId)
 void HardcorePlayerLoot::LoadGameObject(uint32 gameObjectId)
 {
     m_gameObjects.push_back(std::move(HardcoreLootGameObject::Load(gameObjectId, m_playerId)));
+}
+
+HardcoreLootGameObject* HardcorePlayerLoot::FindGameObjectByGUID(const uint32 guid)
+{
+    for (HardcoreLootGameObject& gameObject : m_gameObjects)
+    {
+        if (gameObject.GetGUID() == guid)
+        {
+            return &gameObject;
+        }
+    }
+
+    return nullptr;
+}
+
+bool HardcorePlayerLoot::RemoveGameObject(uint32 gameObjectId)
+{
+    for (uint32 i = 0; i < m_gameObjects.size(); i++)
+    {
+        if (m_gameObjects[i].GetId() == gameObjectId)
+        {
+            m_gameObjects[i].Destroy();
+            m_gameObjects.erase(m_gameObjects.begin() + i);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void HardcorePlayerLoot::Spawn()
@@ -366,8 +402,25 @@ void HardcorePlayerLoot::Create()
                     }
                     else
                     {
+                        uint32 durability = 0;
+                        uint32 randomPropertyId = 0;
+                        std::ostringstream enchantments;
+                        if (itemData->Class == ITEM_CLASS_WEAPON || itemData->Class == ITEM_CLASS_ARMOR)
+                        {
+                            randomPropertyId = pItem->GetItemRandomPropertyId();
+                            durability = pItem->GetUInt32Value(ITEM_FIELD_DURABILITY);
+
+                            // Get enchantments
+                            for (uint8 i = 0; i < MAX_ENCHANTMENT_SLOT; ++i)
+                            {
+                                enchantments << pItem->GetEnchantmentId(EnchantmentSlot(i)) << ' ';
+                                enchantments << pItem->GetEnchantmentDuration(EnchantmentSlot(i)) << ' ';
+                                enchantments << pItem->GetEnchantmentCharges(EnchantmentSlot(i)) << ' ';
+                            }
+                        }
+
                         std::vector<ItemSlot> slots = { ItemSlot(bag, slot) };
-                        outItems.emplace_back(itemId, pItem->GetCount(), slots);
+                        outItems.emplace_back(itemId, pItem->GetCount(), randomPropertyId, durability, enchantments.str(), slots);
                     }
                 }
             }
@@ -913,6 +966,20 @@ void HardcoreMgr::LoadLoot()
     }
 }
 
+HardcoreLootGameObject* HardcoreMgr::FindLootByGUID(const uint32 guid)
+{
+    for (auto it = m_playersLoot.begin(); it != m_playersLoot.end(); ++it)
+    {
+        HardcoreLootGameObject* lootGameObject = it->second.FindGameObjectByGUID(guid);
+        if (lootGameObject)
+        {
+            return lootGameObject;
+        }
+    }
+
+    return nullptr;
+}
+
 void HardcoreMgr::CreateLoot(Player* player)
 {
     if (player && ShouldDropLoot(player))
@@ -932,6 +999,19 @@ void HardcoreMgr::CreateLoot(Player* player)
     }
 }
 
+bool HardcoreMgr::RemoveLoot(uint32 playerId)
+{
+    auto& playerLoot = m_playersLoot.find(playerId);
+    if (playerLoot != m_playersLoot.end())
+    {
+        playerLoot->second.Destroy();
+        m_playersLoot.erase(playerId);
+        return true;
+    }
+
+    return false;
+}
+
 void HardcoreMgr::RemoveAllLoot()
 {
     for (auto& pair : m_playersLoot)
@@ -940,6 +1020,85 @@ void HardcoreMgr::RemoveAllLoot()
     }
 
     m_playersLoot.clear();
+}
+
+bool HardcoreMgr::FillLoot(Loot& loot)
+{
+    const GameObject* gameObject = (GameObject*)loot.GetLootTarget();
+    if (gameObject && gameObject->IsHardcoreLoot())
+    {
+        const uint32 goGUID = gameObject->GetGUIDLow();
+        const HardcoreLootGameObject* lootGameObject = FindLootByGUID(goGUID);
+        if (lootGameObject)
+        {
+            for (const HardcoreLootItem& item : lootGameObject->GetItems())
+            {
+                loot.AddItem(item.m_id, item.m_amount, 0, item.m_randomPropertyId, false);
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void HardcoreMgr::OnItemLooted(Loot& loot, Item* item, Player* player)
+{
+    if (item)
+    {
+        const GameObject* gameObject = (GameObject*)loot.GetLootTarget();
+        if (gameObject && gameObject->IsHardcoreLoot())
+        {
+            // Look for the items in the loot cache
+            const uint32 goGUID = gameObject->GetGUIDLow();
+            HardcoreLootGameObject* lootGameObject = FindLootByGUID(goGUID);
+            if (lootGameObject)
+            {
+                const HardcoreLootItem* hardcoreItem = lootGameObject->GetItem(item->GetProto()->ItemId);
+                if (hardcoreItem)
+                {
+                    if (!hardcoreItem->m_enchantments.empty() || (hardcoreItem->m_durability > 0))
+                    {
+                        // Set the enchantment
+                        if (!hardcoreItem->m_enchantments.empty())
+                        {
+                            item->_LoadIntoDataField(hardcoreItem->m_enchantments.c_str(), ITEM_FIELD_ENCHANTMENT, MAX_ENCHANTMENT_SLOT * MAX_ENCHANTMENT_OFFSET);
+                        }
+
+                        // Set the durability
+                        if (hardcoreItem->m_durability > 0)
+                        {
+                            item->SetUInt32Value(ITEM_FIELD_DURABILITY, hardcoreItem->m_durability);
+                        }
+
+                        item->SendCreateUpdateToPlayer(player);
+                        item->SetState(ITEM_CHANGED, player);
+                        item->SaveToDB();
+                    }
+
+                    // Remove the item from the loot table
+                    if (lootGameObject->RemoveItem(hardcoreItem->m_id))
+                    {
+                        // If we don't have items left in the loot gameobject remove it
+                        if (!lootGameObject->HasItems())
+                        {
+                            const uint32 playerId = lootGameObject->GetPlayerId();
+                            HardcorePlayerLoot& playerLoot = m_playersLoot.at(playerId);
+                            if (playerLoot.RemoveGameObject(lootGameObject->GetId()))
+                            {
+                                // Check if all the gameobjects have been looted
+                                if (!playerLoot.HasGameObjects())
+                                {
+                                    RemoveLoot(playerId);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/)
