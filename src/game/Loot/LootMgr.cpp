@@ -32,6 +32,7 @@
 #include "BattleGround/BattleGroundMgr.h"
 #include <sstream>
 #include <iomanip>
+#include "Hardcore/HardcoreMgr.h"
 
 INSTANTIATE_SINGLETON_1(LootMgr);
 
@@ -934,7 +935,7 @@ void Loot::AddItem(LootStoreItem const& item)
 }
 
 // Insert item into the loot explicit way. (used for container item and Item::LoadFromDB)
-void Loot::AddItem(uint32 itemid, uint32 count, uint32 randomSuffix, int32 randomPropertyId)
+void Loot::AddItem(uint32 itemid, uint32 count, uint32 randomSuffix, int32 randomPropertyId, bool addPermissions)
 {
     if (m_lootItems.size() < MAX_NR_LOOT_ITEMS)                              // Normal drop
     {
@@ -943,8 +944,11 @@ void Loot::AddItem(uint32 itemid, uint32 count, uint32 randomSuffix, int32 rando
         m_lootItems.push_back(lootItem);
 
         // add permission to pick this item to loot owner
-        for (auto allowedGuid : m_ownerSet)
-            lootItem->allowedGuid.emplace(allowedGuid);
+        if (addPermissions)
+        {
+            for (auto allowedGuid : m_ownerSet)
+                lootItem->allowedGuid.emplace(allowedGuid);
+        }
     }
 }
 
@@ -955,16 +959,16 @@ bool Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* lootOwner, b
     if (!lootOwner)
         return false;
 
-    LootTemplate const* tab = store.GetLootFor(loot_id);
-
-    if (!tab)
+    if (!sHardcoreMgr.FillLoot(*this))
     {
-        if (!noEmptyError)
-            sLog.outErrorDb("Table '%s' loot id #%u used but it doesn't have records.", store.GetName(), loot_id);
-        return false;
-    }
+        LootTemplate const* tab = store.GetLootFor(loot_id);
 
-    m_lootItems.reserve(MAX_NR_LOOT_ITEMS);
+        if (!tab)
+        {
+            if (!noEmptyError)
+                sLog.outErrorDb("Table '%s' loot id #%u used but it doesn't have records.", store.GetName(), loot_id);
+            return false;
+        }
 
     tab->Process(*this, lootOwner, store.IsRatesAllowed()); // Processing is done there, callback via Loot::AddItem()
 
@@ -2015,6 +2019,8 @@ InventoryResult Loot::SendItem(Player* target, LootItem* lootItem, bool sendErro
         if (msg == EQUIP_ERR_OK)
         {
             Item* newItem = target->StoreNewItem(dest, lootItem->itemId, true, lootItem->randomPropertyId);
+
+            sHardcoreMgr.OnItemLooted(*this, newItem, target);
 
             if (lootItem->freeForAll)
             {
