@@ -1103,8 +1103,19 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/)
     const bool shouldDropGear = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_GEAR) > 0.0f;
     const bool shouldDropItems = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_ITEMS) > 0.0f;
     const bool shouldDropMoney = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_MONEY) > 0.0f;
-    const bool isBot = player ? !player->isRealPlayer() : false;
-    return !isBot && isHardcoreEnabled && (shouldDropGear || shouldDropItems || shouldDropMoney);
+    
+    bool isBot = false;
+    bool inBattleground = false;
+    if (player)
+    {
+        isBot = !player->isRealPlayer();
+        if (const Map* map = player->GetMap())
+        {
+            inBattleground = map->IsBattleGround();
+        }
+    }
+
+    return !isBot && !inBattleground && isHardcoreEnabled && (shouldDropGear || shouldDropItems || shouldDropMoney);
 }
 
 bool HardcoreMgr::ShouldDropMoney(Player* player /*= nullptr*/)
