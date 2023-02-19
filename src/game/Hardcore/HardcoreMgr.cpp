@@ -382,45 +382,50 @@ void HardcorePlayerLoot::Create()
         {
             if (Item* pItem = player->GetItemByPos(bag, slot))
             {
-                // Ignore projectiles
+                // Ignore projectiles and quest items 
                 const ItemPrototype* itemData = pItem->GetProto();
-                if (itemData->Class != ITEM_CLASS_PROJECTILE)
+                if ((itemData->Class != ITEM_CLASS_PROJECTILE) && (itemData->Class != ITEM_CLASS_QUEST))
                 {
-                    // Check if the item exists
                     const uint32 itemId = itemData->ItemId;
-                    auto it = std::find_if(outItems.begin(), outItems.end(), [&itemId](const HardcoreLootItem& item)
-                    {
-                        return item.m_id == itemId;
-                    });
 
-                    if (it != outItems.end())
+                    // Ignore hearthstone
+                    if (itemId != 6948)
                     {
-                        static const uint8 maxAmount = std::numeric_limits<uint8>::max();
-                        const uint32 newAmount = (*it).m_amount + pItem->GetCount();
-                        (*it).m_amount = (newAmount < maxAmount) ? newAmount : maxAmount;
-                        (*it).m_slots.emplace_back(bag, slot);
-                    }
-                    else
-                    {
-                        uint32 durability = 0;
-                        uint32 randomPropertyId = 0;
-                        std::ostringstream enchantments;
-                        if (itemData->Class == ITEM_CLASS_WEAPON || itemData->Class == ITEM_CLASS_ARMOR)
+                        // Check if the item exists
+                        auto it = std::find_if(outItems.begin(), outItems.end(), [&itemId](const HardcoreLootItem& item)
                         {
-                            randomPropertyId = pItem->GetItemRandomPropertyId();
-                            durability = pItem->GetUInt32Value(ITEM_FIELD_DURABILITY);
+                            return item.m_id == itemId;
+                        });
 
-                            // Get enchantments
-                            for (uint8 i = 0; i < MAX_ENCHANTMENT_SLOT; ++i)
-                            {
-                                enchantments << pItem->GetEnchantmentId(EnchantmentSlot(i)) << ' ';
-                                enchantments << pItem->GetEnchantmentDuration(EnchantmentSlot(i)) << ' ';
-                                enchantments << pItem->GetEnchantmentCharges(EnchantmentSlot(i)) << ' ';
-                            }
+                        if (it != outItems.end())
+                        {
+                            static const uint8 maxAmount = std::numeric_limits<uint8>::max();
+                            const uint32 newAmount = (*it).m_amount + pItem->GetCount();
+                            (*it).m_amount = (newAmount < maxAmount) ? newAmount : maxAmount;
+                            (*it).m_slots.emplace_back(bag, slot);
                         }
+                        else
+                        {
+                            uint32 durability = 0;
+                            uint32 randomPropertyId = 0;
+                            std::ostringstream enchantments;
+                            if (itemData->Class == ITEM_CLASS_WEAPON || itemData->Class == ITEM_CLASS_ARMOR)
+                            {
+                                randomPropertyId = pItem->GetItemRandomPropertyId();
+                                durability = pItem->GetUInt32Value(ITEM_FIELD_DURABILITY);
 
-                        std::vector<ItemSlot> slots = { ItemSlot(bag, slot) };
-                        outItems.emplace_back(itemId, pItem->GetCount(), randomPropertyId, durability, enchantments.str(), slots);
+                                // Get enchantments
+                                for (uint8 i = 0; i < MAX_ENCHANTMENT_SLOT; ++i)
+                                {
+                                    enchantments << pItem->GetEnchantmentId(EnchantmentSlot(i)) << ' ';
+                                    enchantments << pItem->GetEnchantmentDuration(EnchantmentSlot(i)) << ' ';
+                                    enchantments << pItem->GetEnchantmentCharges(EnchantmentSlot(i)) << ' ';
+                                }
+                            }
+
+                            std::vector<ItemSlot> slots = { ItemSlot(bag, slot) };
+                            outItems.emplace_back(itemId, pItem->GetCount(), randomPropertyId, durability, enchantments.str(), slots);
+                        }
                     }
                 }
             }
@@ -437,6 +442,7 @@ void HardcorePlayerLoot::Create()
                     // Randomly select an item from the list
                     const uint32 randIdx = urand(0, items.size() - 1);
                     const HardcoreLootItem& item = outItems.emplace_back(items[randIdx]);
+
                     items.erase(items.begin() + randIdx);
 
                     // Remove the item from the player
