@@ -137,6 +137,7 @@ public:
     // Called after the world loads
     void Load();
 
+    void OnPlayerRevived(Player* player);
     void OnPlayerDeath(Player* player);
     void OnPlayerReleaseSpirit(Player* player, bool teleportedToGraveyard);
 
@@ -146,7 +147,7 @@ public:
     // Called by LootMgr::FillLoot
     bool FillLoot(Loot& loot);
     // Callet by Loot::SendItem
-    void OnItemLooted(Loot& loot, Item* item, Player* player);
+    void OnItemLooted(Loot* loot, Item* item, Player* player);
 
     void CreateGrave(Player* player);
     void RemoveAllGraves();
