@@ -1720,8 +1720,6 @@ void Player::SetDeathState(DeathState s)
 
         if (InstanceData* mapInstance = GetInstanceData())
             mapInstance->OnPlayerDeath(this);
-
-        sHardcoreMgr.OnPlayerDeath(this);
     }
 
     Unit::SetDeathState(s);
