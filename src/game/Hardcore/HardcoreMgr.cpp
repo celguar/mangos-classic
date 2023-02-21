@@ -1151,9 +1151,14 @@ bool HardcoreMgr::ShouldDropGear(Player* player /*= nullptr*/)
 bool HardcoreMgr::CanRevive(Player* player /*= nullptr*/)
 {
     const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
-    const bool canRevive = !sWorld.getConfig(CONFIG_BOOL_HARDCORE_REVIVE_DISABLED);
-    const bool isBot = player ? !player->isRealPlayer() : false;
-    return !isBot && isHardcoreEnabled && canRevive;
+    if (isHardcoreEnabled)
+    {
+        const bool canRevive = !sWorld.getConfig(CONFIG_BOOL_HARDCORE_REVIVE_DISABLED);
+        const bool isBot = player ? !player->isRealPlayer() : false;
+        return !isBot && canRevive;
+    }
+
+    return true;
 }
 
 bool HardcoreMgr::ShouldReviveOnGraveyard(Player* player /*= nullptr*/)
