@@ -841,6 +841,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_FLOAT_HARDCORE_DROP_ITEMS, "Hardcore.DropItems", 0.0f);
     setConfig(CONFIG_FLOAT_HARDCORE_DROP_MONEY, "Hardcore.DropMoney", 0.0f);
     setConfig(CONFIG_UINT32_HARDCORE_LOOT_GAMEOBJECT_ID, "Hardcore.LootGameObjectID", 2850);
+    setConfig(CONFIG_UINT32_HARDCORE_MAX_PLAYER_LOOT, "Hardcore.MaxPlayerLoot", 1);
     setConfig(CONFIG_BOOL_HARDCORE_REVIVE_DISABLED, "Hardcore.ReviveDisabled", false);
     setConfig(CONFIG_BOOL_HARDCORE_REVIVE_ON_GRAVEYARD, "Hardcore.ReviveOnGraveyard", false);
     setConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN, "Hardcore.LevelDown", 0.0f);
