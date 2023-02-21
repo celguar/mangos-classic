@@ -51,10 +51,11 @@ HardcoreLootItem::HardcoreLootItem(uint32 id, uint8 amount, uint32 randomPropert
 
 }
 
-HardcoreLootGameObject::HardcoreLootGameObject(uint32 id, uint32 playerId, uint32 lootTableId, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items)
+HardcoreLootGameObject::HardcoreLootGameObject(uint32 id, uint32 playerId, uint32 lootId, uint32 lootTableId, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items)
 : m_id(id)
 , m_playerId(playerId)
 , m_guid(0)
+, m_lootId(lootId)
 , m_lootTableId(lootTableId)
 , m_money(money)
 , m_positionX(positionX)
@@ -70,21 +71,22 @@ HardcoreLootGameObject::HardcoreLootGameObject(uint32 id, uint32 playerId, uint3
 HardcoreLootGameObject HardcoreLootGameObject::Load(uint32 id, uint32 playerId)
 {
     std::vector<HardcoreLootItem> items;
-    uint32 lootTableId, money, mapId;
+    uint32 lootId, lootTableId, money, mapId;
     float positionX, positionY, positionZ, orientation;
 
     // Load the gameobject info
-    QueryResult* result = CharacterDatabase.PQuery("SELECT loot_table, money, position_x, position_y, position_z, orientation, map FROM custom_hardcore_loot_gameobjects WHERE id = '%d'", id);
+    QueryResult* result = CharacterDatabase.PQuery("SELECT loot_id, loot_table, money, position_x, position_y, position_z, orientation, map FROM custom_hardcore_loot_gameobjects WHERE id = '%d'", id);
     if (result)
     {
         Field* fields = result->Fetch();
-        lootTableId = fields[0].GetUInt32();
-        money = fields[1].GetUInt32();
-        positionX = fields[2].GetFloat();
-        positionY = fields[3].GetFloat();
-        positionZ = fields[4].GetFloat();
-        orientation = fields[5].GetFloat();
-        mapId = fields[6].GetUInt32();
+        lootId = fields[0].GetUInt32();
+        lootTableId = fields[1].GetUInt32();
+        money = fields[2].GetUInt32();
+        positionX = fields[3].GetFloat();
+        positionY = fields[4].GetFloat();
+        positionZ = fields[5].GetFloat();
+        orientation = fields[6].GetFloat();
+        mapId = fields[7].GetUInt32();
         delete result;
 
         // Load the gameobject items from the custom_hardcore_loot_tables
@@ -106,10 +108,10 @@ HardcoreLootGameObject HardcoreLootGameObject::Load(uint32 id, uint32 playerId)
         }
     }
 
-    return HardcoreLootGameObject(id, playerId, lootTableId, /*lootTableEntry,*/ money, positionX, positionY, positionZ, orientation, mapId, items);
+    return HardcoreLootGameObject(id, playerId, lootId, lootTableId, money, positionX, positionY, positionZ, orientation, mapId, items);
 }
 
-HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items)
+HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 lootId, uint32 money, float positionX, float positionY, float positionZ, float orientation, uint32 mapId, const std::vector<HardcoreLootItem>& items)
 {
     // Generate valid loot table id
     uint32 newLootTableId = 1;
@@ -144,9 +146,10 @@ HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 mo
     }
 
     // Create game object in custom_hardcore_loot_gameobjects
-    CharacterDatabase.DirectPExecute("INSERT INTO custom_hardcore_loot_gameobjects (id, player, loot_table, money, position_x, position_y, position_z, orientation, map) VALUES ('%d', '%d', '%d', '%d', '%f', '%f', '%f', '%f', '%d')",
+    CharacterDatabase.DirectPExecute("INSERT INTO custom_hardcore_loot_gameobjects (id, player, loot_id, loot_table, money, position_x, position_y, position_z, orientation, map) VALUES ('%d', '%d', '%d', '%d', '%d', '%f', '%f', '%f', '%f', '%d')",
         newGOId,
         playerId,
+        lootId,
         newLootTableId,
         money,
         positionX,
@@ -155,7 +158,7 @@ HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 mo
         orientation,
         mapId);
 
-    return HardcoreLootGameObject(newGOId, playerId, newLootTableId, money, positionX, positionY, positionZ, orientation, mapId, items);
+    return HardcoreLootGameObject(newGOId, playerId, lootId, newLootTableId, money, positionX, positionY, positionZ, orientation, mapId, items);
 }
 
 void HardcoreLootGameObject::Spawn()
@@ -308,8 +311,9 @@ bool HardcoreLootGameObject::RemoveItem(uint32 itemId)
     return false;
 }
 
-HardcorePlayerLoot::HardcorePlayerLoot(uint32 playerId)
-: m_playerId(playerId)
+HardcorePlayerLoot::HardcorePlayerLoot(uint32 lootId, uint32 playerId)
+: m_id(lootId)
+, m_playerId(playerId)
 {
 
 }
@@ -367,14 +371,11 @@ void HardcorePlayerLoot::DeSpawn()
     }
 }
 
-void HardcorePlayerLoot::Create()
+bool HardcorePlayerLoot::Create()
 {
     const ObjectGuid playerGUID = ObjectGuid(HIGHGUID_PLAYER, m_playerId);
     if (Player* player = sObjectMgr.GetPlayer(playerGUID))
     {
-        // Destroy old game objects and loot tables
-        Destroy();
-
         // Generate loot table with the current player's gear
         std::vector<HardcoreLootItem> playerLoot;
 
@@ -543,7 +544,7 @@ void HardcorePlayerLoot::Create()
                 // Increment the angle for the next point
                 angle += angleIncrement;
 
-                HardcoreLootGameObject& gameObject = m_gameObjects.emplace_back(std::move(HardcoreLootGameObject::Create(m_playerId, dropMoney, x, y, z, o, mapId, items)));
+                HardcoreLootGameObject& gameObject = m_gameObjects.emplace_back(std::move(HardcoreLootGameObject::Create(m_playerId, m_id, dropMoney, x, y, z, o, mapId, items)));
                 
                 // We only want the money to drop once
                 if (dropMoney)
@@ -554,8 +555,12 @@ void HardcorePlayerLoot::Create()
 
             // Spawn generated game objects
             Spawn();
+
+            return true;
         }
     }
+
+    return false;
 }
 
 void HardcorePlayerLoot::Destroy()
@@ -934,7 +939,7 @@ void HardcoreMgr::PreLoadLoot()
     if (ShouldDropLoot())
     {
         // Load the loot game objects and loot tables
-        QueryResult* result = CharacterDatabase.Query("SELECT id, player FROM custom_hardcore_loot_gameobjects");
+        QueryResult* result = CharacterDatabase.Query("SELECT id, player, loot_id FROM custom_hardcore_loot_gameobjects");
         if (result)
         {
             do
@@ -942,16 +947,25 @@ void HardcoreMgr::PreLoadLoot()
                 Field* fields = result->Fetch();
                 const uint32 gameObjectId = fields[0].GetUInt32();
                 const uint32 playerId = fields[1].GetUInt32();
+                const uint32 lootId = fields[2].GetUInt32();
 
-                // Check if the player loot exists
+                // Check if the players loot exists
                 if (m_playersLoot.find(playerId) == m_playersLoot.end())
                 {
                     // If not add it to the map
-                    m_playersLoot.insert(std::make_pair(playerId, HardcorePlayerLoot(playerId)));
+                    m_playersLoot.insert(std::make_pair(playerId, std::map<uint32, HardcorePlayerLoot>()));
+                }
+
+                // Check if the loot exists
+                auto& playerLoots = m_playersLoot.at(playerId);
+                if (playerLoots.find(lootId) == playerLoots.end())
+                {
+                    // If not add it to the player loot
+                    playerLoots.insert(std::make_pair(lootId, HardcorePlayerLoot(lootId, playerId)));
                 }
 
                 // Load the game object
-                HardcorePlayerLoot& playerLoot = m_playersLoot.at(playerId);
+                HardcorePlayerLoot& playerLoot = playerLoots.at(lootId);
                 playerLoot.LoadGameObject(gameObjectId);
             }
             while (result->NextRow());
@@ -967,19 +981,41 @@ void HardcoreMgr::LoadLoot()
         // Add the preloaded loot gameobjects into the world
         for (auto& pair : m_playersLoot)
         {
-            pair.second.Spawn();
+            for (auto& pair2 : pair.second)
+            {
+                pair2.second.Spawn();
+            }
         }
     }
 }
 
-HardcoreLootGameObject* HardcoreMgr::FindLootByGUID(const uint32 guid)
+HardcoreLootGameObject* HardcoreMgr::FindLootGOByGUID(const uint32 guid)
 {
     for (auto it = m_playersLoot.begin(); it != m_playersLoot.end(); ++it)
     {
-        HardcoreLootGameObject* lootGameObject = it->second.FindGameObjectByGUID(guid);
-        if (lootGameObject)
+        for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2)
         {
-            return lootGameObject;
+            HardcoreLootGameObject* lootGameObject = it2->second.FindGameObjectByGUID(guid);
+            if (lootGameObject)
+            {
+                return lootGameObject;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+HardcorePlayerLoot* HardcoreMgr::FindLootByID(const uint32 playerId, const uint32 lootId)
+{
+    auto& playerLootsIt = m_playersLoot.find(playerId);
+    if (playerLootsIt != m_playersLoot.end())
+    {
+        std::map<uint32, HardcorePlayerLoot>& playerLoots = playerLootsIt->second;
+        auto& playerLootIt = playerLoots.find(lootId);
+        if (playerLootIt != playerLoots.end())
+        {
+            return &playerLootIt->second;
         }
     }
 
@@ -992,26 +1028,63 @@ void HardcoreMgr::CreateLoot(Player* player)
     {
         const uint32 playerId = player->GetObjectGuid().GetCounter();
 
-        // Check if the player loot exists
-        if (m_playersLoot.find(playerId) == m_playersLoot.end())
+        // Check if we need to remove a previous loot before creating a new one
+        auto& playerLootsIt = m_playersLoot.find(playerId);
+        if (playerLootsIt != m_playersLoot.end())
         {
-            // If not, add it to the map
-            m_playersLoot.insert(std::make_pair(playerId, HardcorePlayerLoot(playerId)));
+            std::map<uint32, HardcorePlayerLoot>& playerLoots = playerLootsIt->second;
+            if (playerLoots.size() >= GetMaxPlayerLoot(player))
+            {
+                // Get the oldest loot to remove
+                HardcorePlayerLoot& playerLoot = playerLoots.begin()->second;
+                RemoveLoot(playerLoot.GetPlayerId(), playerLoot.GetId());
+            }
         }
 
-        // Generate the new loot
-        HardcorePlayerLoot& playerLoot = m_playersLoot.at(playerId);
-        playerLoot.Create();
+        // Check if the players loot exists
+        if (m_playersLoot.find(playerId) == m_playersLoot.end())
+        {
+            // If not add it to the map
+            m_playersLoot.insert(std::make_pair(playerId, std::map<uint32, HardcorePlayerLoot>()));
+        }
+
+        std::map<uint32, HardcorePlayerLoot>& playerLoots = m_playersLoot.at(playerId);
+
+        // Generate valid loot id
+        uint32 newLootId = 1;
+        QueryResult* result = CharacterDatabase.PQuery("SELECT loot_id FROM custom_hardcore_loot_gameobjects WHERE player = '%d' ORDER BY loot_id DESC LIMIT 1", playerId);
+        if (result)
+        {
+            Field* fields = result->Fetch();
+            newLootId = fields[0].GetUInt32() + 1;
+            delete result;
+        }
+
+        // Generate new loot
+        playerLoots.insert(std::make_pair(newLootId, HardcorePlayerLoot(newLootId, playerId)));
+        HardcorePlayerLoot& playerLoot = playerLoots.at(newLootId);
+        if (!playerLoot.Create())
+        {
+            // Remove the loot if failed to create
+            playerLoots.erase(newLootId);
+        }
     }
 }
 
-bool HardcoreMgr::RemoveLoot(uint32 playerId)
+bool HardcoreMgr::RemoveLoot(uint32 playerId, uint32 lootId)
 {
-    auto& playerLoot = m_playersLoot.find(playerId);
-    if (playerLoot != m_playersLoot.end())
+    HardcorePlayerLoot* playerLoot = FindLootByID(playerId, lootId);
+    if (playerLoot)
     {
-        playerLoot->second.Destroy();
-        m_playersLoot.erase(playerId);
+        std::map<uint32, HardcorePlayerLoot>& playerLoots = m_playersLoot.at(playerId);
+        playerLoot->Destroy();
+        playerLoots.erase(lootId);
+
+        if (playerLoots.empty())
+        {
+            m_playersLoot.erase(playerId);
+        }
+
         return true;
     }
 
@@ -1022,7 +1095,10 @@ void HardcoreMgr::RemoveAllLoot()
 {
     for (auto& pair : m_playersLoot)
     {
-        pair.second.Destroy();
+        for (auto& pair2 : pair.second)
+        {
+            pair2.second.Destroy();
+        }
     }
 
     m_playersLoot.clear();
@@ -1034,7 +1110,7 @@ bool HardcoreMgr::FillLoot(Loot& loot)
     if (gameObject && gameObject->IsHardcoreLoot())
     {
         const uint32 goGUID = gameObject->GetGUIDLow();
-        const HardcoreLootGameObject* lootGameObject = FindLootByGUID(goGUID);
+        const HardcoreLootGameObject* lootGameObject = FindLootGOByGUID(goGUID);
         if (lootGameObject)
         {
             for (const HardcoreLootItem& item : lootGameObject->GetItems())
@@ -1058,7 +1134,7 @@ void HardcoreMgr::OnItemLooted(Loot* loot, Item* item, Player* player)
         {
             // Look for the items in the loot cache
             const uint32 goGUID = gameObject->GetGUIDLow();
-            HardcoreLootGameObject* lootGameObject = FindLootByGUID(goGUID);
+            HardcoreLootGameObject* lootGameObject = FindLootGOByGUID(goGUID);
             if (lootGameObject)
             {
                 const HardcoreLootItem* hardcoreItem = lootGameObject->GetItem(item->GetProto()->ItemId);
@@ -1066,7 +1142,7 @@ void HardcoreMgr::OnItemLooted(Loot* loot, Item* item, Player* player)
                 {
                     if (!hardcoreItem->m_enchantments.empty() || (hardcoreItem->m_durability > 0))
                     {
-                        // Set the enchantment
+                        // Set the enchantments
                         if (!hardcoreItem->m_enchantments.empty())
                         {
                             item->_LoadIntoDataField(hardcoreItem->m_enchantments.c_str(), ITEM_FIELD_ENCHANTMENT, MAX_ENCHANTMENT_SLOT * MAX_ENCHANTMENT_OFFSET);
@@ -1085,14 +1161,19 @@ void HardcoreMgr::OnItemLooted(Loot* loot, Item* item, Player* player)
                         // If we don't have items left in the loot gameobject remove it
                         if (!lootGameObject->HasItems())
                         {
+                            const uint32 lootId = lootGameObject->GetLootId();
                             const uint32 playerId = lootGameObject->GetPlayerId();
-                            HardcorePlayerLoot& playerLoot = m_playersLoot.at(playerId);
-                            if (playerLoot.RemoveGameObject(lootGameObject->GetId()))
+
+                            HardcorePlayerLoot* playerLoot = FindLootByID(playerId, lootId);
+                            if (playerLoot)
                             {
-                                // Check if all the gameobjects have been looted
-                                if (!playerLoot.HasGameObjects())
+                                if (playerLoot->RemoveGameObject(lootGameObject->GetId()))
                                 {
-                                    RemoveLoot(playerId);
+                                    // Check if all the gameobjects have been looted
+                                    if (!playerLoot->HasGameObjects())
+                                    {
+                                        RemoveLoot(playerId, lootId);
+                                    }
                                 }
                             }
                         }
@@ -1178,6 +1259,12 @@ bool HardcoreMgr::ShouldLevelDown(Player* player /*= nullptr*/)
     const bool shouldLevelDown = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN) > 0.0f;
     const bool isBot = player ? !player->isRealPlayer() : false;
     return !isBot && isHardcoreEnabled && shouldLevelDown;
+}
+
+uint32 HardcoreMgr::GetMaxPlayerLoot(Player* player /*= nullptr*/) const
+{
+    const uint32 maxPlayerLoot = sWorld.getConfig(CONFIG_UINT32_HARDCORE_MAX_PLAYER_LOOT);
+    return maxPlayerLoot > 0 ? maxPlayerLoot : 1;
 }
 
 bool HardcoreMgr::ShouldSpawnGrave(Player* player /*= nullptr*/)
