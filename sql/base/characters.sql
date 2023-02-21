@@ -1605,6 +1605,7 @@ CREATE TABLE `custom_solocraft_character_stats` (
 CREATE TABLE IF NOT EXISTS `custom_hardcore_loot_gameobjects` (
   `id` int(11) unsigned NOT NULL,
   `player` int(11) unsigned NOT NULL COMMENT 'Player identifier',
+  `loot_id` int(11) unsigned NOT NULL COMMENT 'The loot group this gameobject is part of',
   `loot_table` int(11) unsigned NOT NULL COMMENT 'custom_hardcore_loot_tables identifier',
   `money` int(11) unsigned NOT NULL DEFAULT '0',
   `position_x` float NOT NULL DEFAULT '0',
