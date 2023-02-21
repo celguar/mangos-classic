@@ -2005,6 +2005,10 @@ Solocraft.StratholmeRaid.Level = 60
 #       If the player gets level down after dying. A percentage of xp to lose being 0 none, 0.5 half a level, 1.0 one level and 2.0 two levels
 #       Default: 0
 #
+#   Hardcore.MaxPlayerLoot
+#       The amount of loot droped after death allowed. E.g If the player died 3 times and this value is set to 2, the game will spawn a new loot and the oldest spawned loot will get deleted
+#       Default: 1
+#
 #   COMMANDS
 #
 #	.hardcore reset
@@ -2029,6 +2033,7 @@ Hardcore.LootGameObjectID = 2850
 Hardcore.ReviveDisabled = 1
 Hardcore.ReviveOnGraveyard = 0
 Hardcore.LevelDown = 0
+Hardcore.MaxPlayerLoot = 1
 
 ###################################################################################################################
 # NETWORK CONFIG
