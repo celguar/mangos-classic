@@ -1987,6 +1987,18 @@ Solocraft.StratholmeRaid.Level = 60
 #       If the player drops his money after dying. A percentage of money to drop from 0.0 to 1.0, 0 being no drop, 0.5 half drops and 1 all drops
 #       Default: 0 (No drop)
 #
+#   Hardcore.BotDropGear
+#       If the player bot drops his gear after dying. A percentage of gear to drop from 0.0 to 1.0, 0 being no drop, 0.5 half drops and 1 all drops
+#       Default: 0 (No drop)
+#
+#   Hardcore.BotDropItems
+#       If the player bot drops his bag items after dying. A percentage of bag items to drop from 0.0 to 1.0, 0 being no drop, 0.5 half drops and 1 all drops
+#       Default: 0 (No drop)
+#
+#   Hardcore.BotDropMoney
+#       If the player bot drops his money after dying. A percentage of money to drop from 0.0 to 1.0, 0 being no drop, 0.5 half drops and 1 all drops
+#       Default: 0 (No drop)
+#
 #   Hardcore.LootGameObjectID
 #       The game object to use for the loot. MUST BE TYPE CHEST(3) (http://wowadd.blogspot.com/2007/12/game-master-game-object-list.html)
 #       Default: 2850
@@ -2029,6 +2041,9 @@ Hardcore.GraveMessage = "Shit happens. <PlayerName> | Well, this sucks. <PlayerN
 Hardcore.DropGear = 0
 Hardcore.DropItems = 0
 Hardcore.DropMoney = 0
+Hardcore.BotDropGear = 0
+Hardcore.BotDropItems = 0
+Hardcore.BotDropMoney = 0
 Hardcore.LootGameObjectID = 2850
 Hardcore.ReviveDisabled = 1
 Hardcore.ReviveOnGraveyard = 0

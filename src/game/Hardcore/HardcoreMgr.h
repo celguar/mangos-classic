@@ -143,10 +143,10 @@ public:
     void Load();
 
     void OnPlayerRevived(Player* player);
-    void OnPlayerDeath(Player* player);
+    void OnPlayerDeath(Player* player, Unit* killer);
     void OnPlayerReleaseSpirit(Player* player, bool teleportedToGraveyard);
 
-    void CreateLoot(Player* player);
+    void CreateLoot(Player* player, Unit* killer);
     bool RemoveLoot(uint32 playerId, uint32 lootId);
     void RemoveAllLoot();
     // Called by LootMgr::FillLoot
@@ -159,7 +159,7 @@ public:
 
     void LevelDown(Player* player);
 
-    bool ShouldDropLoot(Player* player = nullptr);
+    bool ShouldDropLoot(Player* player = nullptr, Unit* killer = nullptr);
     bool ShouldDropMoney(Player* player = nullptr);
     bool ShouldDropItems(Player* player = nullptr);
     bool ShouldDropGear(Player* player = nullptr);
@@ -167,7 +167,11 @@ public:
     bool CanRevive(Player* player = nullptr);
     bool ShouldReviveOnGraveyard(Player* player = nullptr);
     bool ShouldLevelDown(Player* player = nullptr);
+
     uint32 GetMaxPlayerLoot(Player* player = nullptr) const;
+    float GetDropMoneyRate(Player* player = nullptr) const;
+    float GetDropItemsRate(Player* player = nullptr) const;
+    float GetDropGearRate(Player* player = nullptr) const;
 
 private:
     HardcoreLootGameObject* FindLootGOByGUID(const uint32 guid);

@@ -446,10 +446,13 @@ bool HardcorePlayerLoot::Create()
 
                     items.erase(items.begin() + randIdx);
 
-                    // Remove the item from the player
-                    for (const ItemSlot& slot : item.m_slots)
+                    // Remove the item from the player (except for bots)
+                    if (player->isRealPlayer())
                     {
-                        player->DestroyItem(slot.first, slot.second, true);
+                        for (const ItemSlot& slot : item.m_slots)
+                        {
+                            player->DestroyItem(slot.first, slot.second, true);
+                        }
                     }
                 }
             }
@@ -467,7 +470,7 @@ bool HardcorePlayerLoot::Create()
             }
 
             // Generate random list of gear to drop
-            SelectItemsToDrop(sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_GEAR), playerGear, playerLoot);
+            SelectItemsToDrop(sHardcoreMgr.GetDropGearRate(player), playerGear, playerLoot);
         }
 
         // Get player's bag items
@@ -491,7 +494,7 @@ bool HardcorePlayerLoot::Create()
             }
 
             // Generate random list of items to drop
-            SelectItemsToDrop(sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_ITEMS), playerItems, playerLoot);
+            SelectItemsToDrop(sHardcoreMgr.GetDropItemsRate(player), playerItems, playerLoot);
         }
 
         if (!playerLoot.empty())
@@ -517,10 +520,15 @@ bool HardcorePlayerLoot::Create()
             uint32 dropMoney = 0;
             if (sHardcoreMgr.ShouldDropMoney(player))
             {
-                const float moneyDropRate = std::min(sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_MONEY), 1.0f);
+                const float moneyDropRate = std::min(sHardcoreMgr.GetDropMoneyRate(player), 1.0f);
                 const uint32 playerMoney = player->GetMoney();
                 dropMoney = playerMoney * moneyDropRate;
-                player->SetMoney(playerMoney - dropMoney);
+
+                // Remove the money from the player (except for bots)
+                if (player->isRealPlayer())
+                {
+                    player->SetMoney(playerMoney - dropMoney);
+                }
             }
 
             // Create the game objects
@@ -919,9 +927,9 @@ void HardcoreMgr::OnPlayerRevived(Player* player)
     LevelDown(player);
 }
 
-void HardcoreMgr::OnPlayerDeath(Player* player)
+void HardcoreMgr::OnPlayerDeath(Player* player, Unit* killer)
 {
-    CreateLoot(player);
+    CreateLoot(player, killer);
     CreateGrave(player);
 }
 
@@ -1022,9 +1030,9 @@ HardcorePlayerLoot* HardcoreMgr::FindLootByID(const uint32 playerId, const uint3
     return nullptr;
 }
 
-void HardcoreMgr::CreateLoot(Player* player)
+void HardcoreMgr::CreateLoot(Player* player, Unit* killer)
 {
-    if (player && ShouldDropLoot(player))
+    if (player && ShouldDropLoot(player, killer))
     {
         const uint32 playerId = player->GetObjectGuid().GetCounter();
 
@@ -1184,49 +1192,61 @@ void HardcoreMgr::OnItemLooted(Loot* loot, Item* item, Player* player)
     }
 }
 
-bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/)
+bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= nullptr*/)
 {
-    const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
-    const bool shouldDropGear = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_GEAR) > 0.0f;
-    const bool shouldDropItems = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_ITEMS) > 0.0f;
-    const bool shouldDropMoney = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_MONEY) > 0.0f;
-    
-    bool isBot = false;
-    bool inBattleground = false;
-    if (player)
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        isBot = !player->isRealPlayer();
-        if (const Map* map = player->GetMap())
+        bool dropLoot = true;
+        bool inBattleground = false;
+        if (player)
         {
-            inBattleground = map->IsBattleGround();
+            if (const Map* map = player->GetMap())
+            {
+                inBattleground = map->IsBattleGround();
+            }
+
+            // Check if the bot has been killed by a player
+            if (!player->isRealPlayer())
+            {
+                Player* killerPlayer = (Player*)killer;
+                dropLoot = killerPlayer && killerPlayer->isRealPlayer();
+            }
         }
+
+        return dropLoot && !inBattleground && (ShouldDropGear(player) || ShouldDropItems(player) || ShouldDropMoney(player));
     }
 
-    return !isBot && !inBattleground && isHardcoreEnabled && (shouldDropGear || shouldDropItems || shouldDropMoney);
+    return false;
 }
 
 bool HardcoreMgr::ShouldDropMoney(Player* player /*= nullptr*/)
 {
-    const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
-    const bool shouldDropMoney = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_MONEY) > 0.0f;
-    const bool isBot = player ? !player->isRealPlayer() : false;
-    return !isBot && isHardcoreEnabled && shouldDropMoney;
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
+    {
+        return GetDropMoneyRate(player);
+    }
+
+    return false;
 }
 
 bool HardcoreMgr::ShouldDropItems(Player* player /*= nullptr*/)
 {
-    const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
-    const bool shouldDropItems = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_ITEMS) > 0.0f;
-    const bool isBot = player ? !player->isRealPlayer() : false;
-    return !isBot && isHardcoreEnabled && shouldDropItems;
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
+    {
+        return GetDropItemsRate(player);
+    }
+
+    return false;
 }
 
 bool HardcoreMgr::ShouldDropGear(Player* player /*= nullptr*/)
 {
-    const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
-    const bool shouldDropGear = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_GEAR) > 0.0f;
-    const bool isBot = player ? !player->isRealPlayer() : false;
-    return !isBot && isHardcoreEnabled && shouldDropGear;
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
+    {
+        return GetDropGearRate(player);
+    }
+
+    return false;
 }
 
 bool HardcoreMgr::CanRevive(Player* player /*= nullptr*/)
@@ -1265,6 +1285,24 @@ uint32 HardcoreMgr::GetMaxPlayerLoot(Player* player /*= nullptr*/) const
 {
     const uint32 maxPlayerLoot = sWorld.getConfig(CONFIG_UINT32_HARDCORE_MAX_PLAYER_LOOT);
     return maxPlayerLoot > 0 ? maxPlayerLoot : 1;
+}
+
+float HardcoreMgr::GetDropMoneyRate(Player* player /*= nullptr*/) const
+{
+    const bool isBot = player ? !player->isRealPlayer() : false;
+    return isBot ? sWorld.getConfig(CONFIG_FLOAT_HARDCORE_BOT_DROP_MONEY) : sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_MONEY);
+}
+
+float HardcoreMgr::GetDropItemsRate(Player* player /*= nullptr*/) const
+{
+    const bool isBot = player ? !player->isRealPlayer() : false;
+    return isBot ? sWorld.getConfig(CONFIG_FLOAT_HARDCORE_BOT_DROP_ITEMS) : sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_ITEMS);
+}
+
+float HardcoreMgr::GetDropGearRate(Player* player /*= nullptr*/) const
+{
+    const bool isBot = player ? !player->isRealPlayer() : false;
+    return isBot ? sWorld.getConfig(CONFIG_FLOAT_HARDCORE_BOT_DROP_GEAR) : sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_GEAR);
 }
 
 bool HardcoreMgr::ShouldSpawnGrave(Player* player /*= nullptr*/)

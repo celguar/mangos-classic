@@ -2157,7 +2157,7 @@ bool ChatHandler::HandleHardcoreCommand(char* args)
         {
             if (m_session && m_session->GetPlayer())
             {
-                sHardcoreMgr.CreateLoot(m_session->GetPlayer());
+                sHardcoreMgr.CreateLoot(m_session->GetPlayer(), nullptr);
             }
         }
         else if (!strcmp(cmd, "spawngrave"))
