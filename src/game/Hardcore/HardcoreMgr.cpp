@@ -1208,8 +1208,11 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
             // Check if the bot has been killed by a player
             if (!player->isRealPlayer())
             {
-                Player* killerPlayer = (Player*)killer;
-                dropLoot = killerPlayer && killerPlayer->isRealPlayer();
+                dropLoot = false;
+                if(killer && killer->IsPlayer())
+                {
+                    dropLoot = ((Player*)killer)->isRealPlayer();
+                }
             }
         }
 
