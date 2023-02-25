@@ -1123,7 +1123,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(ProcExecutionData& data)
                 if (damagePoint >= 0)
                 {
                     // currently uses same spell damage fetch as flametongue - need to verify whether SP is supposed to be applied pre-triggered spell bonuses or post
-                    int32 bonusDamage = SpellDamageBonusDone(pVictim, dummySpell, damagePoint, SPELL_DIRECT_DAMAGE); + pVictim->SpellBaseDamageBonusTaken(GetSpellSchoolMask(dummySpell));
+                    int32 bonusDamage = SpellDamageBonusDone(pVictim, GetSpellSchoolMask(dummySpell), dummySpell, damagePoint, SPELL_DIRECT_DAMAGE); + pVictim->SpellBaseDamageBonusTaken(GetSpellSchoolMask(dummySpell));
                     //if (Aura* aura = GetAura(43743, EFFECT_INDEX_0)) // Improved Seal of Righteousness
                     //    bonusDamage += aura->GetAmount();
                     damagePoint += bonusDamage * coeff * CalculateLevelPenalty(dummySpell);
