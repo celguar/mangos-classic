@@ -182,7 +182,7 @@ void HardcoreLootGameObject::Spawn()
             if (map)
             {
                 GameObject* pGameObject = GameObject::CreateGameObject(lootGOEntry);
-                if (pGameObject->Create(goLowGUID, lootGOEntry, map, m_positionX, m_positionY, m_positionZ, m_orientation))
+                if (pGameObject->Create(0, goLowGUID, lootGOEntry, map, m_positionX, m_positionY, m_positionZ, m_orientation))
                 {
                     // Save the chest to the database and load game object data
                     pGameObject->SaveToDB(map->GetId());
@@ -670,7 +670,7 @@ void HardcoreGraveGameObject::Spawn()
             if (map)
             {
                 GameObject* pGameObject = GameObject::CreateGameObject(gameObjectEntry);
-                if (pGameObject->Create(goLowGUID, gameObjectEntry, map, m_positionX, m_positionY, m_positionZ, m_orientation))
+                if (pGameObject->Create(0, goLowGUID, gameObjectEntry, map, m_positionX, m_positionY, m_positionZ, m_orientation))
                 {
                     // Save the chest to the database and load game object data
                     pGameObject->SaveToDB(map->GetId());
