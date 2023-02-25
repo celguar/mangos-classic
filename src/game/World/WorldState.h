@@ -225,6 +225,9 @@ enum AQQuests
     QUEST_HORDE_MAGEWEAVE_BANDAGE_2 = 8608,
 
     QUEST_BANG_A_GONG = 8743,
+
+    SAY_BANG_GONG = 11427,
+    SAY_QIRAJI_BREAK = 11432,
 };
 
 enum AQResources
