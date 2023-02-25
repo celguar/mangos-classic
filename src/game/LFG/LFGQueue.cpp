@@ -572,4 +572,96 @@ MeetingStoneSet LFGQueue::GetDungeonsForPlayer(Player* player)
     }
     return list;
 }
+
+void LFGQueue::TeleportGroupToStone(Group* grp, uint32 areaId)
+{
+    if (!grp)
+        return;
+
+    // custom teleport to dungeon
+    for (MeetingStonesMap::iterator it = m_MeetingStonesMap.begin(); it != m_MeetingStonesMap.end(); ++it)
+    {
+        MeetingStoneInfo data = it->second;
+        if (data.area != areaId)
+            continue;
+
+        if (data.position.IsEmpty())
+            continue;
+
+        // get map of stone
+        Map* stoneMap = sMapMgr.FindMap(data.mapId);
+        if (!stoneMap)
+            continue;
+
+        AreaTableEntry const* entry = GetAreaEntryByAreaID(data.area);
+        if (!entry)
+            continue;
+
+
+        // calculate random teleport position near stone
+        float x = data.position.x;
+        float y = data.position.y;
+        float z = data.position.z;
+        //stoneMap->GetReachableRandomPointOnGround(x, y, z, 20.f);
+
+        // send teleport offer
+        for (GroupReference* ref = grp->GetFirstMember(); ref != nullptr; ref = ref->next())
+        {
+            if (Player* member = ref->getSource())
+            {
+                // dont summon if already has summon request
+                if (member->HasSummonOffer())
+                    continue;
+
+                // dont summon if close
+                if (member->GetMapId() == data.mapId && member->IsWithinDist2d(data.position.x, data.position.y, 100.f))
+                    continue;
+
+                bool foundPoint = false;
+                uint32 attempts = 0;
+                do
+                {
+                    // Generate a random range and direction for the new point
+                    const float angle = rand_norm_f() * (M_PI_F * 2.0f);
+                    const float range = 20.0f;
+
+                    float i_x = x + range * cos(angle);
+                    float i_y = y + range * sin(angle);
+                    float i_z = z + 1.0f;
+
+                    member->UpdateAllowedPositionZ(i_x, i_y, i_z, stoneMap);
+
+                    // project vector to get only positive value
+                    float ab = fabs(x - i_x);
+                    float ac = fabs(z - i_z);
+
+                    // slope represented by c angle (in radian)
+                    const float MAX_SLOPE_IN_RADIAN = 50.0f / 180.0f * M_PI_F;  // 50(degree) max seem best value for walkable slope
+
+                    // check ab vector to avoid divide by 0
+                    if (ab > 0.0f)
+                    {
+                        // compute c angle and convert it from radian to degree
+                        float slope = atan(ac / ab);
+                        if (slope < MAX_SLOPE_IN_RADIAN)
+                        {
+                            x = i_x;
+                            y = i_y;
+                            z = i_z;
+                            foundPoint = true;
+                        }
+                    }
+                    attempts++;
+                } while (!foundPoint && attempts < 10);
+
+                member->SetSummonPoint(data.mapId, x, y, z, grp->GetLeaderGuid());
+                WorldPacket data(SMSG_SUMMON_REQUEST, 8 + 4 + 4);
+                data << grp->GetLeaderGuid();                               // summoner guid
+                data << uint32(entry->zone != 0 ? entry->zone : entry->ID); // summoner zone
+                data << uint32(MAX_PLAYER_SUMMON_DELAY * IN_MILLISECONDS);  // auto decline after msecs
+                member->GetSession()->SendPacket(data);
+            }
+        }
+    }
+}
 #endif

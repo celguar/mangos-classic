@@ -1804,7 +1804,6 @@ void World::Update(uint32 diff)
     auto postMapTime = std::chrono::time_point_cast<std::chrono::milliseconds>(Clock::now());
 #endif
     sBattleGroundMgr.Update(diff);
-    sLFGMgr.Update(diff);
     sOutdoorPvPMgr.Update(diff);
     sWorldState.Update(diff);
 #ifdef BUILD_METRICS
