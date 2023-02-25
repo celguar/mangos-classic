@@ -357,18 +357,18 @@ bool Group::AddMember(ObjectGuid guid, const char* name, uint8 joinMethod)
             player->SendDirectMessage(groupDataPacket);
         }
 
-        if (!IsLeader(player->GetObjectGuid()) && sLFGMgr.IsPlayerInQueue(player->GetObjectGuid()))
+        if (!IsLeader(player->GetObjectGuid()) && sWorld.GetLFGQueue().IsPlayerInQueue(player->GetObjectGuid()))
         {
             bool notifyPlayer = true; // show "you have left queue" message only if different dungeons
             if (IsInLFG())
             {
                 LFGGroupQueueInfo grpLfgInfo;
                 LFGPlayerQueueInfo plrLfgInfo;
-                sLFGMgr.GetGroupQueueInfo(&grpLfgInfo, GetId());
-                sLFGMgr.GetPlayerQueueInfo(&plrLfgInfo, player->GetObjectGuid());
+                sWorld.GetLFGQueue().GetGroupQueueInfo(&grpLfgInfo, GetId());
+                sWorld.GetLFGQueue().GetPlayerQueueInfo(&plrLfgInfo, player->GetObjectGuid());
                 notifyPlayer = grpLfgInfo.areaId != plrLfgInfo.areaId;
             }
-            sLFGMgr.RemovePlayerFromQueue(player->GetObjectGuid(), notifyPlayer ? PLAYER_CLIENT_LEAVE : PLAYER_SYSTEM_LEAVE);
+            sWorld.GetLFGQueue().RemovePlayerFromQueue(player->GetObjectGuid(), notifyPlayer ? PLAYER_CLIENT_LEAVE : PLAYER_SYSTEM_LEAVE);
         }
         
         if (IsInLFG())

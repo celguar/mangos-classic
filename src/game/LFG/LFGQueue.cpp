@@ -476,3 +476,190 @@ void LFGQueue::RestoreOfflinePlayer(ObjectGuid playerGuid)
         });
     }
 }
+
+void LFGQueue::GetPlayerQueueInfo(LFGPlayerQueueInfo* info, ObjectGuid const& plrGuid)
+{
+    QueuedPlayersMap::iterator iter = m_queuedPlayers.find(plrGuid);
+    if (iter != m_queuedPlayers.end())
+        *info = iter->second;
+
+    return;
+}
+
+void LFGQueue::GetGroupQueueInfo(LFGGroupQueueInfo* info, uint32 groupId)
+{
+    QueuedGroupsMap::iterator iter = m_queuedGroups.find(groupId);
+    if (iter != m_queuedGroups.end())
+        *info = iter->second;
+
+    return;
+}
+
+void LFGQueue::LoadMeetingStones()
+{
+    m_MeetingStonesMap.clear();
+    uint32 count = 0;
+    for (uint32 i = 0; i < sGOStorage.GetMaxEntry(); ++i)
+    {
+        auto data = sGOStorage.LookupEntry<GameObjectInfo>(i);
+        if (data && data->type == GAMEOBJECT_TYPE_MEETINGSTONE)
+        {
+            AreaTableEntry const* area = GetAreaEntryByAreaID(data->meetingstone.areaID);
+            if (area)
+            {
+                MeetingStoneInfo info;
+                info.area = data->meetingstone.areaID;
+                info.minlevel = data->meetingstone.minLevel;
+                info.maxlevel = data->meetingstone.maxLevel;
+                info.name = area->area_name[0];
+                // get stone position
+                Position stonePosition = Position();
+                uint32 mapId = 0;
+                FindGOData worker(i, nullptr);
+                sObjectMgr.DoGOData(worker);
+                GameObjectDataPair const* dataPair = worker.GetResult();
+                if (dataPair)
+                {
+                    GameObjectData const* data = &dataPair->second;
+                    stonePosition = Position(data->posX, data->posY, data->posZ, 0.f);
+                    mapId = data->mapid;
+                }
+                info.position = stonePosition;
+                info.mapId = mapId;
+                switch (info.area)
+                {
+                case 1977:
+                case 2159:
+                    info.dungeonType = MAP_RAID;
+                    break;
+                default:
+                    info.dungeonType = MAP_INSTANCE;
+                }
+                /*if (MapEntry const* mEntry = sMapStore.LookupEntry(area->mapid))
+                {
+                    info.dungeonType = mEntry->map_type;
+                }
+                else
+                    info.dungeonType = MAP_COMMON;*/
+
+                m_MeetingStonesMap.insert(std::make_pair(data->id, info));
+                sLog.outBasic(">> Loaded Meeting Stone Entry:%d, Area:%d, Level:%d - %d, Name:%s, Dungeon Type:%u", i, info.area, info.minlevel, info.maxlevel, info.name, info.dungeonType);
+                count++;
+            }
+        }
+    }
+
+    sLog.outString(">> Loaded %u Meeting Stones", count);
+    sLog.outString();
+}
+
+MeetingStoneSet LFGQueue::GetDungeonsForPlayer(Player* player)
+{
+    MeetingStoneSet list;
+    uint32 level = player->GetLevel();
+    for (MeetingStonesMap::iterator it = m_MeetingStonesMap.begin(); it != m_MeetingStonesMap.end(); ++it)
+    {
+        MeetingStoneInfo data = it->second;
+
+        if (data.maxlevel && data.maxlevel < level)
+            continue;
+
+        if (data.minlevel && data.minlevel > level)
+            continue;
+
+        list.insert(list.end(), data);
+    }
+    return list;
+}
+
+void LFGQueue::TeleportGroupToStone(Group* grp, uint32 areaId)
+{
+    if (!grp)
+        return;
+
+    // custom teleport to dungeon
+    for (MeetingStonesMap::iterator it = m_MeetingStonesMap.begin(); it != m_MeetingStonesMap.end(); ++it)
+    {
+        MeetingStoneInfo data = it->second;
+        if (data.area != areaId)
+            continue;
+
+        if (data.position.IsEmpty())
+            continue;
+
+        // get map of stone
+        Map* stoneMap = sMapMgr.FindMap(data.mapId);
+        if (!stoneMap)
+            continue;
+
+        AreaTableEntry const* entry = GetAreaEntryByAreaID(data.area);
+        if (!entry)
+            continue;
+
+
+        // calculate random teleport position near stone
+        float x = data.position.x;
+        float y = data.position.y;
+        float z = data.position.z;
+        //stoneMap->GetReachableRandomPointOnGround(x, y, z, 20.f);
+
+        // send teleport offer
+        for (GroupReference* ref = grp->GetFirstMember(); ref != nullptr; ref = ref->next())
+        {
+            if (Player* member = ref->getSource())
+            {
+                // dont summon if already has summon request
+                if (member->HasSummonOffer())
+                    continue;
+
+                // dont summon if close
+                if (member->GetMapId() == data.mapId && member->IsWithinDist2d(data.position.x, data.position.y, 100.f))
+                    continue;
+
+                bool foundPoint = false;
+                uint32 attempts = 0;
+                do
+                {
+                    // Generate a random range and direction for the new point
+                    const float angle = rand_norm_f() * (M_PI_F * 2.0f);
+                    const float range = 20.0f;
+
+                    float i_x = x + range * cos(angle);
+                    float i_y = y + range * sin(angle);
+                    float i_z = z + 1.0f;
+
+                    member->UpdateAllowedPositionZ(i_x, i_y, i_z, stoneMap);
+
+                    // project vector to get only positive value
+                    float ab = fabs(x - i_x);
+                    float ac = fabs(z - i_z);
+
+                    // slope represented by c angle (in radian)
+                    const float MAX_SLOPE_IN_RADIAN = 50.0f / 180.0f * M_PI_F;  // 50(degree) max seem best value for walkable slope
+
+                    // check ab vector to avoid divide by 0
+                    if (ab > 0.0f)
+                    {
+                        // compute c angle and convert it from radian to degree
+                        float slope = atan(ac / ab);
+                        if (slope < MAX_SLOPE_IN_RADIAN)
+                        {
+                            x = i_x;
+                            y = i_y;
+                            z = i_z;
+                            foundPoint = true;
+                        }
+                    }
+                    attempts++;
+                } while (!foundPoint && attempts < 10);
+
+                member->SetSummonPoint(data.mapId, x, y, z, grp->GetLeaderGuid());
+                WorldPacket data(SMSG_SUMMON_REQUEST, 8 + 4 + 4);
+                data << grp->GetLeaderGuid();                               // summoner guid
+                data << uint32(entry->zone != 0 ? entry->zone : entry->ID); // summoner zone
+                data << uint32(MAX_PLAYER_SUMMON_DELAY * IN_MILLISECONDS);  // auto decline after msecs
+                member->GetSession()->SendPacket(data);
+            }
+        }
+    }
+}
