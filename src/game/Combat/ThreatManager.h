@@ -23,6 +23,7 @@
 #include "Globals/SharedDefines.h"
 #include "Utilities/LinkedReference/Reference.h"
 #include "Entities/UnitEvents.h"
+#include "Util/Timer.h"
 #include "Entities/ObjectGuid.h"
 #include <list>
 
@@ -31,6 +32,8 @@
 class Unit;
 class ThreatManager;
 struct SpellEntry;
+
+#define THREAT_UPDATE_INTERVAL (1 * IN_MILLISECONDS)        // Server should send threat update to client periodically each second
 
 //==============================================================
 // Class to calculate the real threat based
@@ -214,6 +217,8 @@ class ThreatManager
 
         void processThreatEvent(ThreatRefStatusChangeEvent& threatRefStatusChangeEvent);
 
+        void UpdateForClient(uint32 diff);
+
         HostileReference* getCurrentVictim() const { return iCurrentVictim; }
 
         Unit* getOwner() const { return iOwner; }
@@ -241,6 +246,8 @@ class ThreatManager
 
         HostileReference* iCurrentVictim;
         Unit* iOwner;
+        ShortTimeTracker iUpdateTimer;
+        bool iUpdateNeed;
         ThreatContainer iThreatContainer;
         ThreatContainer iThreatOfflineContainer;
 };
