@@ -50,6 +50,8 @@
 #include "Tools/Formulas.h"
 #include "Entities/Transports.h"
 #include "Anticheat/Anticheat.hpp"
+#include <iomanip>
+#include <sstream>
 
 #ifdef BUILD_METRICS
  #include "Metric/Metric.h"
@@ -504,6 +506,9 @@ void Unit::Update(const uint32 diff)
 
     // try extra attack
     DoExtraAttacks(GetVictim());
+    
+    if (CanHaveThreatList())
+        getThreatManager().UpdateForClient(diff);
 
     if (uint32 base_att = getAttackTimer(BASE_ATTACK))
         setAttackTimer(BASE_ATTACK, (diff >= base_att ? 0 : base_att - diff));
@@ -8666,6 +8671,9 @@ void Unit::AddThreat(Unit* pVictim, float threat /*= 0.0f*/, bool crit /*= false
 
 void Unit::DeleteThreatList()
 {
+    if (CanHaveThreatList(true) && !getThreatManager().isThreatListEmpty())
+        SendThreatClear();
+
     getThreatManager().clearReferences();
     getHostileRefManager().deleteReferences();
 }
@@ -10802,6 +10810,120 @@ void Unit::KnockBackWithAngle(float angle, float horizontalSpeed, float vertical
 
     // no non player controlled pre-wotlk
     return;
+}
+
+void Unit::SendThreatUpdate()
+{
+    ThreatList const& tlist = getThreatManager().getThreatList();
+    if (uint32 count = tlist.size())
+    {
+        DEBUG_FILTER_LOG(LOG_FILTER_COMBAT, "WORLD: Send SMSG_THREAT_UPDATE Message");
+        uint32 number = urand(0, -1);
+        std::stringstream data;
+        data << number << ": " << "SMSG_THREAT_UPDATE";
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << GetObjectGuid() << std::dec;
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        data << number << ": " << uint32(count);
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        for (auto itr : tlist)
+        {
+            data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << itr->getUnitGuid() << std::dec;
+            SendMessageToSet(data.str(), false);
+            data.clear();
+            data.str(std::string());
+            data << number << ": " << uint32(itr->getThreat());
+            SendMessageToSet(data.str(), false);
+            data.clear();
+            data.str(std::string());
+        }
+        data << number << ": END";
+        SendMessageToSet(data.str(), false);
+    }
+}
+
+void Unit::SendHighestThreatUpdate(HostileReference* pHostilReference)
+{
+    ThreatList const& tlist = getThreatManager().getThreatList();
+    if (uint32 count = tlist.size())
+    {
+        DEBUG_FILTER_LOG(LOG_FILTER_COMBAT, "WORLD: Send SMSG_HIGHEST_THREAT_UPDATE Message");
+        uint32 number = urand(0, -1);
+        std::stringstream data;
+        data << number << ": " << "SMSG_HIGHEST_THREAT_UPDATE";
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << GetObjectGuid() << std::dec;
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << pHostilReference->getUnitGuid() << std::dec;
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        data << number << ": " << uint32(count);
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        for (auto itr : tlist)
+        {
+            data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << itr->getUnitGuid() << std::dec;
+            SendMessageToSet(data.str(), false);
+            data.clear();
+            data.str(std::string());
+            data << number << ": " << uint32(itr->getThreat());
+            SendMessageToSet(data.str(), false);
+            data.clear();
+            data.str(std::string());
+        }
+        data << number << ": END";
+        SendMessageToSet(data.str(), false);
+    }
+}
+
+void Unit::SendThreatClear() const
+{
+    DEBUG_FILTER_LOG(LOG_FILTER_COMBAT, "WORLD: Send SMSG_THREAT_CLEAR Message");
+    uint32 number = urand(0, -1);
+    std::stringstream data;
+    data << number << ": " << "SMSG_THREAT_CLEAR";
+    SendMessageToSet(data.str(), false);
+    data.clear();
+    data.str(std::string());
+    data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << GetObjectGuid() << std::dec;
+    SendMessageToSet(data.str(), false);
+    data.clear();
+    data.str(std::string());
+    data << number << ": END";
+    SendMessageToSet(data.str(), false);
+}
+
+void Unit::SendThreatRemove(HostileReference* pHostileReference) const
+{
+    DEBUG_FILTER_LOG(LOG_FILTER_COMBAT, "WORLD: Send SMSG_THREAT_REMOVE Message");
+    uint32 number = urand(0, -1);
+    std::stringstream data;
+    data << number << ": " << "SMSG_THREAT_REMOVE";
+    SendMessageToSet(data.str(), false);
+    data.clear();
+    data.str(std::string());
+    data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << GetObjectGuid() << std::dec;
+    SendMessageToSet(data.str(), false);
+    data.clear();
+    data.str(std::string());
+    data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << pHostileReference->getUnitGuid() << std::dec;
+    SendMessageToSet(data.str(), false);
+    data.clear();
+    data.str(std::string());
+    data << number << ": END";
+    SendMessageToSet(data.str(), false);
 }
 
 struct StopAttackFactionHelper

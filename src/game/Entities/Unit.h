@@ -1758,6 +1758,11 @@ class Unit : public WorldObject
         void SetFacingTo(float ori);
         void SetFacingToObject(WorldObject* pObject);
 
+        void SendHighestThreatUpdate(HostileReference* pHostilReference);
+        void SendThreatClear() const;
+        void SendThreatRemove(HostileReference* pHostileReference) const;
+        void SendThreatUpdate();
+
         bool IsAlive() const { return (m_deathState == ALIVE); }
         bool IsDead() const { return (m_deathState == DEAD || m_deathState == CORPSE); }
         DeathState GetDeathState() const { return m_deathState; }
