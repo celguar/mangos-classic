@@ -10870,6 +10870,10 @@ void Unit::SendThreatUpdate()
         SendMessageToSet(data.str(), false);
         data.clear();
         data.str(std::string());
+        data << number << ": " << GetName() << GetLevel() << std::dec;
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
         data << number << ": " << uint32(count);
         SendMessageToSet(data.str(), false);
         data.clear();
@@ -10877,6 +10881,10 @@ void Unit::SendThreatUpdate()
         for (auto itr : tlist)
         {
             data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << itr->getUnitGuid() << std::dec;
+            SendMessageToSet(data.str(), false);
+            data.clear();
+            data.str(std::string());
+            data << number << ": " << itr->getTarget()->GetName() << itr->getTarget()->GetLevel() << std::dec;
             SendMessageToSet(data.str(), false);
             data.clear();
             data.str(std::string());
@@ -10890,7 +10898,7 @@ void Unit::SendThreatUpdate()
     }
 }
 
-void Unit::SendHighestThreatUpdate(HostileReference* pHostilReference)
+void Unit::SendHighestThreatUpdate(HostileReference* pHostileReference)
 {
     ThreatList const& tlist = getThreatManager().getThreatList();
     if (uint32 count = tlist.size())
@@ -10906,7 +10914,15 @@ void Unit::SendHighestThreatUpdate(HostileReference* pHostilReference)
         SendMessageToSet(data.str(), false);
         data.clear();
         data.str(std::string());
-        data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << pHostilReference->getUnitGuid() << std::dec;
+        data << number << ": " << GetName() << GetLevel() << std::dec;
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << pHostileReference->getUnitGuid() << std::dec;
+        SendMessageToSet(data.str(), false);
+        data.clear();
+        data.str(std::string());
+        data << number << ": " << pHostileReference->getTarget()->GetName() << pHostileReference->getTarget()->GetLevel() << std::dec;
         SendMessageToSet(data.str(), false);
         data.clear();
         data.str(std::string());
@@ -10917,6 +10933,10 @@ void Unit::SendHighestThreatUpdate(HostileReference* pHostilReference)
         for (auto itr : tlist)
         {
             data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << itr->getUnitGuid() << std::dec;
+            SendMessageToSet(data.str(), false);
+            data.clear();
+            data.str(std::string());
+            data << number << ": " << itr->getTarget()->GetName() << itr->getTarget()->GetLevel() << std::dec;
             SendMessageToSet(data.str(), false);
             data.clear();
             data.str(std::string());
@@ -10943,6 +10963,10 @@ void Unit::SendThreatClear() const
     SendMessageToSet(data.str(), false);
     data.clear();
     data.str(std::string());
+    data << number << ": " << GetName() << GetLevel() << std::dec;
+    SendMessageToSet(data.str(), false);
+    data.clear();
+    data.str(std::string());
     data << number << ": END";
     SendMessageToSet(data.str(), false);
 }
@@ -10960,7 +10984,15 @@ void Unit::SendThreatRemove(HostileReference* pHostileReference) const
     SendMessageToSet(data.str(), false);
     data.clear();
     data.str(std::string());
+    data << number << ": " << GetName() << GetLevel() << std::dec;
+    SendMessageToSet(data.str(), false);
+    data.clear();
+    data.str(std::string());
     data << number << ": " << std::uppercase << "0x" << std::setfill('0') << std::setw(16) << std::hex << pHostileReference->getUnitGuid() << std::dec;
+    SendMessageToSet(data.str(), false);
+    data.clear();
+    data.str(std::string());
+    data << number << ": " << pHostileReference->getTarget()->GetName() << pHostileReference->getTarget()->GetLevel() << std::dec;
     SendMessageToSet(data.str(), false);
     data.clear();
     data.str(std::string());
