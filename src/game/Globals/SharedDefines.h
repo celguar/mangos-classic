@@ -1570,7 +1570,7 @@ enum ChatMsg
     // CHAT_MSG_OPENING                = 0x1D,
     // CHAT_MSG_TRADESKILLS            = 0x1E,
     // CHAT_MSG_PET_INFO               = 0x1F,
-     CHAT_MSG_COMBAT_MISC_INFO       = 0x20,
+     CHAT_MSG_COMBAT_MISC_INFO       = 0x19,
     // CHAT_MSG_COMBAT_XP_GAIN         = 0x21,
     // CHAT_MSG_COMBAT_HONOR_GAIN      = 0x22,
     // CHAT_MSG_COMBAT_FACTION_CHANGE  = 0x23,
