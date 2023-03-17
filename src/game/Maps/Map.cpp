@@ -471,15 +471,8 @@ bool Map::Add(Player* player)
     SendInitTransports(player);
 
     NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
-#ifdef ENABLE_PLAYERBOTS
-    if (player->isRealPlayer())
-    {
-#endif
     player->GetViewPoint().Event_AddedToWorld(&(*grid)(cell.CellX(), cell.CellY()));
     UpdateObjectVisibility(player, cell, p);
-#ifdef ENABLE_PLAYERBOTS
-    }
-#endif
 
     //Start Solocraft Functions
     if (sWorld.getConfig(CONFIG_BOOL_SOLOCRAFT_ENABLED))
