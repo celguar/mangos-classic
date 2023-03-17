@@ -1758,7 +1758,7 @@ class Unit : public WorldObject
         void SetFacingTo(float ori);
         void SetFacingToObject(WorldObject* pObject);
 
-        void SendHighestThreatUpdate(HostileReference* pHostilReference);
+        void SendHighestThreatUpdate(HostileReference* pHostileReference);
         void SendThreatClear() const;
         void SendThreatRemove(HostileReference* pHostileReference) const;
         void SendThreatUpdate();
