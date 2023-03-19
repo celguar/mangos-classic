@@ -59,6 +59,8 @@
 #endif
 #include "Server/PacketLog.h"
 
+#include <tchar.h>
+
 #ifdef BUILD_AHBOT
 #include "AuctionHouseBot/AuctionHouseBot.h"
 
@@ -6809,6 +6811,44 @@ bool ChatHandler::HandleMmapTestHeight(char* args)
     uint32 genTime = WorldTimer::getMSTimeDiff(startTime, WorldTimer::getMSTime());
     PSendSysMessage("Generated %u valid points for %u try in %ums.", successes, tries, genTime);
     return true;
+}
+
+bool ChatHandler::HandleMmapDemoApp(char* args)
+{
+#ifdef _WIN32
+    Player* player = m_session->GetPlayer();
+
+    FILE* fin = fopen("RecastDemoMod.exe", "r");
+    if (!fin)
+    {
+        PSendSysMessage("No RecastDemoMod.exe found!");
+        return false;
+    }
+
+    GridPair p = MaNGOS::ComputeGridPair(player->GetPositionX(), player->GetPositionY());
+
+    int gx = 63 - p.x_coord;
+    int gy = 63 - p.y_coord;
+
+    std::string cmdline = "RecastDemoMod.exe -d " + sWorld.GetDataPath() + " -map " + std::to_string(player->GetMapId()) + " -tilex " + std::to_string(gx) + " -tiley " + std::to_string(gy);
+    LPTSTR szCmdline = _tcsdup(TEXT(cmdline.c_str()));
+    STARTUPINFO info = { sizeof(info) };
+    PROCESS_INFORMATION processInfo;
+    if (CreateProcess("RecastDemoMod.exe", szCmdline, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &info, &processInfo))
+    {
+        // don't wait for it to finish.
+        //::WaitForSingleObject(processInfo.hProcess, INFINITE);
+        // free up resources...
+        CloseHandle(processInfo.hProcess);
+        CloseHandle(processInfo.hThread);
+    }
+
+    PSendSysMessage("Running Recast Demo App at current tile");
+    return true;
+#else
+    PSendSysMessage("Command is Windows only");
+    return false;
+#endif
 }
 
 bool ChatHandler::HandleServerResetAllRaidCommand(char* /*args*/)
