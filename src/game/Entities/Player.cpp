@@ -17223,7 +17223,13 @@ void Player::SendThreatMessageToPlayer(std::string const& message) const
     WorldPacket data;
     ChatHandler::BuildChatPacket(data, CHAT_MSG_COMBAT_MISC_INFO, message.data(), LANG_UNIVERSAL, CHAT_TAG_NONE, GetObjectGuid(), nullptr, ObjectGuid(), nullptr, "THREAT");
     if (WorldSession* session = GetSession())
+    {
+        // Do not send to Hermes Proxy
+        if (session->GetOS() == CLIENT_OS_MAC)
+            return;// msgType = ChatMsg(0x20); // TODO find out
+
         session->SendPacket(data);
+    }
 }
 
 // send Proficiency
