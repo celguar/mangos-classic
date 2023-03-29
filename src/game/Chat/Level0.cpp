@@ -304,3 +304,87 @@ bool ChatHandler::HandleWhisperRestrictionCommand(char* args)
 
     return true;
 }
+
+
+#ifdef USE_ACHIEVEMENTS
+
+/**
+ * Handles the '.achievements enableAddon' command, which should enable sending Achievement UI specific data
+ * @param args current player categories version
+ */
+bool ChatHandler::HandleEnableAchiever(char* args)
+{
+    uint32 version;
+    if (!ExtractUInt32(&args, version))
+        return false;
+
+    if (sAchievementMgr.hasAchiever(m_session))
+        return true;
+
+    sAchievementMgr.enableAchiever(m_session, version);
+    return true;
+}
+
+/**
+ * Handles the '.achievements getCategoties' command, which should assemble all categories into a message and sed it back to player
+ * @param args current player categories version
+ */
+bool ChatHandler::HandleGetCategories(char* args)
+{
+    uint32 version;
+    if (!ExtractUInt32(&args, version))
+        return false;
+
+    sAchievementMgr.getAllCategories(m_session, version);
+    return true;
+}
+
+/**
+ * Handles the '.achievements getAchievements' command, which should assemble all achievements into a message and sed it back to player
+ * @param args current player achievements version
+ */
+bool ChatHandler::HandleGetAchievements(char* args)
+{
+    uint32 version;
+    if (!ExtractUInt32(&args, version))
+        return false;
+
+    sAchievementMgr.getAllAchievements(m_session, version);
+    return true;
+}
+
+/**
+ * Handles the '.achievements getCriteria' command, which should assemble all criteria into a message and sed it back to player
+ * @param args current player criteria version
+ */
+bool ChatHandler::HandleGetCriteria(char* args)
+{
+    uint32 version;
+    if (!ExtractUInt32(&args, version))
+        return false;
+
+    sAchievementMgr.getAllCriteria(m_session, version);
+    return true;
+}
+
+/**
+ * Handles the '.achievements getCriteria' command, which should assemble all criteria into a message and sed it back to player
+ * @param args current player criteria version
+ */
+bool ChatHandler::HandleGetCharacterCriteria(char* args)
+{
+    sAchievementMgr.getCharacterCriteria(m_session);
+    return true;
+}
+
+/**
+ * Handles the '.achievements getCriteria' command, which should assemble all criteria into a message and sed it back to player
+ * @param args current player criteria version
+ */
+bool ChatHandler::HandleGetCharacterAchuievements(char* args)
+{
+    sAchievementMgr.getCharacterAchievements(m_session);
+    return true;
+}
+
+#endif

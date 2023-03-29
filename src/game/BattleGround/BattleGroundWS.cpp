@@ -328,6 +328,11 @@ void BattleGroundWS::ProcessDroppedFlagActions(Player* player, GameObject* targe
         player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_PVP_ACTIVE_CANCELS);
 }
 
+int32 BattleGroundWS::GetTeamScore(PvpTeamIndex team) const
+{
+    return GetBgMap()->GetVariableManager().GetVariable(team == TEAM_INDEX_ALLIANCE ? BG_WS_STATE_CAPTURES_ALLIANCE : BG_WS_STATE_CAPTURES_HORDE);
+}
+
 // Handle flag click event
 void BattleGroundWS::HandlePlayerClickedOnFlag(Player* player, GameObject* goTarget)
 {

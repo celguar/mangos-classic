@@ -306,6 +306,10 @@ void WorldSession::HandleGameObjectUseOpcode(WorldPacket& recv_data)
         return;
 
     obj->Use(_player);
+
+#ifdef USE_ACHIEVEMENTS
+    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_USE_GAMEOBJECT, obj->GetEntry());
+#endif
 }
 
 void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)

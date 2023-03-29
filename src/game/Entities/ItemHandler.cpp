@@ -595,6 +595,10 @@ void WorldSession::HandleSellItemOpcode(WorldPacket& recv_data)
     }
 
     _player->ModifyMoney(money);
+
+#ifdef USE_ACHIEVEMENTS
+    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_MONEY_FROM_VENDORS, money);
+#endif
 }
 
 void WorldSession::HandleBuybackItem(WorldPacket& recv_data)
@@ -632,6 +636,10 @@ void WorldSession::HandleBuybackItem(WorldPacket& recv_data)
             _player->RemoveItemFromBuyBackSlot(slot, false);
             _player->ItemAddedQuestCheck(pItem->GetEntry(), pItem->GetCount());
             _player->StoreItem(dest, pItem, true);
+
+#ifdef USE_ACHIEVEMENTS
+            _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_RECEIVE_EPIC_ITEM, pItem->GetEntry(), pItem->GetCount());
+#endif
         }
         else
             _player->SendEquipError(msg, pItem, nullptr, bagSlot);
@@ -925,6 +933,10 @@ void WorldSession::HandleBuyBankSlotOpcode(WorldPacket& recvPacket)
 
     _player->SetBankBagSlotCount(slot);
     _player->ModifyMoney(-int32(price));
+
+#ifdef USE_ACHIEVEMENTS
+    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BUY_BANK_SLOT);
+#endif
 
     data << uint32(ERR_BANKSLOT_OK);
     SendPacket(data);
