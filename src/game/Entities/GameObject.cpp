@@ -1908,6 +1908,10 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
             m_loot = new Loot(player, this, LOOT_FISHINGHOLE);
             m_loot->ShowContentTo(player);
 
+#ifdef USE_ACHIEVEMENTS
+            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_FISH_IN_GAMEOBJECT, GetGOInfo()->id);
+#endif
+
             return;
         }
         case GAMEOBJECT_TYPE_FLAGDROP:                      // 26

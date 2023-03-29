@@ -322,6 +322,10 @@ void WorldSession::HandleAuctionSellItem(WorldPacket& recv_data)
                itemGuid.GetString().c_str(), auctioneerGuid.GetString().c_str(), bid, buyout, etime, auctionHouseEntry->houseId);
 
     SendAuctionCommandResult(AH, AUCTION_STARTED, AUCTION_OK);
+
+#ifdef USE_ACHIEVEMENTS
+    GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_CREATE_AUCTION, 1);
+#endif
 }
 
 // this function is called when client bids or buys out auction

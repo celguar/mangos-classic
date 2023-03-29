@@ -219,6 +219,10 @@ void WorldSession::HandleSendMail(WorldPacket& recv_data)
     
     pl->ModifyMoney(-int32(reqmoney));
 
+#ifdef USE_ACHIEVEMENTS
+    pl->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GOLD_SPENT_FOR_MAIL, reqmoney);
+#endif
+
     MailDraft draft(subject, body);
 
     if (itemGuid || money > 0)

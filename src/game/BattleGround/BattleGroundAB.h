@@ -238,6 +238,8 @@ class BattleGroundAB : public BattleGround
         // Process node capture
         void ProcessNodeCapture(uint8 node, PvpTeamIndex teamIdx);
 
+        int32 GetTeamScore(PvpTeamIndex team) const override;
+
         // Get text id for node
         int32 GetNodeMessageId(uint8 node) const;
 
@@ -254,5 +256,16 @@ class BattleGroundAB : public BattleGround
         bool   m_isInformedNearVictory;
         uint32 m_honorTicks;
         uint32 m_reputationTics;
+
+#ifdef USE_ACHIEVEMENTS
+    public:
+        bool AllNodesConrolledByTeam(PvpTeamIndex teamId) const override;
+        bool IsTeamScores500Disadvantage(PvpTeamIndex teamId) const { return _teamScores500Disadvantage[teamId]; }
+
+    private:
+        uint8 _controlledPoints[PVP_TEAM_COUNT]{};
+        bool _teamScores500Disadvantage[PVP_TEAM_COUNT]{};
+#endif
+
 };
 #endif
