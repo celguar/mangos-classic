@@ -1149,6 +1149,11 @@ void BattleGround::RemovePlayerAtLeave(ObjectGuid playerGuid, bool isOnTransport
         if (isOnTransport)
             player->TeleportToBGEntryPoint();
 
+#ifdef USE_ACHIEVEMENTS
+        // Xinef: remove all criterias on bg leave
+        player->ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_BG_MAP, GetMapId(), true);
+#endif
+
         DETAIL_LOG("BATTLEGROUND: Removed player %s from BattleGround.", player->GetName());
     }
 
@@ -1228,6 +1233,11 @@ void BattleGround::AddPlayer(Player* player)
     WorldPacket data;
     sBattleGroundMgr.BuildPlayerJoinedBattleGroundPacket(data, player);
     SendPacketToTeam(team, data, player, false);
+
+#ifdef USE_ACHIEVEMENTS
+    // Xinef: reset all map criterias on map enter
+    player->ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_BG_MAP, GetMapId(), true);
+#endif
 
     // setup BG group membership
     PlayerAddedToBgCheckIfBgIsRunning(player);

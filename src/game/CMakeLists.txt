@@ -62,6 +62,17 @@ if(NOT BUILD_IKE3_BOTS)
   endforeach()
 endif()
 
+if(NOT BUILD_ACHIEVEMENTS)
+  # exclude achievement files
+  set (EXCLUDE_DIR "Achievements/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
 set(PCH_BASE_FILENAME "pchdef")
 # exclude pchdef files
 set (EXCLUDE_FILE "${PCH_BASE_FILENAME}")
@@ -214,6 +225,11 @@ endif()
 # Define Ike3 Bots ENABLE_PLAYERBOTS if need
 if (BUILD_IKE3_BOTS)
   add_definitions(-DENABLE_PLAYERBOTS)
+endif()
+
+# Define Achievements USE_ACHIEVEMENTS if need
+if (BUILD_ACHIEVEMENTS)
+  add_definitions(-DUSE_ACHIEVEMENTS)
 endif()
 
 if (MSVC)

@@ -897,6 +897,19 @@ ChatCommand* ChatHandler::getCommandTable()
         { nullptr,         0,                  false,  nullptr,                                        "", nullptr }
     };
 
+#ifdef USE_ACHIEVEMENTS
+    static ChatCommand achievementsCommandTable[] = 
+    {
+        { "enableAchiever",             SEC_PLAYER,             false, &ChatHandler::HandleEnableAchiever,            "", nullptr },
+        { "getCategoties",              SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCategories,             "", nullptr },
+        { "getAchievements",            SEC_GAMEMASTER,         false, &ChatHandler::HandleGetAchievements,           "", nullptr },
+        { "getCriteria",                SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCriteria,               "", nullptr },
+        { "getCharacterCriteria",       SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCharacterCriteria,      "", nullptr },
+        { "getCharacterAchievements",   SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCharacterAchuievements, "", nullptr },
+        { nullptr,                      0,                      false, nullptr,                                       "", nullptr }
+    };
+#endif
+
     static ChatCommand commandTable[] =
     {
         { "anticheat",      SEC_GAMEMASTER,     true,  nullptr,                                           "", anticheatCommandTable},
@@ -1011,6 +1024,9 @@ ChatCommand* ChatHandler::getCommandTable()
         { "bot",            SEC_PLAYER,         false, &ChatHandler::HandlePlayerbotCommand,           "", nullptr },
 #endif
         { "hardcore",       SEC_GAMEMASTER,     false, &ChatHandler::HandleHardcoreCommand,            "", nullptr },
+#ifdef USE_ACHIEVEMENTS
+        { "achievements",   SEC_PLAYER,         false, nullptr,                                        "", achievementsCommandTable },
+#endif
         { nullptr,          0,                  false, nullptr,                                        "", nullptr }
     };
 

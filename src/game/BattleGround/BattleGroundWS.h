@@ -241,6 +241,8 @@ class BattleGroundWS : public BattleGround
         void ProcessFlagPickUpFromBase(Player* player, Team attackerTeam);
         void ProcessDroppedFlagActions(Player* player, GameObject* target);
 
+        int32 GetTeamScore(PvpTeamIndex team) const override;
+
         // process score
         void ProcessPlayerFlagScoreEvent(Player* source);
 

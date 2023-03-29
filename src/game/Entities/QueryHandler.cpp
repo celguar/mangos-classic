@@ -377,6 +377,16 @@ void WorldSession::HandlePageTextQueryOpcode(WorldPacket& recv_data)
 
     uint32 pageID;
     recv_data >> pageID;
+    ObjectGuid bookGuid;
+    recv_data >> pageID >> bookGuid;
+
+#ifdef USE_ACHIEVEMENTS
+    // reading books
+    if (bookGuid.IsGameObject())
+    {
+        GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_USE_GAMEOBJECT, bookGuid.GetEntry());
+    }
+#endif
 
     while (pageID)
     {

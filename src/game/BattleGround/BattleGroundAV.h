@@ -621,6 +621,8 @@ class BattleGroundAV : public BattleGround
         void DestroyNode(AVNodeIds node);
         void DefendNode(AVNodeIds node, PvpTeamIndex teamIdx);
 
+        int32 GetTeamScore(PvpTeamIndex team) const override;
+
         void PopulateNode(AVNodeIds node);
         int32 GetNodeMessageId(AVNodeIds node) const;
 
@@ -657,6 +659,15 @@ class BattleGroundAV : public BattleGround
         uint32 m_repOwnedMine;
         uint32 m_repSurviveCaptain;
         uint32 m_repSurviveTower;
+
+#ifdef USE_ACHIEVEMENTS
+    public:
+        bool IsBothMinesControlledByTeam(PvpTeamIndex teamId) const;
+        bool IsAllTowersControlledAndCaptainAlive(PvpTeamIndex teamId) const;
+
+    private:
+        bool m_CaptainAlive[2]{};
+#endif
 };
 
 #endif

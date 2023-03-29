@@ -42,6 +42,10 @@
 #include "Loot/LootMgr.h"
 #include "Cinematics/CinematicMgr.h"
 
+#ifdef USE_ACHIEVEMENTS
+#include "Achievements/AchievementMgr.h"
+#endif
+
 #include<vector>
 
 struct Mail;
@@ -726,6 +730,11 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOADMAILS,
     PLAYER_LOGIN_QUERY_LOADMAILEDITEMS,
     PLAYER_LOGIN_QUERY_LOADWEEKLYQUESTSTATUS,
+
+#ifdef USE_ACHIEVEMENTS
+    PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS,
+    PLAYER_LOGIN_QUERY_LOAD_CRITERIA_PROGRESS,
+#endif
 
     MAX_PLAYER_LOGIN_QUERY
 };
@@ -1609,6 +1618,23 @@ class Player : public Unit
         int GetGuildIdInvited() { return m_GuildIdInvited; }
         static void RemovePetitionsAndSigns(ObjectGuid guid);
 
+#ifdef USE_ACHIEVEMENTS
+        void LoadAchievementsFromDB(SqlQueryHolder* holder);
+        void OnPostLoadAchievementsFromDB();
+        void SaveAchievementsToDB();
+        void UpdateTimedAchievements(const uint32 diff);
+        void UpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 miscValue1 = 0, uint32 miscValue2 = 0, Unit* unit = nullptr);
+        void CheckAllAchievementCriteria();
+        void ResetAchievements();
+        void SendRespondInspectAchievements(Player* player) const;
+        bool HasAchieved(uint32 achievementId) const;
+        void StartTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry, uint32 timeLost = 0);
+        void RemoveTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry);
+        void ResetAchievementCriteria(AchievementCriteriaCondition condition, uint32 value, bool evenIfCriteriaComplete = false);
+        void CompletedAchievement(AchievementEntry const* entry);
+        void UpdateLootAchievements(LootItem* item, Loot* loot);
+#endif
+
         bool CanEnterNewInstance(uint32 instanceId);
         void AddNewInstanceId(uint32 instanceId);
         void UpdateNewInstanceIdTimers(TimePoint const& now);
@@ -2245,6 +2271,11 @@ class Player : public Unit
         //PlayerTalentMap& GetTalentMap(uint8 spec) { return m_talents[spec]; }
 #endif
 
+#ifdef USE_ACHIEVEMENTS
+        const AchievementMgr* GetAchievementMgr() const { return m_achievementMgr; }
+        AchievementMgr* GetAchievementMgr() { return m_achievementMgr; }
+#endif
+
         void SendLootError(ObjectGuid guid, LootError error) const;
 
         // cooldown system
@@ -2549,6 +2580,10 @@ class Player : public Unit
 #ifdef ENABLE_PLAYERBOTS
         PlayerbotAI* m_playerbotAI;
         PlayerbotMgr* m_playerbotMgr;
+#endif
+
+#ifdef USE_ACHIEVEMENTS
+        AchievementMgr* m_achievementMgr;
 #endif
 
         // Homebind coordinates

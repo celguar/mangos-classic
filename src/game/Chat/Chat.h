@@ -797,6 +797,15 @@ class ChatHandler
 
         bool HandlePetLevelLoyaltyCommand(char* args);
 
+#ifdef USE_ACHIEVEMENTS
+        bool HandleEnableAchiever(char* args);
+        bool HandleGetCategories(char* args);
+        bool HandleGetAchievements(char* args);
+        bool HandleGetCriteria(char* args);
+        bool HandleGetCharacterCriteria(char* args);
+        bool HandleGetCharacterAchuievements(char* args);
+#endif
+
         Player*   getSelectedPlayer() const;
         Unit*     getSelectedUnit(bool self = true) const;
         Creature* getSelectedCreature() const;
