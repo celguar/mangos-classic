@@ -210,6 +210,11 @@ bool LoginQueryHolder::Initialize()
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADMAILEDITEMS,     "SELECT itemEntry, creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, itemTextId, mail_id, item_guid, item_template FROM mail_items JOIN item_instance ON item_guid = guid WHERE receiver = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_FORGOTTEN_SKILLS,    "SELECT skill, value FROM character_forgotten_skills WHERE guid = '%u'", m_guid.GetCounter());
 
+#ifdef USE_ACHIEVEMENTS
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS,    "SELECT `achievement`, `date` FROM `character_achievement` WHERE `guid` = '%u'", m_guid.GetCounter());
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOAD_CRITERIA_PROGRESS, "SELECT `criteria`, `counter`, `date` FROM `character_achievement_progress` WHERE `guid` = '%u'", m_guid.GetCounter());
+#endif
+
     return res;
 }
 
@@ -1082,6 +1087,11 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 #ifdef PRESETS
     if (sTransmogrification->GetEnableSets())
         sTransmogrification->LoadPlayerSets(playerGUID);
+#endif
+
+#ifdef USE_ACHIEVEMENTS
+    //_player->CheckAllAchievementCriteria();
+    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ON_LOGIN, 1);
 #endif
 
     m_playerLoading = false;

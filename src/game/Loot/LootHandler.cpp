@@ -236,6 +236,13 @@ void WorldSession::HandleLootMasterGiveOpcode(WorldPacket& recv_data)
         else
             _player->SendLootError(lootguid, LOOT_ERROR_MASTER_OTHER);
     }
+
+#ifdef USE_ACHIEVEMENTS
+    if (result == EQUIP_ERR_OK)
+    {
+        target->UpdateLootAchievements(lootItem, pLoot);
+    }
+#endif
 }
 
 void WorldSession::HandleLootMethodOpcode(WorldPacket& recv_data)
@@ -280,5 +287,23 @@ void WorldSession::HandleLootRoll(WorldPacket& recv_data)
         return;
 
     sLootMgr.PlayerVote(GetPlayer(), lootedTarget, itemSlot, RollVote(rollType));
+
+#ifdef USE_ACHIEVEMENTS
+    switch (rollType) 
+    {
+        case 1: 
+        {
+            GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ROLL_NEED, 1);
+            break;
+        }
+        case 2:
+        {
+            GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ROLL_GREED, 1);
+            break;
+        }
+
+        default: break;
+    }
+#endif
 }
 

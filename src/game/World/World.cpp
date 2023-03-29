@@ -85,6 +85,11 @@
 #include "playerbot/RandomPlayerbotMgr.h"
 #endif
 
+#if USE_ACHIEVEMENTS
+#include "Achievements/AchievementMgr.h"
+#include "Achievements/AchievementScriptMgr.h"
+#endif
+
 #include <algorithm>
 #include <mutex>
 #include <cstdarg>
@@ -1310,6 +1315,13 @@ void World::SetInitialWorldSettings()
     LoadLootTables(ids_set);
     sLog.outString(">>> Loot Tables loaded");
     sLog.outString();
+
+#ifdef USE_ACHIEVEMENTS
+    sAchievementStore.Load();
+    sAchievementCategoryStore.Load();
+    sAchievementCriteriaStore.Load();
+    sAchievementMgr.LoadAllData();
+#endif
 
     sLog.outString("Loading Skill Fishing base level requirements...");
     sObjectMgr.LoadFishingBaseSkillLevel();

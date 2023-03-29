@@ -371,6 +371,10 @@ class BattleGround
             o = m_teamStartLocO[idx];
         }
 
+#ifdef USE_ACHIEVEMENTS
+        virtual bool AllNodesConrolledByTeam(PvpTeamIndex teamId) const { return false; }
+#endif
+
         void SetStartMaxDist(float startMaxDist) { m_startMaxDist = startMaxDist; }
         float GetStartMaxDist() const { return m_startMaxDist; }
 
@@ -541,7 +545,9 @@ class BattleGround
         // returns the other team index
         static PvpTeamIndex GetOtherTeamIndex(PvpTeamIndex teamIdx) { return teamIdx == TEAM_INDEX_ALLIANCE ? TEAM_INDEX_HORDE : TEAM_INDEX_ALLIANCE; }
 
-        // check if player is inside battleground
+        virtual int32 GetTeamScore(PvpTeamIndex team) const { return 0; }
+
+        // checke if player is inside battleground
         bool IsPlayerInBattleGround(ObjectGuid /*playerGuid*/);
 
         // Handle script condition fulfillment
