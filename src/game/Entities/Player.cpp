@@ -4316,6 +4316,10 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             CharacterDatabase.PExecute("DELETE FROM guild_eventlog WHERE PlayerGuid1 = '%u' OR PlayerGuid2 = '%u'", lowguid, lowguid);
             CharacterDatabase.PExecute("DELETE FROM character_armory_feed WHERE guid = '%u'", lowguid);
             CharacterDatabase.CommitTransaction();
+
+#ifdef USE_ACHIEVEMENTS
+            AchievementMgr::DeleteFromDB(lowguid);
+#endif
             break;
         }
         // The character gets unlinked from the account, the name gets freed up and appears as deleted ingame
