@@ -803,7 +803,9 @@ class ChatHandler
         bool HandleGetAchievements(char* args);
         bool HandleGetCriteria(char* args);
         bool HandleGetCharacterCriteria(char* args);
-        bool HandleGetCharacterAchuievements(char* args);
+        bool HandleGetCharacterAchievements(char* args);
+        bool HandleAddAchievement(char* args);
+        bool HandleRemoveAchievement(char* args);
 #endif
 
         Player*   getSelectedPlayer() const;

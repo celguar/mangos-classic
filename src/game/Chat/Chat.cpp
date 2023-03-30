@@ -905,7 +905,9 @@ ChatCommand* ChatHandler::getCommandTable()
         { "getAchievements",            SEC_GAMEMASTER,         false, &ChatHandler::HandleGetAchievements,           "", nullptr },
         { "getCriteria",                SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCriteria,               "", nullptr },
         { "getCharacterCriteria",       SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCharacterCriteria,      "", nullptr },
-        { "getCharacterAchievements",   SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCharacterAchuievements, "", nullptr },
+        { "getCharacterAchievements",   SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCharacterAchievements,  "", nullptr },
+        { "add",                        SEC_GAMEMASTER,         false, &ChatHandler::HandleAddAchievement,            "", nullptr },
+        { "remove",                     SEC_GAMEMASTER,         false, &ChatHandler::HandleRemoveAchievement,         "", nullptr },
         { nullptr,                      0,                      false, nullptr,                                       "", nullptr }
     };
 #endif
