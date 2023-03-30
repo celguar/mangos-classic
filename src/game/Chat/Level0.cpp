@@ -381,10 +381,56 @@ bool ChatHandler::HandleGetCharacterCriteria(char* args)
  * Handles the '.achievements getCriteria' command, which should assemble all criteria into a message and sed it back to player
  * @param args current player criteria version
  */
-bool ChatHandler::HandleGetCharacterAchuievements(char* args)
+bool ChatHandler::HandleGetCharacterAchievements(char* args)
 {
     sAchievementMgr.getCharacterAchievements(m_session);
     return true;
+}
+
+bool ChatHandler::HandleAddAchievement(char* args)
+{
+    uint32 avhievementId;
+    if (!ExtractUInt32(&args, avhievementId))
+        return false;
+
+    WorldSession* session = m_session;
+
+    // Get the selected player (if any)
+    Player* target;
+    ObjectGuid target_guid;
+    std::string target_name;
+    if (ExtractPlayerTarget(&args, &target, &target_guid, &target_name))
+    {
+        if (target && target->GetSession())
+        {
+            session = target->GetSession();
+        }
+    }
+
+    return sAchievementMgr.AddAchievement(session, avhievementId);
+}
+
+bool ChatHandler::HandleRemoveAchievement(char* args)
+{
+    uint32 avhievementId;
+    if (!ExtractUInt32(&args, avhievementId))
+        return false;
+
+    WorldSession* session = m_session;
+
+    // Get the selected player (if any)
+    Player* target;
+    ObjectGuid target_guid;
+    std::string target_name;
+    if (ExtractPlayerTarget(&args, &target, &target_guid, &target_name))
+    {
+        if (target && target->GetSession())
+        {
+            session = target->GetSession();
+        }
+    }
+
+    return sAchievementMgr.RemoveAchievement(m_session, avhievementId);
 }
 
 #endif

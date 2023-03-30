@@ -813,6 +813,98 @@ void AchievementMgr::EnableAchiever(uint32 version)
     m_version = version;
 }
 
+bool AchievementMgr::AddAchievement(const AchievementEntry* achievement)
+{
+    if (achievement)
+    {
+        const uint32 achievementId = achievement->refAchievement ? achievement->refAchievement : achievement->ID;
+        if (!HasAchieved(achievementId))
+        {
+            const AchievementCriteriaEntryList* criteriaList = sAchievementMgr.GetAchievementCriteriaByAchievement(achievementId);
+            if (criteriaList)
+            {
+                // Counter can never complete
+                if (achievement->flags & ACHIEVEMENT_FLAG_COUNTER)
+                {
+                    return false;
+                }
+                else
+                {
+                    for (AchievementCriteriaEntryList::const_iterator itr = criteriaList->begin(); itr != criteriaList->end(); ++itr)
+                    {
+                        const AchievementCriteriaEntry* criteria = *itr;
+                        SetCriteriaProgress(criteria, criteria->raw.count);
+
+                        // If the achievement is a collection of other achievements complete them too
+                        if (criteria->requiredType == ACHIEVEMENT_CRITERIA_TYPE_COMPLETE_ACHIEVEMENT)
+                        {
+                            const uint32 linkedAchievementID = criteria->complete_achievement.linkedAchievement;
+                            const AchievementEntry* linkedAchievement = sAchievementStore.LookupEntry<AchievementEntry>(linkedAchievementID);
+                            if (achievement)
+                            {
+                                AddAchievement(linkedAchievement);
+                            }
+                        }
+
+                        if (IsCompletedCriteria(criteria, achievement))
+                        {
+                            CompletedCriteriaFor(achievement);
+                        }
+                    }
+                }
+            }
+
+            if(IsCompletedAchievement(achievement))
+            {
+                CompletedAchievement(achievement);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool AchievementMgr::RemoveAchievement(const AchievementEntry* achievement)
+{
+    if (achievement)
+    {
+        const uint32 achievementId = achievement->refAchievement ? achievement->refAchievement : achievement->ID;
+        if (HasAchieved(achievementId))
+        {
+            CharacterDatabase.BeginTransaction();
+
+            CharacterDatabase.PExecute("DELETE FROM `character_achievement` WHERE `achievement` = '%u' AND `guid` = '%u'",
+                achievementId,
+                GetPlayer()->GetGUIDLow()
+            );
+
+            const AchievementCriteriaEntryList* criteriaList = sAchievementMgr.GetAchievementCriteriaByAchievement(achievementId);
+            if (criteriaList)
+            {
+                for (AchievementCriteriaEntryList::const_iterator itr = criteriaList->begin(); itr != criteriaList->end(); ++itr)
+                {
+                    const AchievementCriteriaEntry* criteria = *itr;
+                    SetCriteriaProgress(criteria, 0);
+
+                    CharacterDatabase.PExecute("DELETE FROM `character_achievement_progress` WHERE `guid` = '%u' AND `criteria` = '%u'",
+                        GetPlayer()->GetGUIDLow(),
+                        criteria->ID
+                    );
+
+                    m_criteriaProgress.erase(criteria->ID);
+                }
+            }
+
+            m_completedAchievements.erase(achievementId);
+
+            CharacterDatabase.CommitTransaction();
+        }
+    }
+
+    return false;
+}
+
 void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement) const
 {
     const auto date = m_completedAchievements.at(achievement->ID).date;
@@ -2333,7 +2425,7 @@ bool AchievementMgr::IsCompletedAchievement(AchievementEntry const* entry)
     uint32 count = 0;
 
     // For SUMM achievements, we have to count the progress of each criteria of the achievement.
-    // Oddly, the target count is NOT countained in the achievement, but in each individual criteria
+    // Oddly, the target count is NOT contained in the achievement, but in each individual criteria
     if (entry->flags & ACHIEVEMENT_FLAG_SUMM)
     {
         for (AchievementCriteriaEntryList::const_iterator itr = cList->begin(); itr != cList->end(); ++itr)
@@ -2899,6 +2991,44 @@ void AchievementGlobalMgr::enableAchiever(WorldSession* session, uint32 version)
 
         aMgr->EnableAchiever(version);
     }
+}
+
+bool AchievementGlobalMgr::AddAchievement(WorldSession* session, uint32 achievementId)
+{
+    Player* player = session->GetPlayer();
+    if (player)
+    {
+        AchievementMgr* achievementMgr = player->GetAchievementMgr();
+        if (achievementMgr)
+        {
+            const AchievementEntry* achievement = sAchievementStore.LookupEntry<AchievementEntry>(achievementId);
+            if (achievement)
+            {
+                return achievementMgr->AddAchievement(achievement);
+            }
+        }
+    }
+
+    return false;
+}
+
+bool AchievementGlobalMgr::RemoveAchievement(WorldSession* session, uint32 achievementId)
+{
+    Player* player = session->GetPlayer();
+    if (player)
+    {
+        AchievementMgr* achievementMgr = player->GetAchievementMgr();
+        if (achievementMgr)
+        {
+            const AchievementEntry* achievement = sAchievementStore.LookupEntry<AchievementEntry>(achievementId);
+            if (achievement)
+            {
+                return achievementMgr->RemoveAchievement(achievement);
+            }
+        }
+    }
+
+    return false;
 }
 
 void AchievementGlobalMgr::getAllCategories(WorldSession* session, uint32 version) const
