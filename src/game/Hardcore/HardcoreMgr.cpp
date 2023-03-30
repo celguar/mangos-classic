@@ -198,6 +198,12 @@ void HardcoreLootGameObject::Spawn()
                         // Set flag for hardcore loot
                         pGameObject->SetIsHardcoreLoot(true);
 
+                        // Set the initial state of the chest to be ready to be looted
+                        pGameObject->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_IN_USE);
+                        pGameObject->SetGoState(GO_STATE_READY);
+                        pGameObject->SetLootState(GO_READY);
+                        pGameObject->SetCooldown(0);
+
                         // Spawn the loot into the world
                         sObjectMgr.AddGameobjectToGrid(goLowGUID, sObjectMgr.GetGOData(goLowGUID));
 
