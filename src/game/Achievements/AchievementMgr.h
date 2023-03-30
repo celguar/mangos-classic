@@ -989,6 +989,9 @@ public:
     void EnableAchiever(uint32 version);
     uint32 GetVersion() { return m_version; }
 
+    bool AddAchievement(const AchievementEntry* entry);
+    bool RemoveAchievement(const AchievementEntry* entry);
+
 private:
     enum ProgressType { PROGRESS_SET, PROGRESS_ACCUMULATE, PROGRESS_HIGHEST, PROGRESS_RESET };
     void SendAchievementEarned(AchievementEntry const* achievement) const;
@@ -1036,6 +1039,9 @@ public:
 
     bool hasAchiever(WorldSession* session) const;
     void enableAchiever(WorldSession* session, uint32 version) const;
+
+    bool AddAchievement(WorldSession* session, uint32 achievementId);
+    bool RemoveAchievement(WorldSession* session, uint32 achievementId);
 
     [[nodiscard]] AchievementCriteriaEntryList const* GetAchievementCriteriaByType(AchievementCriteriaTypes type) const
     {
