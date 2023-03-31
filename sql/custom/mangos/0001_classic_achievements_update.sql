@@ -181,14 +181,28 @@ UPDATE `achievement_criteria_dbc` SET `Ui_Order`='2' WHERE  `ID`=6635;
 -- Kill Blood elf leader
 UPDATE `achievement_dbc` SET `patch`='1' WHERE  `ID`=613;
 -- Kill Draenei leader
-UPDATE `achievement_dbc` SET `patch`='2' WHERE  `ID`=618;
+UPDATE `achievement_dbc` SET `patch`='1' WHERE  `ID`=618;
+-- Kill Varian
+UPDATE `achievement_dbc` SET `patch`='2' WHERE  `ID`=615;
+-- New Achievement Kill Bolvar (classic)
+INSERT INTO `achievement_dbc` (`ID`, `Faction`, `Instance_Id`, `Title_Lang_enUS`, `Title_Lang_Mask`, `Description_Lang_enUS`, `Description_Lang_Mask`, `Category`, `Points`, `Ui_Order`, `IconID`, `Reward_Lang_Mask`) VALUES ('620', '0', '0', 'Do I smell fire?', '16712190', 'Kill Highlord Bolvar Fordragon.', '16712190', '95', '10', '26', '3671', '16712174');
+INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('5204', '620', '0', '1748', '1', 'Highlord Bolvar Fordragon', '2', '1');
+INSERT INTO `achievement_criteria_data` (`criteria_id`, `type`, `value1`) VALUES ('5204', '0', '0');
 -- Grizzled Veteran (wotlk)
 UPDATE `achievement_dbc` SET `patch`='2' WHERE  `ID`=2016;
 UPDATE `achievement_dbc` SET `patch`='2' WHERE  `ID`=2017;
 -- Kill Enemy Leaders - set to tbc+
 UPDATE `achievement_dbc` SET `patch`='1' WHERE  `ID`=619;
 UPDATE `achievement_dbc` SET `patch`='1' WHERE  `ID`=614;
-
+-- New achievement Kill Enemy Leaders (classic)
+INSERT INTO `achievement_dbc` (`ID`, `Faction`, `Instance_Id`, `Title_Lang_enUS`, `Title_Lang_Mask`, `Description_Lang_enUS`, `Description_Lang_Mask`, `Category`, `Points`, `Ui_Order`, `IconID`, `Reward_Lang_Mask`) VALUES ('702', '0', '-1', 'For The Horde!', '16712190', 'Slay the leaders of the Alliance.', '16712190', '95', '20', '30', '1703', '16712190');
+INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('574', '702', '8', '620', '0', 'Do I smell fire?', '0', '1');
+INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('575', '702', '8', '616', '0', 'Death to the King!', '0', '2');
+INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('576', '702', '8', '617', '0', 'Immortal No More', '0', '3');
+INSERT INTO `achievement_dbc` (`ID`, `Faction`, `Instance_Id`, `Title_Lang_enUS`, `Title_Lang_Mask`, `Description_Lang_enUS`, `Description_Lang_Mask`, `Category`, `Points`, `Ui_Order`, `IconID`, `Reward_Lang_Mask`) VALUES ('703', '1', '-1', 'For The Alliance!', '16712190', 'Slay the leaders of the Horde.', '16712190', '95', '20', '25', '1704', '16712190');
+INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('577', '703', '8', '610', '0', 'Death to the Warchief!', '0', '1');
+INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('578', '703', '8', '611', '0', 'Bleeding Bloodhoof', '0', '2');
+INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('579', '703', '8', '612', '0', 'Downing the Dark Lady', '0', '3');
 
 -- PVE
 -- Naxxramas
@@ -200,7 +214,8 @@ UPDATE `achievement_dbc` SET `Ui_Order`='27' WHERE  `ID`=2188;
 INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('593', '715', '15990', '1', 'Kel\'Thuzad', '2', '1');
 -- add Naxx to Classic Raider
 INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Description_Lang_enUS`, `Ui_Order`) VALUES ('4008', '1285', '8', '715', 'Naxxramas', '6');
-
+-- tbc achievements
+UPDATE `achievement_dbc` SET `patch`='1' WHERE  `ID` IN (4476,4477,4478);
 
 -- GENERAL
 -- Riding skill flying
@@ -208,6 +223,8 @@ UPDATE `achievement_dbc` SET `patch`='1' WHERE  `ID`=890;
 UPDATE `achievement_dbc` SET `patch`='1' WHERE  `ID`=892;
 -- Higher Learning (wotlk)
 UPDATE `achievement_dbc` SET `patch`='2' WHERE  `ID`=1956;
+-- wotlk achievements
+UPDATE `achievement_dbc` SET `patch`='2' WHERE  `ID` IN (2076,2078,2081,2084,2097,2557,2716);
 
 -- REPUTATION
 -- Argent Champion (Wotlk faction)
@@ -236,3 +253,8 @@ INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_I
 INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Description_Lang_Mask`, `Ui_Order`) VALUES ('2', '1002', '46', '81', '42000', 'Exalted Thunder Bluff', '16712190', '2');
 INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Description_Lang_Mask`, `Ui_Order`) VALUES ('3', '1002', '46', '68', '42000', 'Exalted Undercity', '16712190', '3');
 INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Description_Lang_Mask`, `Ui_Order`) VALUES ('4', '1002', '46', '530', '42000', 'Exalted Darkspear Trolls', '16712190', '4');
+
+-- Custom
+-- Ironman Challenge
+INSERT INTO `achievement_dbc` (`ID`, `Faction`, `Instance_Id`, `Title_Lang_enUS`, `Title_Lang_Mask`, `Description_Lang_enUS`, `Description_Lang_Mask`, `Category`, `Points`, `Ui_Order`, `IconID`, `Reward_Lang_Mask`) VALUES ('704', '-1', '-1', 'I Can\'t Believe You Have Done That!', '16712190', 'Reach max level without dying once.', '16712190', '81', '0', '161', '3582', '16712190');
+INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_Id`, `Quantity`, `Description_Lang_enUS`, `Flags`, `Ui_Order`) VALUES ('580', '704', '5', '0', '100', 'Reach max level without dying once.', '0', '1');
