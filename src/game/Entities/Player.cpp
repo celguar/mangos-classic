@@ -499,7 +499,7 @@ Player::Player(WorldSession* session): Unit(), m_taxiTracker(*this), m_mover(thi
 #ifdef USE_ACHIEVEMENTS
     bool useAchievements = true;
 #ifdef ENABLE_PLAYERBOTS
-    useAchievements = isRealPlayer();
+    //useAchievements = isRealPlayer(); // TODO config
 #endif
     m_achievementMgr = useAchievements ? new AchievementMgr(this) : nullptr;
 #endif
@@ -978,7 +978,7 @@ bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 c
     // all item positions resolved
 
 #ifdef USE_ACHIEVEMENTS
-    //CheckAllAchievementCriteria();
+    CheckAllAchievementCriteria();
 #endif
 
     return true;
