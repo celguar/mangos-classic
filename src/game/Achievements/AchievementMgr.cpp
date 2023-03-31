@@ -1305,7 +1305,42 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                 if (AchievementCriteriaDataSet const* data = sAchievementMgr.GetCriteriaDataSet(achievementCriteria))
                     if (!data->Meets(GetPlayer(), unit))
                         continue;
-                SetCriteriaProgress(achievementCriteria, GetPlayer()->GetLevel());
+                    
+                const uint8 currentLevel = GetPlayer()->GetLevel();
+                SetCriteriaProgress(achievementCriteria, currentLevel);
+
+                uint8 maxLevel = 60;
+#ifdef MANGOSBOT_ONE
+                maxLevel = 70;
+#endif
+#ifdef MANGOSBOT_TWO
+                maxLevel = 80;
+#endif
+                // Hardcore challenge
+                if (currentLevel == maxLevel)
+                {
+                    // Check the current amount of deaths
+                    bool challengeCompleted = true;
+                    const AchievementCriteriaEntryList* criteriaList = sAchievementMgr.GetAchievementCriteriaByType(ACHIEVEMENT_CRITERIA_TYPE_DEATH);
+                    if (criteriaList)
+                    {
+                        const AchievementCriteriaEntry* criteria = criteriaList->front();
+                        if (criteria)
+                        {
+                            const CriteriaProgress* progress = GetCriteriaProgress(criteria);
+                            if (progress)
+                            {
+                                challengeCompleted = progress->counter <= 0;
+                            }
+                        }
+                    }
+
+                    if (challengeCompleted)
+                    {
+                        sAchievementMgr.AddAchievement(GetPlayer()->GetSession(), 704);
+                    }
+                }
+
                 break;
             }
             case ACHIEVEMENT_CRITERIA_TYPE_REACH_SKILL_LEVEL:
