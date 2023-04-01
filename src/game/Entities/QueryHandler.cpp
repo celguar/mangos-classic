@@ -376,7 +376,6 @@ void WorldSession::HandlePageTextQueryOpcode(WorldPacket& recv_data)
     DETAIL_LOG("WORLD: Received opcode CMSG_PAGE_TEXT_QUERY");
 
     uint32 pageID;
-    recv_data >> pageID;
     ObjectGuid bookGuid;
     recv_data >> pageID >> bookGuid;
 
