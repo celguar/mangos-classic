@@ -86,6 +86,10 @@ void BattleGroundWS::StartingEventOpenDoors()
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(WS_GRAVEYARD_MAIN_HORDE,        BG_WS_ZONE_ID_MAIN, HORDE);
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(WS_GRAVEYARD_FLAGROOM_ALLIANCE, BG_WS_ZONE_ID_MAIN, TEAM_INVALID);
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(WS_GRAVEYARD_FLAGROOM_HORDE,    BG_WS_ZONE_ID_MAIN, TEAM_INVALID);
+
+#ifdef USE_ACHIEVEMENTS
+    StartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, BG_WS_EVENT_START_BATTLE);
+#endif
 }
 
 void BattleGroundWS::AddPlayer(Player* player)
@@ -270,6 +274,10 @@ void BattleGroundWS::ProcessFlagPickUpFromBase(Player* player, Team attackerTeam
     PlaySoundToAll(wsgFlagData[otherTeamIdx][BG_WS_FLAG_ACTION_PICKEDUP].soundId);
     SendMessageToAll(wsgFlagData[otherTeamIdx][BG_WS_FLAG_ACTION_PICKEDUP].messageId, wsgFlagData[teamIdx][BG_WS_FLAG_ACTION_PICKEDUP].chatType, player);
     player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_PVP_ACTIVE_CANCELS);
+
+#ifdef USE_ACHIEVEMENTS
+    player->StartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_SPELL_TARGET, teamIdx == TEAM_INDEX_HORDE ? BG_WS_SPELL_SILVERWING_FLAG_PICKED : BG_WS_SPELL_WARSONG_FLAG_PICKED);
+#endif
 }
 
 // Function that handles the click action on the dropped flag
@@ -567,9 +575,15 @@ void BattleGroundWS::UpdatePlayerScore(Player* player, uint32 type, uint32 value
     {
         case SCORE_FLAG_CAPTURES:                           // flags captured
             ((BattleGroundWGScore*)itr->second)->flagCaptures += value;
+#ifdef USE_ACHIEVEMENTS
+            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE, BG_WS_OBJECTIVE_CAPTURE_FLAG);
+#endif
             break;
         case SCORE_FLAG_RETURNS:                            // flags returned
             ((BattleGroundWGScore*)itr->second)->flagReturns += value;
+#ifdef USE_ACHIEVEMENTS
+            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE, BG_WS_OBJECTIVE_RETURN_FLAG);
+#endif
             break;
         default:
             BattleGround::UpdatePlayerScore(player, type, value);
