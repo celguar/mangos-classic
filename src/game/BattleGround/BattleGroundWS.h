@@ -54,6 +54,10 @@ enum WSSounds
 
 enum WSSpells
 {
+#ifdef USE_ACHIEVEMENTS
+    BG_WS_SPELL_WARSONG_FLAG_PICKED     = 61266,    // fake spell, does not exist but used as timer start event
+    BG_WS_SPELL_SILVERWING_FLAG_PICKED  = 61265,    // fake spell, does not exist but used as timer start event
+#endif
     BG_WS_SPELL_WARSONG_FLAG            = 23333,
     BG_WS_SPELL_WARSONG_FLAG_DROPPED    = 23334,
     BG_WS_SPELL_SILVERWING_FLAG         = 23335,
@@ -73,6 +77,16 @@ enum WSWorldStates
     BG_WS_STATE_FLAG_HORDE              = 2338,             // shows who captured the current flag
     BG_WS_STATE_FLAG_ALLIANCE           = 2339,
 };
+
+#ifdef USE_ACHIEVEMENTS
+enum WSObjectives
+{
+    BG_WS_OBJECTIVE_CAPTURE_FLAG = 42,
+    BG_WS_OBJECTIVE_RETURN_FLAG = 44,
+
+    BG_WS_EVENT_START_BATTLE = 8563
+};
+#endif
 
 enum WSFlagActions
 {
