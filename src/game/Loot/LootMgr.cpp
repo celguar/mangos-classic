@@ -865,7 +865,6 @@ void GroupLootRoll::Finish(RollVoteMap::const_iterator& winnerItr)
         Player* plr = sObjectMgr.GetPlayer(winnerItr->first);
         if (plr && plr->GetSession())
         {
-            m_loot->SendItem(plr, m_itemSlot);
             InventoryResult msg = m_loot->SendItem(plr, m_itemSlot);
 
 #ifdef USE_ACHIEVEMENTS
