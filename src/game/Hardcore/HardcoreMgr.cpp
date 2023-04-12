@@ -385,7 +385,10 @@ bool HardcorePlayerLoot::Create()
         // Generate loot table with the current player's gear
         std::vector<HardcoreLootItem> playerLoot;
 
-        auto AddItem = [&player](uint8 bag, uint8 slot, std::vector<HardcoreLootItem>& outItems)
+        // Hearthstone, Earth Totem, Fire Totem, Water Totem, Air Totem
+        std::set<uint32> ignoreItems = { 6948, 5175, 5176, 5177, 5178 };
+
+        auto AddItem = [&player, &ignoreItems](uint8 bag, uint8 slot, std::vector<HardcoreLootItem>& outItems)
         {
             if (Item* pItem = player->GetItemByPos(bag, slot))
             {
@@ -395,8 +398,8 @@ bool HardcorePlayerLoot::Create()
                 {
                     const uint32 itemId = itemData->ItemId;
 
-                    // Ignore hearthstone
-                    if (itemId != 6948)
+                    // Ignore items
+                    if (ignoreItems.find(itemId) == ignoreItems.end())
                     {
                         // Check if the item exists
                         auto it = std::find_if(outItems.begin(), outItems.end(), [&itemId](const HardcoreLootItem& item)
@@ -1203,12 +1206,12 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
         bool dropLoot = true;
-        bool inBattleground = false;
+        bool inBG = false;
         if (player)
         {
             if (const Map* map = player->GetMap())
             {
-                inBattleground = map->IsBattleGround();
+                inBG = map->IsBattleGround();
             }
 
             // Check if the bot has been killed by a player
@@ -1222,7 +1225,7 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
             }
         }
 
-        return dropLoot && !inBattleground && (ShouldDropGear(player) || ShouldDropItems(player) || ShouldDropMoney(player));
+        return dropLoot && !inBG && (ShouldDropGear(player) || ShouldDropItems(player) || ShouldDropMoney(player));
     }
 
     return false;
@@ -1230,6 +1233,17 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
 
 bool HardcoreMgr::ShouldDropMoney(Player* player /*= nullptr*/)
 {
+    if (player)
+    {
+        if (const Map* map = player->GetMap())
+        {
+            if (map->IsBattleGround())
+            {
+                return false;
+            }
+        }
+    }
+
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
         return GetDropMoneyRate(player);
@@ -1240,6 +1254,17 @@ bool HardcoreMgr::ShouldDropMoney(Player* player /*= nullptr*/)
 
 bool HardcoreMgr::ShouldDropItems(Player* player /*= nullptr*/)
 {
+    if (player)
+    {
+        if (const Map* map = player->GetMap())
+        {
+            if (map->IsBattleGround())
+            {
+                return false;
+            }
+        }
+    }
+
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
         return GetDropItemsRate(player);
@@ -1250,6 +1275,17 @@ bool HardcoreMgr::ShouldDropItems(Player* player /*= nullptr*/)
 
 bool HardcoreMgr::ShouldDropGear(Player* player /*= nullptr*/)
 {
+    if (player)
+    {
+        if (const Map* map = player->GetMap())
+        {
+            if (map->IsBattleGround())
+            {
+                return false;
+            }
+        }
+    }
+
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
         return GetDropGearRate(player);
@@ -1263,8 +1299,18 @@ bool HardcoreMgr::CanRevive(Player* player /*= nullptr*/)
     const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
     if (isHardcoreEnabled)
     {
-        const bool isBot = player ? !player->isRealPlayer() : false;
-        if (!isBot)
+        bool inBG = false;
+        bool isBot = false;
+        if (player)
+        {
+            isBot = !player->isRealPlayer();
+            if (const Map* map = player->GetMap())
+            {
+                inBG = map->IsBattleGround();
+            }
+        }
+
+        if (!isBot && !inBG)
         {
             return !sWorld.getConfig(CONFIG_BOOL_HARDCORE_REVIVE_DISABLED);
         }
@@ -1278,16 +1324,38 @@ bool HardcoreMgr::ShouldReviveOnGraveyard(Player* player /*= nullptr*/)
     const bool canRevive = CanRevive(player);
     const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
     const bool shouldReviveOnGraveyard = sWorld.getConfig(CONFIG_BOOL_HARDCORE_REVIVE_ON_GRAVEYARD);
-    const bool isBot = player ? !player->isRealPlayer() : false;
-    return !isBot && isHardcoreEnabled && shouldReviveOnGraveyard && canRevive;
+    
+    bool isBot = false;
+    bool inBG = false;
+    if (player)
+    {
+        isBot = !player->isRealPlayer();
+        if (const Map* map = player->GetMap())
+        {
+            inBG = map->IsBattleGround();
+        }
+    }
+    
+    return !isBot && !inBG && isHardcoreEnabled && shouldReviveOnGraveyard && canRevive;
 }
 
 bool HardcoreMgr::ShouldLevelDown(Player* player /*= nullptr*/)
 {
     const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
     const bool shouldLevelDown = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN) > 0.0f;
-    const bool isBot = player ? !player->isRealPlayer() : false;
-    return !isBot && isHardcoreEnabled && shouldLevelDown;
+
+    bool isBot = false;
+    bool inBG = false;
+    if (player)
+    {
+        isBot = !player->isRealPlayer();
+        if (const Map* map = player->GetMap())
+        {
+            inBG = map->IsBattleGround();
+        }
+    }
+
+    return !isBot && !inBG && isHardcoreEnabled && shouldLevelDown;
 }
 
 uint32 HardcoreMgr::GetMaxPlayerLoot(Player* player /*= nullptr*/) const
@@ -1318,8 +1386,19 @@ bool HardcoreMgr::ShouldSpawnGrave(Player* player /*= nullptr*/)
 {
     const bool isHardcoreEnabled = sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
     const bool shouldSpawnGrave = sWorld.getConfig(CONFIG_BOOL_HARDCORE_SPAWN_GRAVE);
-    const bool isBot = player ? !player->isRealPlayer() : false;
-    return !isBot && isHardcoreEnabled && shouldSpawnGrave;
+
+    bool isBot = false;
+    bool inBG = false;
+    if (player)
+    {
+        isBot = !player->isRealPlayer();
+        if (const Map* map = player->GetMap())
+        {
+            inBG = map->IsBattleGround();
+        }
+    }
+
+    return !isBot && !inBG && isHardcoreEnabled && shouldSpawnGrave;
 }
 
 void HardcoreMgr::PreLoadGraves()
