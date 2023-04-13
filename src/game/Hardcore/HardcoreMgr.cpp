@@ -1306,9 +1306,12 @@ bool HardcoreMgr::CanRevive(Player* player /*= nullptr*/)
         if (player)
         {
             isBot = !player->isRealPlayer();
-            if (const Map* map = player->GetMap())
+            if (player->IsInWorld() && !player->IsBeingTeleported())
             {
-                inBG = map->IsBattleGround();
+                if (const Map* map = player->GetMap())
+                {
+                    inBG = map->IsBattleGround();
+                }
             }
         }
 
