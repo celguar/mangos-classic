@@ -16707,7 +16707,7 @@ void Player::_SaveStats()
 
     // parry Rating
     int32 parryRating = GetTotalAuraModifier(SPELL_AURA_MOD_PARRY_PERCENT);
-    stmt.addInt32(parryRating);
+    stmt.addInt32(parryRating >= 0 ? parryRating : 0);
 
     // block rating
     int32 blockRating = GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_PERCENT);
