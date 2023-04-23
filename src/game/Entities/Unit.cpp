@@ -1254,7 +1254,7 @@ void Unit::Kill(Unit* killer, Unit* victim, DamageEffectType damagetype, SpellEn
 #ifdef USE_ACHIEVEMENTS
         if (responsiblePlayer && playerVictim != responsiblePlayer)
             playerVictim->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_KILLED_BY_PLAYER, responsiblePlayer->GetTeamId());
-        else if (killer->IsUnit())
+        else if (killer && killer->IsUnit())
             playerVictim->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_KILLED_BY_CREATURE, 1, killer->GetEntry());
 #endif
     }
