@@ -871,6 +871,18 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN, "Hardcore.LevelDown", 0.0f);
     // End Hardcore Config
 
+#ifdef USE_ACHIEVEMENTS
+    // Start Achievements
+    setConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED, "Achievements.Enable", true);
+    setConfig(CONFIG_BOOL_ACHIEVEMENTS_SEND_MESSAGE, "Achievements.SendMessage", true);
+    setConfig(CONFIG_BOOL_ACHIEVEMENTS_SEND_ADDON, "Achievements.SendAddon", true);
+    setConfig(CONFIG_BOOL_ACHIEVEMENTS_SEND_VISUAL, "Achievements.SendVisual", true);
+    setConfig(CONFIG_BOOL_ACHIEVEMENTS_FOR_BOTS, "Achievements.RandomBots", true);
+    setConfig(CONFIG_BOOL_ACHIEVEMENTS_REALM_FIRST_FOR_BOTS, "Achievements.RandomBotsRealmFirst", false);
+    setConfig(CONFIG_UINT32_ACHIEVEMENTS_EFFECT_ID, "Achievements.EffectId", 146);
+    // End Achievements
+#endif
+
     // Start Solocraft Config
     setConfig(CONFIG_BOOL_SOLOCRAFT_ENABLED, "Solocraft.Enable", true);
     setConfig(CONFIG_BOOL_SOLOCRAFT_ANNOUNCE, "Solocraft.Announce", true);
@@ -1320,10 +1332,13 @@ void World::SetInitialWorldSettings()
     sLog.outString();
 
 #ifdef USE_ACHIEVEMENTS
-    sAchievementStore.Load();
-    sAchievementCategoryStore.Load();
-    sAchievementCriteriaStore.Load();
-    sAchievementMgr.LoadAllData();
+    if (sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+    {
+        sAchievementStore.Load();
+        sAchievementCategoryStore.Load();
+        sAchievementCriteriaStore.Load();
+        sAchievementMgr.LoadAllData();
+    }
 #endif
 
     sLog.outString("Loading Skill Fishing base level requirements...");

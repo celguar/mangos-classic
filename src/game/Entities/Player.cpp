@@ -499,8 +499,13 @@ Player::Player(WorldSession* session): Unit(), m_taxiTracker(*this), m_mover(thi
 #ifdef USE_ACHIEVEMENTS
     bool useAchievements = true;
 #ifdef ENABLE_PLAYERBOTS
-    //useAchievements = isRealPlayer(); // TODO config
+    uint32 accId = GetSession()->GetAccountId();
+    if (sPlayerbotAIConfig.IsInRandomAccountList(accId) && !sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_FOR_BOTS))
+        useAchievements = false;
 #endif
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        useAchievements = false;
+
     m_achievementMgr = useAchievements ? new AchievementMgr(this) : nullptr;
 #endif
 
