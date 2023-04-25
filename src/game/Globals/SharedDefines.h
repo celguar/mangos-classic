@@ -2023,4 +2023,7 @@ enum MovementEvent
     EVENT_FALL   = 10002,
 };
 
+#define MAX_TALENT_RANK 5
+#define MAX_TALENT_SPECS 2
+
 #endif
