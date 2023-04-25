@@ -52,6 +52,11 @@
 #include "GameEvents/GameEventMgr.h"
 #include "World/World.h"
 
+#ifdef ENABLE_PLAYERBOTS
+#include "playerbot.h"
+#include "PlayerbotAIConfig.h"
+#endif
+
 INSTANTIATE_SINGLETON_1(AchievementGlobalMgr);
 
 char constexpr Achievementfmt[] = "iiiissssssssssssssssissssssssssssssssiiiiiissssssssssssssssiiii";
@@ -134,7 +139,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
         default:
             if (dataType != ACHIEVEMENT_CRITERIA_DATA_TYPE_SCRIPT)
             {
-                sLog.outError("sql.sql Table `achievement_criteria_data` has data for non-supported criteria type (Entry: %u Type: %u), ignored.", criteria->ID, criteria->requiredType);
+                sLog.outDetail("sql.sql Table `achievement_criteria_data` has data for non-supported criteria type (Entry: %u Type: %u), ignored.", criteria->ID, criteria->requiredType);
                 return false;
             }
             break;
@@ -149,7 +154,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_CREATURE:
             if (!creature.id || !sObjectMgr.GetCreatureTemplate(creature.id))
             {
-                sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_CREATURE (%u) has non-existing creature id in value1 (%u), ignored.",
+                sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_CREATURE (%u) has non-existing creature id in value1 (%u), ignored.",
                                  criteria->ID, criteria->requiredType, dataType, creature.id);
                 return false;
             }
@@ -190,19 +195,19 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
                 SpellEntry const* spellEntry = sSpellTemplate.LookupEntry<SpellEntry>(aura.spell_id);
                 if (!spellEntry)
                 {
-                    sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type %s (%u) has wrong spell id in value1 (%u), ignored.",
+                    sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type %s (%u) has wrong spell id in value1 (%u), ignored.",
                                      criteria->ID, criteria->requiredType, (dataType == ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AURA ? "ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AURA" : "ACHIEVEMENT_CRITERIA_DATA_TYPE_T_AURA"), dataType, aura.spell_id);
                     return false;
                 }
                 if (aura.effect_idx >= 3)
                 {
-                    sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type %s (%u) has wrong spell effect index in value2 (%u), ignored.",
+                    sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type %s (%u) has wrong spell effect index in value2 (%u), ignored.",
                                      criteria->ID, criteria->requiredType, (dataType == ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AURA ? "ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AURA" : "ACHIEVEMENT_CRITERIA_DATA_TYPE_T_AURA"), dataType, aura.effect_idx);
                     return false;
                 }
                 if (!spellEntry->EffectApplyAuraName[aura.effect_idx])
                 {
-                    sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type %s (%u) has non-aura spell effect (ID: %u Effect: %u), ignores.",
+                    sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type %s (%u) has non-aura spell effect (ID: %u Effect: %u), ignores.",
                                      criteria->ID, criteria->requiredType, (dataType == ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AURA ? "ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AURA" : "ACHIEVEMENT_CRITERIA_DATA_TYPE_T_AURA"), dataType, aura.spell_id, aura.effect_idx);
                     return false;
                 }
@@ -212,7 +217,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
             // if (!sAreaTableStore.LookupEntry(area.id))
             if (!sWorldMapAreaStore.LookupEntry(area.id))
             {
-                sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AREA (%u) has wrong area id in value1 (%u), ignored.",
+                sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AREA (%u) has wrong area id in value1 (%u), ignored.",
                                  criteria->ID, criteria->requiredType, dataType, area.id);
                 return false;
             }
@@ -220,7 +225,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_VALUE:
             if (value.compType >= COMP_TYPE_MAX)
             {
-                sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_VALUE (%u) has wrong ComparisionType in value2 (%u), ignored.",
+                sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_VALUE (%u) has wrong ComparisionType in value2 (%u), ignored.",
                                  value.compType, criteria->requiredType, dataType, value.value);
                 return false;
             }
@@ -244,7 +249,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_SCRIPT:
             if (!ScriptId)
             {
-                sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_SCRIPT (%u) does not have ScriptName set, ignored.",
+                sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_SCRIPT (%u) does not have ScriptName set, ignored.",
                                  criteria->ID, criteria->requiredType, dataType);
                 return false;
             }
@@ -252,7 +257,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY:
             if (difficulty.difficulty >= MAX_DIFFICULTY)
             {
-                sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY (%u) has wrong difficulty in value1 (%u), ignored.",
+                sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY (%u) has wrong difficulty in value1 (%u), ignored.",
                                  criteria->ID, criteria->requiredType, dataType, difficulty.difficulty);
                 return false;
             }
@@ -305,7 +310,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
             // if (!sMapStore.LookupEntry(map_id.mapId))
             if (!sWorldMapAreaStore.LookupEntry(map_id.mapId))
             {
-                sLog.outError("sql.sql Table `achievement_criteria_requirement` (Entry: %u Type: %u) for requirement ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_ID (%u) has unknown map id in value1 (%u), ignored.",
+                sLog.outDetail("sql.sql Table `achievement_criteria_requirement` (Entry: %u Type: %u) for requirement ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_ID (%u) has unknown map id in value1 (%u), ignored.",
                                  criteria->ID, criteria->requiredType, dataType, map_id.mapId);
                 return false;
             }
@@ -343,7 +348,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
                  return true;*/
              }
         default:
-            sLog.outError("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) has data for non-supported data type (%u), ignored.", criteria->ID, criteria->requiredType, dataType);
+            sLog.outDetail("sql.sql Table `achievement_criteria_data` (Entry: %u Type: %u) has data for non-supported data type (%u), ignored.", criteria->ID, criteria->requiredType, dataType);
             return false;
     }
 }
@@ -918,7 +923,7 @@ void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement) 
 
     sLog.outDetail("achievement AchievementMgr::SendAchievementEarned(%u)", achievement->ID);
 
-    Guild* guild = sGuildMgr.GetGuildById(GetPlayer()->GetGuildId());
+    //Guild* guild = sGuildMgr.GetGuildById(GetPlayer()->GetGuildId());
     // TODO: research broadcast
     // if (guild) {
     //     Acore::BroadcastTextBuilder _builder(GetPlayer(), CHAT_MSG_GUILD_ACHIEVEMENT, BROADCAST_TEXT_ACHIEVEMENT_EARNED, GetPlayer()->GetGender(), GetPlayer(), achievement->ID);
@@ -937,45 +942,50 @@ void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement) 
     std::string title = achievementEntry && achievementName ? achievementName : "";
     notification << "|cFFFFFF00|Hachievement:" << achievement->ID << "|h[" << title << "]|h|r";
 
-    if (guild)
+    if (sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_SEND_MESSAGE))
     {
-        WorldPacket gmsg;
-        ChatHandler::BuildChatPacket(gmsg, CHAT_MSG_GUILD, notification.str().c_str(), LANG_UNIVERSAL, CHAT_TAG_NONE, GetPlayer()->GetObjectGuid());
-        guild->BroadcastPacket(gmsg);
-    }
-
-    if (achievement->flags & (ACHIEVEMENT_FLAG_REALM_FIRST_KILL | ACHIEVEMENT_FLAG_REALM_FIRST_REACH)) {
-        // If guild exists - send its name to the server
-        // If guild does not exist - send player's name to the server
-        if (achievement->flags & ACHIEVEMENT_FLAG_REALM_FIRST_KILL && guild) {
-            // WorldPacket data(SMSG_SERVER_FIRST_ACHIEVEMENT, guild->GetName().size() + 1 + 8 + 4 + 4);
-            // data << guild->GetName();
-            // data << GetPlayer()->GetGUID();
-            // data << uint32(achievement->ID);
-            // data << uint32(0);                                  // display name as plain string in chat (always 0 for guild)
-            // sWorld.SendGlobalMessage(&data);
-        } else {
-            // BattleGroundWinner teamId = GetPlayer()->GetTeamId();
-
-            // // broadcast realm first reached
-            // WorldPacket data(SMSG_SERVER_FIRST_ACHIEVEMENT, GetPlayer()->GetName().size() + 1 + 8 + 4 + 4);
-            // data << GetPlayer()->GetName();
-            // data << GetPlayer()->GetGUID();
-            // data << uint32(achievement->ID);
-            // std::size_t linkTypePos = data.wpos();
-            // data << uint32(1);                                  // display name as clickable link in chat
-            // sWorld.SendGlobalMessage(&data, nullptr, teamId);
-
-            // data.put<uint32>(linkTypePos, 0);                   // display name as plain string in chat
-            // sWorld.SendGlobalMessage(&data, nullptr, teamId == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE);
+        Guild* guild = sGuildMgr.GetGuildById(GetPlayer()->GetGuildId());
+        if (guild)
+        {
+            WorldPacket gmsg;
+            ChatHandler::BuildChatPacket(gmsg, CHAT_MSG_GUILD, notification.str().c_str(), LANG_UNIVERSAL, CHAT_TAG_NONE, GetPlayer()->GetObjectGuid());
+            guild->BroadcastPacket(gmsg);
         }
-    }
-    // if player is in world he can tell his friends about new achievement
-    else if (GetPlayer()->IsInWorld())
-    {
-        WorldPacket data;
-        ChatHandler::BuildChatPacket(data, CHAT_MSG_SYSTEM, notification.str().c_str(), LANG_UNIVERSAL, CHAT_TAG_NONE, GetPlayer()->GetObjectGuid());
-        GetPlayer()->SendMessageToSetInRange(data, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY), true);
+
+        if (achievement->flags & (ACHIEVEMENT_FLAG_REALM_FIRST_KILL | ACHIEVEMENT_FLAG_REALM_FIRST_REACH)) {
+            // If guild exists - send its name to the server
+            // If guild does not exist - send player's name to the server
+            if (achievement->flags & ACHIEVEMENT_FLAG_REALM_FIRST_KILL && guild) {
+                // WorldPacket data(SMSG_SERVER_FIRST_ACHIEVEMENT, guild->GetName().size() + 1 + 8 + 4 + 4);
+                // data << guild->GetName();
+                // data << GetPlayer()->GetGUID();
+                // data << uint32(achievement->ID);
+                // data << uint32(0);                                  // display name as plain string in chat (always 0 for guild)
+                // sWorld.SendGlobalMessage(&data);
+            }
+            else {
+                // BattleGroundWinner teamId = GetPlayer()->GetTeamId();
+
+                // // broadcast realm first reached
+                // WorldPacket data(SMSG_SERVER_FIRST_ACHIEVEMENT, GetPlayer()->GetName().size() + 1 + 8 + 4 + 4);
+                // data << GetPlayer()->GetName();
+                // data << GetPlayer()->GetGUID();
+                // data << uint32(achievement->ID);
+                // std::size_t linkTypePos = data.wpos();
+                // data << uint32(1);                                  // display name as clickable link in chat
+                // sWorld.SendGlobalMessage(&data, nullptr, teamId);
+
+                // data.put<uint32>(linkTypePos, 0);                   // display name as plain string in chat
+                // sWorld.SendGlobalMessage(&data, nullptr, teamId == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE);
+            }
+        }
+        // if player is in world he can tell his friends about new achievement
+        else if (GetPlayer()->IsInWorld())
+        {
+            WorldPacket data;
+            ChatHandler::BuildChatPacket(data, CHAT_MSG_SYSTEM, notification.str().c_str(), LANG_UNIVERSAL, CHAT_TAG_NONE, GetPlayer()->GetObjectGuid());
+            GetPlayer()->SendMessageToSetInRange(data, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY), true);
+        }
     }
 
     if (!achievement || !achievementName || !achievementDescription || !achievementTitleReward) return;
@@ -998,15 +1008,16 @@ void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement) 
     //data3 << uint32(456);                               // index from SpellVisualKit.dbc
     //m_player->SendMessageToSet(data3, true);
 
-    m_player->GetSession()->SendPlaySpellVisual(m_player->GetObjectGuid(), 0xB3);                        // visual effect on trainer
+    //m_player->GetSession()->SendPlaySpellVisual(m_player->GetObjectGuid(), 0xB3);                        // visual effect on trainer
 
-    WorldPacket data4(SMSG_PLAY_SPELL_IMPACT, 8 + 4);        // visual effect on player
-    data4 << m_player->GetObjectGuid();
-    data4 << uint32(0x016A);                                 // index from SpellVisualKit.dbc
-    m_player->SendMessageToSet(data4, true);
+    // send visual effect
+    if (sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_SEND_VISUAL) && sWorld.getConfig(CONFIG_UINT32_ACHIEVEMENTS_EFFECT_ID))
+    {
+        m_player->PlaySpellVisual(sWorld.getConfig(CONFIG_UINT32_ACHIEVEMENTS_EFFECT_ID));
+    }
 
     // Don't send if no Achiever addon
-    if (HasAchiever())
+    if (sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_SEND_ADDON) && HasAchiever())
     {
         ChatHandler(m_player).PSendSysMessage(
             "ACHI|AE|%u;%u"
@@ -1101,6 +1112,11 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
     if (m_player->IsGameMaster())
         return;
 
+#ifdef ENABLE_PLAYERBOTS
+    uint32 accId = GetPlayer()->GetSession()->GetAccountId();
+    if (sPlayerbotAIConfig.IsInRandomAccountList(accId) && !sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_FOR_BOTS))
+        return;
+#endif
 
     if (type >= ACHIEVEMENT_CRITERIA_TYPE_TOTAL)
     {
@@ -2253,6 +2269,12 @@ bool AchievementMgr::IsCompletedCriteria(AchievementCriteriaEntry const* achieve
         // someone on this realm has already completed that achievement
         if (sAchievementMgr.IsRealmCompleted(achievement))
             return false;
+
+#ifdef ENABLE_PLAYERBOTS
+        uint32 accId = GetPlayer()->GetSession()->GetAccountId();
+        if (sPlayerbotAIConfig.IsInRandomAccountList(accId) && !sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_REALM_FIRST_FOR_BOTS))
+            return false;
+#endif
     }
 
     // pussywizard: progress will be deleted after getting the achievement (optimization)
@@ -3001,6 +3023,9 @@ bool AchievementGlobalMgr::hasAchiever(WorldSession* session) const
 
 void AchievementGlobalMgr::enableAchiever(WorldSession* session, uint32 version) const
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return;
+
     Player* plr = session->GetPlayer();
     if (!plr)
         return;
@@ -3030,6 +3055,9 @@ void AchievementGlobalMgr::enableAchiever(WorldSession* session, uint32 version)
 
 bool AchievementGlobalMgr::AddAchievement(WorldSession* session, uint32 achievementId)
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return false;
+
     Player* player = session->GetPlayer();
     if (player)
     {
@@ -3049,6 +3077,9 @@ bool AchievementGlobalMgr::AddAchievement(WorldSession* session, uint32 achievem
 
 bool AchievementGlobalMgr::RemoveAchievement(WorldSession* session, uint32 achievementId)
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return false;
+
     Player* player = session->GetPlayer();
     if (player)
     {
@@ -3068,6 +3099,9 @@ bool AchievementGlobalMgr::RemoveAchievement(WorldSession* session, uint32 achie
 
 void AchievementGlobalMgr::getAllCategories(WorldSession* session, uint32 version) const
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return;
+
 #ifdef ENABLE_PLAYERBOTS
     Player* plr = session->GetPlayer();
     if (!plr || !plr->isRealPlayer())
@@ -3110,6 +3144,9 @@ void AchievementGlobalMgr::getAllCategories(WorldSession* session, uint32 versio
 
 void AchievementGlobalMgr::getAllAchievements(WorldSession* session, uint32 version) const
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return;
+
 #ifdef ENABLE_PLAYERBOTS
     Player* plr = session->GetPlayer();
     if (!plr || !plr->isRealPlayer())
@@ -3170,6 +3207,9 @@ void AchievementGlobalMgr::getAllAchievements(WorldSession* session, uint32 vers
 
 void AchievementGlobalMgr::getAllCriteria(WorldSession* session, uint32 version) const
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return;
+
 #ifdef ENABLE_PLAYERBOTS
     Player* plr = session->GetPlayer();
     if (!plr || !plr->isRealPlayer())
@@ -3219,6 +3259,9 @@ void AchievementGlobalMgr::getAllCriteria(WorldSession* session, uint32 version)
 
 void AchievementGlobalMgr::getCharacterCriteria(WorldSession* session) const 
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return;
+
     const auto playerGuid = session->GetPlayer()->GetGUIDLow();
     Player* plr = session->GetPlayer();
 
@@ -3318,6 +3361,9 @@ void AchievementGlobalMgr::getCharacterCriteria(WorldSession* session) const
 
 void AchievementGlobalMgr::getCharacterAchievements(WorldSession* session) const 
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return;
+
 #ifdef ENABLE_PLAYERBOTS
     Player* plr = session->GetPlayer();
     if (!plr || !plr->isRealPlayer())
@@ -3856,23 +3902,23 @@ void AchievementGlobalMgr::LoadRewards()
         {
             if (!sObjectMgr.GetCreatureTemplate(reward.sender))
             {
-                sLog.outError("sql.sql Table `achievement_reward` (Entry: %u) has invalid creature_template entry %u as Sender. Will not send the mail reward.", entry, reward.sender);
+                sLog.outDetail("sql.sql Table `achievement_reward` (Entry: %u) has invalid creature_template entry %u as Sender. Will not send the mail reward.", entry, reward.sender);
                 reward.sender = 0;
             }
         }
         else
         {
             if (reward.itemId)
-                sLog.outError("sql.sql Table `achievement_reward` (Entry: %u) has itemId reward set but does not have Sender data set. Item will not be sent.", entry);
+                sLog.outDetail("sql.sql Table `achievement_reward` (Entry: %u) has itemId reward set but does not have Sender data set. Item will not be sent.", entry);
 
             if (!reward.subject.empty())
-                sLog.outError("sql.sql Table `achievement_reward` (Entry: %u) has mail Subject but does not have Sender data set.", entry); // Maybe add "Mail will not be sent." ?
+                sLog.outDetail("sql.sql Table `achievement_reward` (Entry: %u) has mail Subject but does not have Sender data set.", entry); // Maybe add "Mail will not be sent." ?
 
             if (!reward.text.empty())
-                sLog.outError("sql.sql Table `achievement_reward` (Entry: %u) has mail text (Body) set but does not have Sender data set.", entry); // Maybe add "Mail will not be sent." ?
+                sLog.outDetail("sql.sql Table `achievement_reward` (Entry: %u) has mail text (Body) set but does not have Sender data set.", entry); // Maybe add "Mail will not be sent." ?
 
             if (reward.mailTemplate)
-                sLog.outError("sql.sql Table `achievement_reward` (Entry: %u) has mailTemplate set does not have Sender data set.", entry); // Maybe add "Mail will not be sent." ?
+                sLog.outDetail("sql.sql Table `achievement_reward` (Entry: %u) has mailTemplate set does not have Sender data set.", entry); // Maybe add "Mail will not be sent." ?
         }
 
         // if (reward.mailTemplate)
@@ -3891,7 +3937,7 @@ void AchievementGlobalMgr::LoadRewards()
             if (!sObjectMgr.GetItemPrototype(reward.itemId))
             {
                 // Not sure it's an error, it's probably an outDebug instead, because we can simply send a mail with no reward, right?
-                sLog.outError("sql.sql Table `achievement_reward` (Entry: %u) has invalid item_template id %u. Reward mail will not contain any item.", entry, reward.itemId);
+                sLog.outDetail("sql.sql Table `achievement_reward` (Entry: %u) has invalid item_template id %u. Reward mail will not contain any item.", entry, reward.itemId);
                 reward.itemId = 0;
             }
         }
@@ -3927,7 +3973,7 @@ void AchievementGlobalMgr::LoadRewardLocales()
         uint32 ID = fields[0].GetUInt32();
         if (m_achievementRewards.find(ID) == m_achievementRewards.end())
         {
-            sLog.outError("sql.sql Table `achievement_reward_locale` (Entry: %u) has locale strings for non-existing achievement reward.", ID);
+            sLog.outDetail("sql.sql Table `achievement_reward_locale` (Entry: %u) has locale strings for non-existing achievement reward.", ID);
             continue;
         }
 
@@ -3946,6 +3992,9 @@ void AchievementGlobalMgr::LoadRewardLocales()
 
 void AchievementGlobalMgr::LoadAllData()
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED))
+        return;
+
     sLog.outString("Loading Achievements...");
     LoadAchievementReferenceList();
     sLog.outString("Loading Achievement Criteria Lists...");
