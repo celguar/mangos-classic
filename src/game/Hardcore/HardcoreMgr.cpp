@@ -1548,7 +1548,7 @@ void HardcoreMgr::LevelDown(Player* player)
         totalLevelXP = totalLevelXP ? totalLevelXP : 1;
         const float levelPct = (float)(curXP) / totalLevelXP;
         const float level = player->GetLevel() + levelPct;
-        const float levelDown = level - levelDownRate;
+        const double levelDown = level - levelDownRate;
 
         // Separate the amount of levels and the XP (%)
         double newLevel, newXPpct;
