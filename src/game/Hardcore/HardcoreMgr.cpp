@@ -1025,11 +1025,11 @@ HardcoreLootGameObject* HardcoreMgr::FindLootGOByGUID(const uint32 guid)
 
 HardcorePlayerLoot* HardcoreMgr::FindLootByID(const uint32 playerId, const uint32 lootId)
 {
-    auto& playerLootsIt = m_playersLoot.find(playerId);
+    auto playerLootsIt = m_playersLoot.find(playerId);
     if (playerLootsIt != m_playersLoot.end())
     {
         std::map<uint32, HardcorePlayerLoot>& playerLoots = playerLootsIt->second;
-        auto& playerLootIt = playerLoots.find(lootId);
+        auto playerLootIt = playerLoots.find(lootId);
         if (playerLootIt != playerLoots.end())
         {
             return &playerLootIt->second;
@@ -1046,7 +1046,7 @@ void HardcoreMgr::CreateLoot(Player* player, Unit* killer)
         const uint32 playerId = player->GetObjectGuid().GetCounter();
 
         // Check if we need to remove a previous loot before creating a new one
-        auto& playerLootsIt = m_playersLoot.find(playerId);
+        auto playerLootsIt = m_playersLoot.find(playerId);
         if (playerLootsIt != m_playersLoot.end())
         {
             std::map<uint32, HardcorePlayerLoot>& playerLoots = playerLootsIt->second;
