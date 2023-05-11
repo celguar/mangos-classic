@@ -1539,7 +1539,7 @@ void HardcoreMgr::RemoveAllGraves()
 
 void HardcoreMgr::LevelDown(Player* player)
 {
-    if(player && ShouldLevelDown(player))
+    if (player && ShouldLevelDown(player))
     {
         // Calculate how many levels and XP (%) we have to remove
         const float levelDownRate = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN);
@@ -1551,12 +1551,12 @@ void HardcoreMgr::LevelDown(Player* player)
         const float levelDown = level - levelDownRate;
 
         // Separate the amount of levels and the XP (%)
-        float newLevel, newXPpct;
+        double newLevel, newXPpct;
         newXPpct = modf(levelDown, &newLevel);
-        newLevel = newLevel < 0.0f ? 1.0f : newLevel;
+        newLevel = newLevel < 0.0 ? 1.0 : newLevel;
 
         // Process the level down
-        if (newLevel > 0.0f)
+        if (newLevel > 0.0)
         {
             player->GiveLevel((uint32)newLevel);
             player->InitTalentForLevel();
@@ -1564,7 +1564,7 @@ void HardcoreMgr::LevelDown(Player* player)
         }
 
         // Process the XP down
-        if (newXPpct > 0.0f)
+        if (newXPpct > 0.0)
         {
             curXP = player->GetUInt32Value(PLAYER_XP);
             totalLevelXP = player->GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
