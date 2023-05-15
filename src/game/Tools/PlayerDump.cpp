@@ -35,6 +35,10 @@ struct DumpTable
 static DumpTable dumpTables[] =
 {
     { "characters",                       DTT_CHARACTER  }, // -> guid, must be first for name check
+#ifdef USE_ACHIEVEMENTS
+    { "character_achievement",            DTT_CHAR_TABLE },
+    { "character_achievement_progress",   DTT_CHAR_TABLE },
+#endif
     { "character_action",                 DTT_CHAR_TABLE },
     { "character_aura",                   DTT_CHAR_TABLE },
     { "character_homebind",               DTT_CHAR_TABLE },
