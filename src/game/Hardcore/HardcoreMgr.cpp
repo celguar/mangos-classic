@@ -1205,6 +1205,7 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
+        bool fairKill = true;
         bool dropLoot = true;
         bool inBG = false;
         if (player)
@@ -1215,6 +1216,14 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
                 {
                     inBG = map->IsBattleGround();
                 }
+            }
+
+            // Check if the player killer is around the same level as the player
+            if (killer->IsPlayer())
+            {
+                const uint32 killerLevel = killer->GetLevel();
+                const uint32 playerLevel = player->GetLevel();
+                fairKill = killerLevel <= playerLevel + 3;
             }
 
             // Check if the bot has been killed by a player
@@ -1228,7 +1237,7 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
             }
         }
 
-        return dropLoot && !inBG && (ShouldDropGear(player) || ShouldDropItems(player) || ShouldDropMoney(player));
+        return dropLoot && fairKill && !inBG && (ShouldDropGear(player) || ShouldDropItems(player) || ShouldDropMoney(player));
     }
 
     return false;
@@ -1246,6 +1255,11 @@ bool HardcoreMgr::ShouldDropMoney(Player* player /*= nullptr*/)
                 {
                     return false;
                 }
+            }
+
+            if (player->GetLevel() >= 60)
+            {
+                return false;
             }
         }
 
@@ -1268,6 +1282,11 @@ bool HardcoreMgr::ShouldDropItems(Player* player /*= nullptr*/)
                     return false;
                 }
             }
+
+            if (player->GetLevel() >= 60)
+            {
+                return false;
+            }
         }
 
         return GetDropItemsRate(player);
@@ -1288,6 +1307,11 @@ bool HardcoreMgr::ShouldDropGear(Player* player /*= nullptr*/)
                 {
                     return false;
                 }
+            }
+
+            if(player->GetLevel() >= 60)
+            {
+                return false;
             }
         }
 
@@ -1333,6 +1357,7 @@ bool HardcoreMgr::ShouldReviveOnGraveyard(Player* player /*= nullptr*/)
 
         bool isBot = false;
         bool inBG = false;
+        bool inDungeon = false;
         if (player)
         {
             isBot = !player->isRealPlayer();
@@ -1341,11 +1366,12 @@ bool HardcoreMgr::ShouldReviveOnGraveyard(Player* player /*= nullptr*/)
                 if (const Map* map = player->GetMap())
                 {
                     inBG = map->IsBattleGround();
+                    inDungeon = map->IsDungeon() || map->IsRaid();
                 }
             }
         }
 
-        return !isBot && !inBG && shouldReviveOnGraveyard && canRevive;
+        return !isBot && !inBG && !inDungeon && shouldReviveOnGraveyard && canRevive;
     }
 
     return false;
@@ -1359,6 +1385,7 @@ bool HardcoreMgr::ShouldLevelDown(Player* player /*= nullptr*/)
 
         bool isBot = false;
         bool inBG = false;
+        bool isMaxLevel = false;
         if (player)
         {
             isBot = !player->isRealPlayer();
@@ -1369,9 +1396,11 @@ bool HardcoreMgr::ShouldLevelDown(Player* player /*= nullptr*/)
                     inBG = map->IsBattleGround();
                 }
             }
+
+            isMaxLevel = player->GetLevel() >= 60;
         }
 
-        return !isBot && !inBG && shouldLevelDown;
+        return !isBot && !inBG && !isMaxLevel && shouldLevelDown;
     }
 
     return false;
@@ -1409,6 +1438,7 @@ bool HardcoreMgr::ShouldSpawnGrave(Player* player /*= nullptr*/)
 
         bool isBot = false;
         bool inBG = false;
+        bool isMaxLevel = false;
         if (player)
         {
             isBot = !player->isRealPlayer();
@@ -1419,9 +1449,11 @@ bool HardcoreMgr::ShouldSpawnGrave(Player* player /*= nullptr*/)
                     inBG = map->IsBattleGround();
                 }
             }
+
+            isMaxLevel = player->GetLevel() >= 60;
         }
 
-        return !isBot && !inBG && shouldSpawnGrave;
+        return !isBot && !inBG && !isMaxLevel && shouldSpawnGrave;
     }
 
     return false;
