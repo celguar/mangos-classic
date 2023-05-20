@@ -578,9 +578,11 @@ bool AchievementCriteriaData::Meets(uint32 criteria_id, Player const* source, Un
                 return false;
             }
 
-            uint32 winnnerScore = bg->GetTeamScore(winnerTeam == WINNER_ALLIANCE ? TEAM_INDEX_ALLIANCE : TEAM_INDEX_HORDE);
-            uint32 loserScore = bg->GetTeamScore(winnerTeam == WINNER_ALLIANCE ? TEAM_INDEX_HORDE : TEAM_INDEX_ALLIANCE);
-            return source->GetTeamId() == winnerTeam && winnnerScore == teams_scores.winner_score && loserScore == teams_scores.loser_score;
+            const PvpTeamIndex winnerTeamIndex = winnerTeam == WINNER_ALLIANCE ? TEAM_INDEX_ALLIANCE : TEAM_INDEX_HORDE;
+            const PvpTeamIndex loserTeamIndex = winnerTeam == WINNER_ALLIANCE ? TEAM_INDEX_HORDE : TEAM_INDEX_ALLIANCE;
+            uint32 winnnerScore = bg->GetTeamScore(winnerTeamIndex);
+            uint32 loserScore = bg->GetTeamScore(loserTeamIndex);
+            return source->GetTeamId() == winnerTeamIndex && winnnerScore == teams_scores.winner_score && loserScore == teams_scores.loser_score;
         }
 
         default: break;
