@@ -900,8 +900,15 @@ std::string HardcorePlayerGrave::GenerateGraveMessage(const std::string& playerN
             gravestoneMessageList.push_back(segment);
         }
 
-        const size_t messageIndex = urand(0, gravestoneMessageList.size());
-        gravestoneMessage = gravestoneMessageList[messageIndex];
+        if(!gravestoneMessageList.empty())
+        {
+            const size_t messageIndex = urand(0, gravestoneMessageList.size());
+            gravestoneMessage = gravestoneMessageList[messageIndex];
+        }
+        else
+        {
+            gravestoneMessage = "Here lies <PlayerName>";
+        }
     }
     else
     {
@@ -1210,13 +1217,7 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
         bool inBG = false;
         if (player)
         {
-            if (player->IsInWorld() && !player->IsBeingTeleported())
-            {
-                if (const Map* map = player->GetMap())
-                {
-                    inBG = map->IsBattleGround();
-                }
-            }
+            inBG = player->InBattleGround() || player->InArena();
 
             // Check if the player killer is around the same level as the player
             if (killer->IsPlayer())
@@ -1247,23 +1248,18 @@ bool HardcoreMgr::ShouldDropMoney(Player* player /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        if (player && player->IsInWorld() && !player->IsBeingTeleported())
+        bool inBG = false;
+        bool isMaxLevel = false;
+        if (player)
         {
-            if (const Map* map = player->GetMap())
-            {
-                if (map->IsBattleGround())
-                {
-                    return false;
-                }
-            }
-
-            if (player->GetLevel() >= 60)
-            {
-                return false;
-            }
+            isMaxLevel = player->GetLevel() >= 60;
+            inBG = player->InBattleGround() || player->InArena();
         }
 
-        return GetDropMoneyRate(player);
+        if (!inBG && !isMaxLevel)
+        {
+            return GetDropMoneyRate(player);
+        }
     }
 
     return false;
@@ -1273,23 +1269,18 @@ bool HardcoreMgr::ShouldDropItems(Player* player /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        if (player && player->IsInWorld() && !player->IsBeingTeleported())
+        bool inBG = false;
+        bool isMaxLevel = false;
+        if (player)
         {
-            if (const Map* map = player->GetMap())
-            {
-                if (map->IsBattleGround())
-                {
-                    return false;
-                }
-            }
-
-            if (player->GetLevel() >= 60)
-            {
-                return false;
-            }
+            isMaxLevel = player->GetLevel() >= 60;
+            inBG = player->InBattleGround() || player->InArena();
         }
 
-        return GetDropItemsRate(player);
+        if (!inBG && !isMaxLevel)
+        {
+            return GetDropItemsRate(player);
+        }
     }
 
     return false;
@@ -1299,23 +1290,18 @@ bool HardcoreMgr::ShouldDropGear(Player* player /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        if (player && player->IsInWorld() && !player->IsBeingTeleported())
+        bool inBG = false;
+        bool isMaxLevel = false;
+        if (player)
         {
-            if (const Map* map = player->GetMap())
-            {
-                if (map->IsBattleGround())
-                {
-                    return false;
-                }
-            }
-
-            if(player->GetLevel() >= 60)
-            {
-                return false;
-            }
+            isMaxLevel = player->GetLevel() >= 60;
+            inBG = player->InBattleGround() || player->InArena();
         }
 
-        return GetDropGearRate(player);
+        if(!inBG && !isMaxLevel)
+        {
+            return GetDropGearRate(player);
+        }
     }
 
     return false;
@@ -1325,23 +1311,11 @@ bool HardcoreMgr::CanRevive(Player* player /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        bool inBG = false;
-        bool isBot = false;
-        if (player)
+        if (player && sWorld.getConfig(CONFIG_BOOL_HARDCORE_REVIVE_DISABLED))
         {
-            isBot = !player->isRealPlayer();
-            if (player->IsInWorld() && !player->IsBeingTeleported())
-            {
-                if (const Map* map = player->GetMap())
-                {
-                    inBG = map->IsBattleGround();
-                }
-            }
-        }
-
-        if (!isBot && !inBG)
-        {
-            return !sWorld.getConfig(CONFIG_BOOL_HARDCORE_REVIVE_DISABLED);
+            const bool isBot = !player->isRealPlayer();
+            const bool inBG = player->InBattleGround() || player->InArena();
+            return !isBot && !inBG;
         }
     }
 
@@ -1352,26 +1326,21 @@ bool HardcoreMgr::ShouldReviveOnGraveyard(Player* player /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        const bool canRevive = CanRevive(player);
-        const bool shouldReviveOnGraveyard = sWorld.getConfig(CONFIG_BOOL_HARDCORE_REVIVE_ON_GRAVEYARD);
-
-        bool isBot = false;
-        bool inBG = false;
-        bool inDungeon = false;
-        if (player)
+        if (player && CanRevive(player) && sWorld.getConfig(CONFIG_BOOL_HARDCORE_REVIVE_ON_GRAVEYARD))
         {
-            isBot = !player->isRealPlayer();
+            bool inDungeon = false;
             if (player->IsInWorld() && !player->IsBeingTeleported())
             {
                 if (const Map* map = player->GetMap())
                 {
-                    inBG = map->IsBattleGround();
                     inDungeon = map->IsDungeon() || map->IsRaid();
                 }
             }
-        }
 
-        return !isBot && !inBG && !inDungeon && shouldReviveOnGraveyard && canRevive;
+            const bool isBot = !player->isRealPlayer();
+            const bool inBG = player->InBattleGround() || player->InArena();
+            return !isBot && !inBG && !inDungeon;
+        }
     }
 
     return false;
@@ -1381,26 +1350,13 @@ bool HardcoreMgr::ShouldLevelDown(Player* player /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        const bool shouldLevelDown = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN) > 0.0f;
-
-        bool isBot = false;
-        bool inBG = false;
-        bool isMaxLevel = false;
-        if (player)
+        if (player && sWorld.getConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN) > 0.0f)
         {
-            isBot = !player->isRealPlayer();
-            if (player->IsInWorld() && !player->IsBeingTeleported())
-            {
-                if (const Map* map = player->GetMap())
-                {
-                    inBG = map->IsBattleGround();
-                }
-            }
-
-            isMaxLevel = player->GetLevel() >= 60;
+            const bool isBot = !player->isRealPlayer();
+            const bool inBG = player->InBattleGround() || player->InArena();
+            const bool isMaxLevel = player->GetLevel() >= 60;
+            return !isBot && !inBG && !isMaxLevel;
         }
-
-        return !isBot && !inBG && !isMaxLevel && shouldLevelDown;
     }
 
     return false;
@@ -1434,26 +1390,13 @@ bool HardcoreMgr::ShouldSpawnGrave(Player* player /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        const bool shouldSpawnGrave = sWorld.getConfig(CONFIG_BOOL_HARDCORE_SPAWN_GRAVE);
-
-        bool isBot = false;
-        bool inBG = false;
-        bool isMaxLevel = false;
-        if (player)
+        if (player && sWorld.getConfig(CONFIG_BOOL_HARDCORE_SPAWN_GRAVE))
         {
-            isBot = !player->isRealPlayer();
-            if (player->IsInWorld() && !player->IsBeingTeleported())
-            {
-                if (const Map* map = player->GetMap())
-                {
-                    inBG = map->IsBattleGround();
-                }
-            }
-
-            isMaxLevel = player->GetLevel() >= 60;
+            const bool isBot = !player->isRealPlayer();
+            const bool inBG = player->InBattleGround() || player->InArena();
+            const bool isMaxLevel = player->GetLevel() >= 60;
+            return !isBot && !inBG && !isMaxLevel;
         }
-
-        return !isBot && !inBG && !isMaxLevel && shouldSpawnGrave;
     }
 
     return false;
