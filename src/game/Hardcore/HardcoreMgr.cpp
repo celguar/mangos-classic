@@ -902,7 +902,7 @@ std::string HardcorePlayerGrave::GenerateGraveMessage(const std::string& playerN
 
         if(!gravestoneMessageList.empty())
         {
-            const size_t messageIndex = urand(0, gravestoneMessageList.size());
+            const size_t messageIndex = urand(0, gravestoneMessageList.size() - 1);
             gravestoneMessage = gravestoneMessageList[messageIndex];
         }
         else
