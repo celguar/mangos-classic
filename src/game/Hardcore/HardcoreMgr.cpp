@@ -1220,7 +1220,8 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
             inBG = player->InBattleGround() || player->InArena();
 
             // Check if the player killer is around the same level as the player
-            if (killer->IsPlayer())
+            const bool killedByPlayer = killer && killer->IsPlayer();
+            if (killedByPlayer)
             {
                 const uint32 killerLevel = killer->GetLevel();
                 const uint32 playerLevel = player->GetLevel();
@@ -1231,7 +1232,7 @@ bool HardcoreMgr::ShouldDropLoot(Player* player /*= nullptr*/, Unit* killer /*= 
             if (!player->isRealPlayer())
             {
                 dropLoot = false;
-                if(killer && killer->IsPlayer())
+                if (killedByPlayer)
                 {
                     dropLoot = ((Player*)killer)->isRealPlayer();
                 }
