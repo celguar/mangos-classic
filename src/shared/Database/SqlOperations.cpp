@@ -129,6 +129,24 @@ bool SqlQueryHolder::Execute(MaNGOS::IQueryCallback* callback, SqlDelayThread* t
     return true;
 }
 
+bool SqlQueryHolder::ManualExecute(Database* db)
+{
+    if (db)
+    {
+        for (auto& query : m_queries)
+        {
+            if(query.first)
+            {
+                query.second = db->Query(query.first);
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 bool SqlQueryHolder::SetQuery(size_t index, const char* sql)
 {
     if (m_queries.size() <= index)
