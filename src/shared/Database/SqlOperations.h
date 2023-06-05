@@ -131,6 +131,7 @@ class SqlQueryHolder
         QueryResult* GetResult(size_t index);
         void SetResult(size_t index, QueryResult* result);
         bool Execute(MaNGOS::IQueryCallback* callback, SqlDelayThread* thread, SqlResultQueue* queue);
+        bool ManualExecute(Database* db);
 };
 
 class SqlQueryHolderEx : public SqlOperation
