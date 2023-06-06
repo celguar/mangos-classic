@@ -385,6 +385,26 @@ bool Database::DirectPExecute(const char* format, ...)
     return DirectExecute(szQuery);
 }
 
+bool Database::DirectPExecuteAsync(const char* format, ...)
+{
+    if (!format)
+        return false;
+
+    va_list ap;
+    char szQuery[MAX_QUERY_LEN];
+    va_start(ap, format);
+    int res = vsnprintf(szQuery, MAX_QUERY_LEN, format, ap);
+    va_end(ap);
+
+    if (res == -1)
+    {
+        sLog.outError("SQL Query truncated (and not execute) for format: %s", format);
+        return false;
+    }
+
+    return DirectExecuteAsync(szQuery);
+}
+
 bool Database::BeginTransaction()
 {
     if (!m_pAsyncConn)
@@ -575,6 +595,15 @@ bool Database::DirectExecuteStmt(const SqlStatementID& id, SqlStmtParameters* pa
     std::unique_ptr<SqlStmtParameters> p(params);
     // execute statement
     SqlConnection::Lock _guard(getAsyncConnection());
+    return _guard->ExecuteStmt(id.ID(), *params);
+}
+
+bool Database::DirectExecuteStmtAsync(const SqlStatementID& id, SqlStmtParameters* params)
+{
+    MANGOS_ASSERT(params);
+    std::unique_ptr<SqlStmtParameters> p(params);
+    // execute statement
+    SqlConnection::Lock _guard(getQueryConnection());
     return _guard->ExecuteStmt(id.ID(), *params);
 }
 

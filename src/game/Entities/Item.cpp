@@ -312,7 +312,7 @@ void Item::SaveToDB(bool queued)
             if(queued)
                 stmt->Execute();
             else
-                stmt->DirectExecute();
+                stmt->DirectExecuteAsync();
 
             if (uState == ITEM_CHANGED && HasFlag(ITEM_FIELD_FLAGS, ITEM_DYNFLAG_WRAPPED))
             {
@@ -322,7 +322,7 @@ void Item::SaveToDB(bool queued)
                 if(queued)
                     stmt->PExecute(GetOwnerGuid().GetCounter(), GetGUIDLow());
                 else
-                    stmt->DirectPExecute(GetOwnerGuid().GetCounter(), GetGUIDLow());
+                    stmt->DirectPExecuteAsync(GetOwnerGuid().GetCounter(), GetGUIDLow());
             }
 
             break;
@@ -341,7 +341,7 @@ void Item::SaveToDB(bool queued)
                 if(queued)
                     stmt.PExecute(item_text_id);
                 else
-                    stmt.DirectPExecute(item_text_id);
+                    stmt.DirectPExecuteAsync(item_text_id);
             }
 
             SqlStatement stmt = CharacterDatabase.CreateStatement(delInst, DELETE_ITEM);
@@ -349,7 +349,7 @@ void Item::SaveToDB(bool queued)
             if(queued)
                 stmt.PExecute(guid);
             else
-                stmt.DirectPExecute(guid);
+                stmt.DirectPExecuteAsync(guid);
 
             if (HasFlag(ITEM_FIELD_FLAGS, ITEM_DYNFLAG_WRAPPED))
             {
@@ -358,7 +358,7 @@ void Item::SaveToDB(bool queued)
                 if(queued)
                     stmt.PExecute(GetGUIDLow());
                 else
-                    stmt.DirectPExecute(GetGUIDLow());
+                    stmt.DirectPExecuteAsync(GetGUIDLow());
             }
 
             if (HasSavedLoot())
@@ -368,7 +368,7 @@ void Item::SaveToDB(bool queued)
                 if(queued)
                     stmt.PExecute(GetGUIDLow());
                 else
-                    stmt.DirectPExecute(GetGUIDLow());
+                    stmt.DirectPExecuteAsync(GetGUIDLow());
             }
 
             delete this;
@@ -387,7 +387,7 @@ void Item::SaveToDB(bool queued)
         if(queued)
             stmt.PExecute(GetGUIDLow());
         else
-            stmt.DirectPExecute(GetGUIDLow());
+            stmt.DirectPExecuteAsync(GetGUIDLow());
     }
 
     if (m_loot && (m_lootState == ITEM_LOOT_NEW || m_lootState == ITEM_LOOT_CHANGED))
@@ -405,7 +405,7 @@ void Item::SaveToDB(bool queued)
                 if(queued)
                     stmt.PExecute(GetGUIDLow(), owner->GetGUIDLow(), m_loot->GetGoldAmount());
                 else
-                    stmt.DirectPExecute(GetGUIDLow(), owner->GetGUIDLow(), m_loot->GetGoldAmount());
+                    stmt.DirectPExecuteAsync(GetGUIDLow(), owner->GetGUIDLow(), m_loot->GetGoldAmount());
             }
 
             SqlStatement stmt = CharacterDatabase.CreateStatement(saveLoot, "INSERT INTO item_loot (guid,owner_guid,itemid,amount,property) VALUES (?, ?, ?, ?, ?)");
@@ -425,7 +425,7 @@ void Item::SaveToDB(bool queued)
                 if(queued)
                     stmt.Execute();
                 else
-                    stmt.DirectExecute();
+                    stmt.DirectExecuteAsync();
             }
         }
     }

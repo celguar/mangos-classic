@@ -83,6 +83,22 @@ bool SqlStatement::DirectExecute()
     return m_pDB->DirectExecuteStmt(m_index, args);
 }
 
+bool SqlStatement::DirectExecuteAsync()
+{
+    SqlStmtParameters* args = detach();
+    // verify amount of bound parameters
+    if (args->boundParams() != arguments())
+    {
+        sLog.outError("SQL ERROR: wrong amount of parameters (%i instead of %i)", args->boundParams(), arguments());
+        sLog.outError("SQL ERROR: statement: %s", m_pDB->GetStmtString(ID()).c_str());
+        delete args;
+        MANGOS_ASSERT(false);
+        return false;
+    }
+
+    return m_pDB->DirectExecuteStmtAsync(m_index, args);
+}
+
 //////////////////////////////////////////////////////////////////////////
 SqlPlainPreparedStatement::SqlPlainPreparedStatement(const std::string& fmt, SqlConnection& conn) : SqlPreparedStatement(fmt, conn)
 {

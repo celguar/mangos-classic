@@ -540,8 +540,8 @@ void ReputationMgr::SaveToDB(bool queued)
             }
             else
             {
-                stmtDel.DirectPExecute(m_player->GetGUIDLow(), faction.ID);
-                stmtIns.DirectPExecute(m_player->GetGUIDLow(), faction.ID, faction.Standing, faction.Flags);
+                stmtDel.DirectPExecuteAsync(m_player->GetGUIDLow(), faction.ID);
+                stmtIns.DirectPExecuteAsync(m_player->GetGUIDLow(), faction.ID, faction.Standing, faction.Flags);
             }
             faction.needSave = false;
         }

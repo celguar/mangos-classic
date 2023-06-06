@@ -717,7 +717,7 @@ void WorldSession::LogoutPlayer()
             if(queued)
                 stmt.Execute();
             else
-                stmt.DirectExecute();
+                stmt.DirectExecuteAsync();
         }
 #else
         SqlStatement stmt = LoginDatabase.CreateStatement(id, "UPDATE account SET active_realm_id = ? WHERE id = ?");
@@ -727,7 +727,7 @@ void WorldSession::LogoutPlayer()
         if (queued)
             stmt.Execute();
         else
-            stmt.DirectExecute();
+            stmt.DirectExecuteAsync();
 #endif
 
         ///- If the player is in a guild, update the guild roster and broadcast a logout message to other guild members
@@ -801,7 +801,7 @@ void WorldSession::LogoutPlayer()
         if(queued)
             CharacterDatabase.PExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
         else
-            CharacterDatabase.DirectPExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
+            CharacterDatabase.DirectPExecuteAsync("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
         //End Solocraft Function
 
         ///- Remove the player from the world
@@ -839,7 +839,7 @@ void WorldSession::LogoutPlayer()
         if (queued)
             stmt.Execute();
         else
-            stmt.DirectExecute();
+            stmt.DirectExecuteAsync();
 #else
 #ifdef ENABLE_PLAYERBOTS
         // Set for only character instead of accountid
@@ -850,7 +850,7 @@ void WorldSession::LogoutPlayer()
         if(queued)
             stmt.Execute();
         else
-            stmt.DirectExecute();
+            stmt.DirectExecuteAsync();
 #else
         ///- Since each account can only have one online character at any given time, ensure all characters for active account are marked as offline
         // No SQL injection as AccountId is uint32
@@ -860,7 +860,7 @@ void WorldSession::LogoutPlayer()
         if (queued)
             stmt.Execute();
         else
-            stmt.DirectExecute();
+            stmt.DirectExecuteAsync();
 #endif
 #endif
 
@@ -1230,7 +1230,7 @@ void WorldSession::SaveTutorialsData(bool queued)
             if(queued)
                 stmt.Execute();
             else
-                stmt.DirectExecute();
+                stmt.DirectExecuteAsync();
         }
         break;
 
@@ -1245,7 +1245,7 @@ void WorldSession::SaveTutorialsData(bool queued)
             if(queued)
                 stmt.Execute();
             else
-                stmt.DirectExecute();
+                stmt.DirectExecuteAsync();
         }
         break;
         case TUTORIALDATA_UNCHANGED:

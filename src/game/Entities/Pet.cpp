@@ -468,7 +468,7 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner, bool queued)
         if(queued)
             stmt.PExecute(ownerLow, m_charmInfo->GetPetNumber());
         else
-            stmt.DirectPExecute(ownerLow, m_charmInfo->GetPetNumber());
+            stmt.DirectPExecuteAsync(ownerLow, m_charmInfo->GetPetNumber());
 
         // prevent duplicate using slot (except PET_SAVE_NOT_IN_SLOT)
         if (mode <= PET_SAVE_LAST_STABLE_SLOT)
@@ -480,7 +480,7 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner, bool queued)
             if(queued)
                 stmt.PExecute(uint32(PET_SAVE_NOT_IN_SLOT), ownerLow, uint32(mode));
             else
-                stmt.DirectPExecute(uint32(PET_SAVE_NOT_IN_SLOT), ownerLow, uint32(mode));
+                stmt.DirectPExecuteAsync(uint32(PET_SAVE_NOT_IN_SLOT), ownerLow, uint32(mode));
         }
 
         // prevent existence another hunter pet in PET_SAVE_AS_CURRENT and PET_SAVE_NOT_IN_SLOT
@@ -493,7 +493,7 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner, bool queued)
             if(queued)
                 stmt.PExecute(ownerLow, uint32(PET_SAVE_AS_CURRENT), uint32(PET_SAVE_LAST_STABLE_SLOT));
             else
-                stmt.DirectPExecute(ownerLow, uint32(PET_SAVE_AS_CURRENT), uint32(PET_SAVE_LAST_STABLE_SLOT));
+                stmt.DirectPExecuteAsync(ownerLow, uint32(PET_SAVE_AS_CURRENT), uint32(PET_SAVE_LAST_STABLE_SLOT));
         }
 
         // save pet
@@ -551,7 +551,7 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner, bool queued)
         if(queued)
             savePet.Execute();
         else
-            savePet.DirectExecute();
+            savePet.DirectExecuteAsync();
 
         CharacterDatabase.CommitTransaction();
     }
@@ -1549,7 +1549,7 @@ void Pet::_SaveSpellCooldowns(bool queued)
     if(queued)
         stmt.PExecute(m_charmInfo->GetPetNumber());
     else
-        stmt.DirectPExecute(m_charmInfo->GetPetNumber());
+        stmt.DirectPExecuteAsync(m_charmInfo->GetPetNumber());
 
     TimePoint currTime = GetMap()->GetCurrentClockTime();
 
@@ -1567,7 +1567,7 @@ void Pet::_SaveSpellCooldowns(bool queued)
             if(queued)
                 stmt.PExecute(m_charmInfo->GetPetNumber(), cdItr.first, spellExpireTime);
             else
-                stmt.DirectPExecute(m_charmInfo->GetPetNumber(), cdItr.first, spellExpireTime);
+                stmt.DirectPExecuteAsync(m_charmInfo->GetPetNumber(), cdItr.first, spellExpireTime);
         }
     }
 }
@@ -1612,7 +1612,7 @@ void Pet::_SaveSpells(bool queued)
                 if(queued)
                     stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first);
                 else
-                    stmt.DirectPExecute(m_charmInfo->GetPetNumber(), itr->first);
+                    stmt.DirectPExecuteAsync(m_charmInfo->GetPetNumber(), itr->first);
 
                 m_spells.erase(itr);
             }
@@ -1624,14 +1624,14 @@ void Pet::_SaveSpells(bool queued)
                 if(queued)
                     stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first);
                 else
-                    stmt.DirectPExecute(m_charmInfo->GetPetNumber(), itr->first);
+                    stmt.DirectPExecuteAsync(m_charmInfo->GetPetNumber(), itr->first);
 
                 stmt = CharacterDatabase.CreateStatement(insSpell, "INSERT INTO pet_spell (guid,spell,active) VALUES (?, ?, ?)");
 
                 if(queued)
                     stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
                 else
-                    stmt.DirectPExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
+                    stmt.DirectPExecuteAsync(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
             }
             break;
             case PETSPELL_NEW:
@@ -1641,7 +1641,7 @@ void Pet::_SaveSpells(bool queued)
                 if(queued)
                     stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
                 else
-                    stmt.DirectPExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
+                    stmt.DirectPExecuteAsync(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
             }
             break;
             case PETSPELL_UNCHANGED:
@@ -1766,7 +1766,7 @@ void Pet::_SaveAuras(bool queued)
     if(queued)
         stmt.PExecute(m_charmInfo->GetPetNumber());
     else
-        stmt.DirectPExecute(m_charmInfo->GetPetNumber());
+        stmt.DirectPExecuteAsync(m_charmInfo->GetPetNumber());
 
     SpellAuraHolderMap const& auraHolders = GetSpellAuraHolderMap();
 
@@ -1841,7 +1841,7 @@ void Pet::_SaveAuras(bool queued)
             if(queued)
                 stmt.Execute();
             else
-                stmt.DirectExecute();
+                stmt.DirectExecuteAsync();
         }
     }
 }

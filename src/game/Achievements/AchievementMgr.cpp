@@ -699,7 +699,7 @@ void AchievementMgr::SaveToDB(bool queued)
             }
             else
             {
-                CharacterDatabase.DirectPExecute("DELETE FROM `character_achievement` WHERE `achievement` = '%u' AND `guid` = '%u'",
+                CharacterDatabase.DirectPExecuteAsync("DELETE FROM `character_achievement` WHERE `achievement` = '%u' AND `guid` = '%u'",
                     iter->first,
                     GetPlayer()->GetGUIDLow()
                 );
@@ -719,7 +719,7 @@ void AchievementMgr::SaveToDB(bool queued)
             }
             else
             {
-                CharacterDatabase.DirectPExecute("INSERT INTO `character_achievement` (`guid`, `achievement`, `date`) VALUES ('%u', '%u', '%u')",
+                CharacterDatabase.DirectPExecuteAsync("INSERT INTO `character_achievement` (`guid`, `achievement`, `date`) VALUES ('%u', '%u', '%u')",
                     GetPlayer()->GetGUIDLow(),
                     iter->first,
                     uint32(iter->second.date)
@@ -753,7 +753,7 @@ void AchievementMgr::SaveToDB(bool queued)
             }
             else
             {
-                CharacterDatabase.DirectPExecute("DELETE FROM `character_achievement_progress` WHERE `guid` = '%u' AND `criteria` = '%u'",
+                CharacterDatabase.DirectPExecuteAsync("DELETE FROM `character_achievement_progress` WHERE `guid` = '%u' AND `criteria` = '%u'",
                     GetPlayer()->GetGUIDLow(),
                     iter->first
                 );
@@ -777,7 +777,7 @@ void AchievementMgr::SaveToDB(bool queued)
                 }
                 else
                 {
-                    CharacterDatabase.DirectPExecute("INSERT INTO `character_achievement_progress` (`guid`, `criteria`, `counter`, `date`) VALUES ('%u', '%u', '%u', '%u')",
+                    CharacterDatabase.DirectPExecuteAsync("INSERT INTO `character_achievement_progress` (`guid`, `criteria`, `counter`, `date`) VALUES ('%u', '%u', '%u', '%u')",
                         GetPlayer()->GetGUIDLow(),
                         iter->first,
                         iter->second.counter,
