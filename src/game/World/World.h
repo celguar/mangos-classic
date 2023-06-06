@@ -457,6 +457,9 @@ enum eConfigBoolValues
     CONFIG_BOOL_HARDCORE_REVIVE_DISABLED,
     CONFIG_BOOL_HARDCORE_REVIVE_ON_GRAVEYARD,
     // End Hardcore Defines
+    // Start Custom Optimization Defines
+    CONFIG_BOOL_OPTIMIZATION_QUEUE_PLAYER_LOGIN,
+    // End Custom Optimization Defines
 #ifdef USE_ACHIEVEMENTS
     // Start Achievements Defines
     CONFIG_BOOL_ACHIEVEMENTS_ENABLED,

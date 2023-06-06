@@ -858,6 +858,10 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN, "Hardcore.LevelDown", 0.0f);
     // End Hardcore Config
 
+    // Start Custom DB Optimization Config
+    setConfig(CONFIG_BOOL_OPTIMIZATION_QUEUE_PLAYER_LOGIN, "Optimization.QueuePlayerLogin", true);
+    // End Custom DB Optimization Config
+
 #ifdef USE_ACHIEVEMENTS
     // Start Achievements
     setConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED, "Achievements.Enable", true);
