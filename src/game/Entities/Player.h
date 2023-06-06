@@ -1420,7 +1420,7 @@ class Player : public Unit
         /***                   SAVE SYSTEM                     ***/
         /*********************************************************/
 
-        void SaveToDB();
+        void SaveToDB(bool queued = true);
         void SaveInventoryAndGoldToDB();                    // fast save function for item/money cheating preventing
         void SaveGoldToDB() const;
         static void SetUInt32ValueInArray(Tokens& tokens, uint16 index, uint32 value);
@@ -1646,7 +1646,7 @@ class Player : public Unit
 #ifdef USE_ACHIEVEMENTS
         void LoadAchievementsFromDB(SqlQueryHolder* holder);
         void OnPostLoadAchievementsFromDB();
-        void SaveAchievementsToDB();
+        void SaveAchievementsToDB(bool queued = true);
         void UpdateTimedAchievements(const uint32 diff);
         void UpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 miscValue1 = 0, uint32 miscValue2 = 0, Unit* unit = nullptr);
         void CheckAllAchievementCriteria();
@@ -2313,7 +2313,7 @@ class Player : public Unit
         void RemoveSpellLockout(SpellSchoolMask spellSchoolMask, std::set<uint32>* spellAlreadySent = nullptr);
         void SendClearCooldown(uint32 spell_id, Unit* target) const;
         void _LoadSpellCooldowns(QueryResult* result);
-        void _SaveSpellCooldowns();
+        void _SaveSpellCooldowns(bool queued = true);
 
         template <typename F>
         void RemoveSomeCooldown(F check)
@@ -2335,7 +2335,7 @@ class Player : public Unit
         void UpdateEverything();
 
         // Public Save system functions
-        void SaveItemToInventory(Item* item); // optimization for gift wrapping
+        void SaveItemToInventory(Item* item, bool queued = true); // optimization for gift wrapping
 
         void BanPlayer(std::string const& reason);
 
@@ -2397,25 +2397,25 @@ class Player : public Unit
         void _LoadForgottenSkills(QueryResult* result);
         void _LoadIntoDataField(const char* data, uint32 startOffset, uint32 count);
         void _LoadCreatedInstanceTimers();
-        void _SaveNewInstanceIdTimer();
+        void _SaveNewInstanceIdTimer(bool queued = true);
 
         /*********************************************************/
         /***                   SAVE SYSTEM                     ***/
         /*********************************************************/
 
-        void _SaveActions();
-        void _SaveAuras();
-        void _SaveInventory();
-        void _SaveHonorCP();
-        void _SaveMail();
-        void _SaveQuestStatus();
-        void _SaveWeeklyQuestStatus();
-        void _SaveSkills();
-        void _SaveTalents();
-        void _SaveTalentSpecNames();
-        void _SaveSpells();
-        void _SaveBGData();
-        void _SaveStats();
+        void _SaveActions(bool queued = true);
+        void _SaveAuras(bool queued = true);
+        void _SaveInventory(bool queued = true);
+        void _SaveHonorCP(bool queued = true);
+        void _SaveMail(bool queued = true);
+        void _SaveQuestStatus(bool queued = true);
+        void _SaveWeeklyQuestStatus(bool queued = true);
+        void _SaveSkills(bool queued = true);
+        void _SaveTalents(bool queued = true);
+        void _SaveTalentSpecNames(bool queued = true);
+        void _SaveSpells(bool queued = true);
+        void _SaveBGData(bool queued = true);
+        void _SaveStats(bool queued = true);
 
         /*********************************************************/
         /***              ENVIRONMENTAL SYSTEM                 ***/

@@ -520,7 +520,7 @@ void ReputationMgr::LoadFromDB(QueryResult* result)
     }
 }
 
-void ReputationMgr::SaveToDB()
+void ReputationMgr::SaveToDB(bool queued)
 {
     static SqlStatementID delRep ;
     static SqlStatementID insRep ;
@@ -533,8 +533,16 @@ void ReputationMgr::SaveToDB()
         FactionState& faction = m_faction.second;
         if (faction.needSave)
         {
-            stmtDel.PExecute(m_player->GetGUIDLow(), faction.ID);
-            stmtIns.PExecute(m_player->GetGUIDLow(), faction.ID, faction.Standing, faction.Flags);
+            if(queued)
+            {
+                stmtDel.PExecute(m_player->GetGUIDLow(), faction.ID);
+                stmtIns.PExecute(m_player->GetGUIDLow(), faction.ID, faction.Standing, faction.Flags);
+            }
+            else
+            {
+                stmtDel.DirectPExecute(m_player->GetGUIDLow(), faction.ID);
+                stmtIns.DirectPExecute(m_player->GetGUIDLow(), faction.ID, faction.Standing, faction.Flags);
+            }
             faction.needSave = false;
         }
     }

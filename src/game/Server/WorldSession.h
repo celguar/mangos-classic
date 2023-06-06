@@ -341,7 +341,7 @@ class WorldSession
         void LoadAccountData(QueryResult* result, uint32 mask);
         void LoadTutorialsData();
         void SendTutorialsData();
-        void SaveTutorialsData();
+        void SaveTutorialsData(bool queued = true);
         uint32 GetTutorialInt(uint32 intId)
         {
             return m_Tutorials[intId];

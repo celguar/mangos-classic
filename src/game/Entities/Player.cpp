@@ -3786,13 +3786,17 @@ void Player::_LoadSpellCooldowns(QueryResult* result)
     }
 }
 
-void Player::_SaveSpellCooldowns()
+void Player::_SaveSpellCooldowns(bool queued)
 {
     static SqlStatementID deleteSpellCooldown;
 
     // delete all old cooldown
     SqlStatement stmt = CharacterDatabase.CreateStatement(deleteSpellCooldown, "DELETE FROM character_spell_cooldown WHERE guid = ?");
-    stmt.PExecute(GetGUIDLow());
+
+    if(queued)
+        stmt.PExecute(GetGUIDLow());
+    else
+        stmt.DirectPExecute(GetGUIDLow());
 
     static SqlStatementID insertSpellCooldown;
 
@@ -3815,7 +3819,11 @@ void Player::_SaveSpellCooldowns()
             stmt.addUInt32(cdData->GetCategory());
             stmt.addUInt64(catExpireTime);
             stmt.addUInt32(cdData->GetItemId());
-            stmt.Execute();
+
+            if(queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
     }
 }
@@ -3933,7 +3941,7 @@ Mail* Player::GetMail(uint32 id)
     return nullptr;
 }
 
-void Player::SaveItemToInventory(Item* item)
+void Player::SaveItemToInventory(Item* item, bool queued)
 {
     Bag* container = item->GetContainer();
     uint32 bag_guid = container ? container->GetGUIDLow() : 0;
@@ -3952,7 +3960,11 @@ void Player::SaveItemToInventory(Item* item)
             stmt.addUInt8(item->GetSlot());
             stmt.addUInt32(item->GetGUIDLow());
             stmt.addUInt32(item->GetEntry());
-            stmt.Execute();
+
+            if(queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
         break;
         case ITEM_CHANGED:
@@ -3963,13 +3975,22 @@ void Player::SaveItemToInventory(Item* item)
             stmt.addUInt8(item->GetSlot());
             stmt.addUInt32(item->GetEntry());
             stmt.addUInt32(item->GetGUIDLow());
-            stmt.Execute();
+
+            if (queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
         break;
         case ITEM_REMOVED:
         {
             SqlStatement stmt = CharacterDatabase.CreateStatement(deleteInventory, "DELETE FROM character_inventory WHERE item = ?");
-            stmt.PExecute(item->GetGUIDLow());
+            stmt.addUInt32(item->GetGUIDLow());
+
+            if (queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
         break;
         case ITEM_UNCHANGED:
@@ -3978,7 +3999,7 @@ void Player::SaveItemToInventory(Item* item)
             throw std::domain_error("Unrecognized item state");
     }
 
-    item->SaveToDB();                                   // item have unchanged inventory record and can be save standalone
+    item->SaveToDB(queued);                                   // item have unchanged inventory record and can be save standalone
 }
 
 void Player::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) const
@@ -15911,7 +15932,7 @@ bool Player::_LoadHomeBind(QueryResult* result)
 /***                   SAVE SYSTEM                     ***/
 /*********************************************************/
 
-void Player::SaveToDB()
+void Player::SaveToDB(bool queued)
 {
     // we should assure this: ASSERT((m_nextSave != sWorld.getConfig(CONFIG_UINT32_INTERVAL_SAVE)));
     // delay auto save at any saves (manual, in code, or autosave)
@@ -15935,7 +15956,12 @@ void Player::SaveToDB()
     static SqlStatementID insChar ;
 
     SqlStatement stmt = CharacterDatabase.CreateStatement(delChar, "DELETE FROM characters WHERE guid = ?");
-    stmt.PExecute(GetGUIDLow());
+    stmt.addUInt32(GetGUIDLow());
+
+    if(queued)
+        stmt.Execute();
+    else
+        stmt.DirectExecute();
 
     SqlStatement uberInsert = CharacterDatabase.CreateStatement(insChar, "INSERT INTO characters (guid,account,name,race,class,gender,level,xp,money,playerBytes,playerBytes2,playerFlags,"
                               "map, position_x, position_y, position_z, orientation, "
@@ -16076,29 +16102,32 @@ void Player::SaveToDB()
 
     uberInsert.addUInt8(m_fishingSteps);
 
-    uberInsert.Execute();
+    if(queued)
+        uberInsert.Execute();
+    else
+        uberInsert.DirectExecute();
 
     if (m_mailsUpdated)                                     // save mails only when needed
-        _SaveMail();
+        _SaveMail(queued);
 
-    _SaveBGData();
-    _SaveInventory();
-    _SaveQuestStatus();
-    _SaveWeeklyQuestStatus();
-    _SaveTalents();
-    _SaveTalentSpecNames();
-    _SaveSpells();
-    _SaveSpellCooldowns();
-    _SaveActions();
-    _SaveAuras();
-    _SaveSkills();
-    _SaveNewInstanceIdTimer();
-    m_reputationMgr.SaveToDB();
-    _SaveHonorCP();
-    GetSession()->SaveTutorialsData();                      // changed only while character in game
+    _SaveBGData(queued);
+    _SaveInventory(queued);
+    _SaveQuestStatus(queued);
+    _SaveWeeklyQuestStatus(queued);
+    _SaveTalents(queued);
+    _SaveTalentSpecNames(queued);
+    _SaveSpells(queued);
+    _SaveSpellCooldowns(queued);
+    _SaveActions(queued);
+    _SaveAuras(queued);
+    _SaveSkills(queued);
+    _SaveNewInstanceIdTimer(queued);
+    m_reputationMgr.SaveToDB(queued);
+    _SaveHonorCP(queued);
+    GetSession()->SaveTutorialsData(queued);                      // changed only while character in game
 
 #ifdef USE_ACHIEVEMENTS
-    SaveAchievementsToDB();
+    SaveAchievementsToDB(queued);
 #endif
 
     CharacterDatabase.CommitTransaction();
@@ -16106,7 +16135,7 @@ void Player::SaveToDB()
     // check if stats should only be saved on logout
     // save stats can be out of transaction
     if (m_session->isLogingOut() || !sWorld.getConfig(CONFIG_BOOL_STATS_SAVE_ONLY_ON_LOGOUT))
-        _SaveStats();
+        _SaveStats(queued);
 
     /* World of Warcraft Armory */
     // Place this code AFTER CharacterDatabase.CommitTransaction(); to avoid some character saving errors.
@@ -16130,7 +16159,12 @@ void Player::SaveToDB()
                     std::ostringstream sWowarmoryPartial;
                     sWowarmoryPartial << "INSERT IGNORE INTO character_armory_feed (guid,type,data,date,counter,difficulty,item_guid,item_quality) VALUES ";
                     sWowarmoryPartial << sWowarmory.str().c_str();
-                    CharacterDatabase.PExecute(sWowarmoryPartial.str().c_str());
+
+                    if(queued)
+                        CharacterDatabase.PExecute(sWowarmoryPartial.str().c_str());
+                    else
+                        CharacterDatabase.DirectPExecute(sWowarmoryPartial.str().c_str());
+
                     sWowarmory.str("");
                     sWowarmory.clear();
                     counter = 1;
@@ -16149,8 +16183,13 @@ void Player::SaveToDB()
                 if (iter != m_wowarmory_feeds.end() - 1)
                     sWowarmory << ",";
             }
-            CharacterDatabase.PExecute(sWowarmory.str().c_str());
+
+            if(queued)
+                CharacterDatabase.PExecute(sWowarmory.str().c_str());
+            else
+                CharacterDatabase.DirectPExecute(sWowarmory.str().c_str());
         }
+
         // Clear old saved feeds from storage - they are not required for server core.
         InitWowarmoryFeeds();
     }
@@ -16158,7 +16197,7 @@ void Player::SaveToDB()
 
     // save pet (hunter pet level and experience and all type pets health/mana).
     if (Pet* pet = GetPet())
-        pet->SavePetToDB(PET_SAVE_AS_CURRENT, this);
+        pet->SavePetToDB(PET_SAVE_AS_CURRENT, this, queued);
 }
 
 void Player::InitWowarmoryFeeds()
@@ -16220,7 +16259,7 @@ void Player::SaveGoldToDB() const
     stmt.PExecute(GetMoney(), GetGUIDLow());
 }
 
-void Player::_SaveActions()
+void Player::_SaveActions(bool queued)
 {
     static SqlStatementID insertAction ;
     static SqlStatementID updateAction ;
@@ -16238,7 +16277,12 @@ void Player::_SaveActions()
                 stmt.addUInt32(uint32(itr->first));
                 stmt.addUInt32(itr->second.GetAction());
                 stmt.addUInt32(uint32(itr->second.GetType()));
-                stmt.Execute();
+
+                if(queued)
+                    stmt.Execute();
+                else
+                    stmt.DirectExecute();
+
                 itr->second.uState = ACTIONBUTTON_UNCHANGED;
                 ++itr;
             }
@@ -16251,7 +16295,12 @@ void Player::_SaveActions()
                 stmt.addUInt32(GetGUIDLow());
                 stmt.addUInt32(uint32(m_activeSpec));
                 stmt.addUInt32(uint32(itr->first));
-                stmt.Execute();
+
+                if (queued)
+                    stmt.Execute();
+                else
+                    stmt.DirectExecute();
+
                 itr->second.uState = ACTIONBUTTON_UNCHANGED;
                 ++itr;
             }
@@ -16262,7 +16311,12 @@ void Player::_SaveActions()
                 stmt.addUInt32(GetGUIDLow());
                 stmt.addUInt32(uint32(m_activeSpec));
                 stmt.addUInt32(uint32(itr->first));
-                stmt.Execute();
+
+                if (queued)
+                    stmt.Execute();
+                else
+                    stmt.DirectExecute();
+
                 m_actionButtons.erase(itr++);
             }
             break;
@@ -16273,13 +16327,17 @@ void Player::_SaveActions()
     }
 }
 
-void Player::_SaveAuras()
+void Player::_SaveAuras(bool queued)
 {
     static SqlStatementID deleteAuras ;
     static SqlStatementID insertAuras ;
 
     SqlStatement stmt = CharacterDatabase.CreateStatement(deleteAuras, "DELETE FROM character_aura WHERE guid = ?");
-    stmt.PExecute(GetGUIDLow());
+
+    if(queued)
+        stmt.PExecute(GetGUIDLow());
+    else
+        stmt.DirectPExecute(GetGUIDLow());
 
     SpellAuraHolderMap const& auraHolders = GetSpellAuraHolderMap();
 
@@ -16337,12 +16395,16 @@ void Player::_SaveAuras()
             stmt.addInt32(holder->GetAuraMaxDuration());
             stmt.addInt32(holder->GetAuraDuration());
             stmt.addUInt32(effIndexMask);
-            stmt.Execute();
+
+            if(queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
     }
 }
 
-void Player::_SaveInventory()
+void Player::_SaveInventory(bool queued)
 {
     // force items in buyback slots to new state
     // and remove those that aren't already
@@ -16355,10 +16417,20 @@ void Player::_SaveInventory()
         static SqlStatementID delItemInst ;
 
         SqlStatement stmt = CharacterDatabase.CreateStatement(delInv, "DELETE FROM character_inventory WHERE item = ?");
-        stmt.PExecute(item->GetGUIDLow());
+        stmt.addUInt32(item->GetGUIDLow());
+
+        if(queued)
+            stmt.Execute();
+        else
+            stmt.DirectExecute();
 
         stmt = CharacterDatabase.CreateStatement(delItemInst, "DELETE FROM item_instance WHERE guid = ?");
-        stmt.PExecute(item->GetGUIDLow());
+        stmt.addUInt32(item->GetGUIDLow());
+
+        if (queued)
+            stmt.Execute();
+        else
+            stmt.DirectExecute();
 
         m_items[i]->FSetState(ITEM_NEW);
     }
@@ -16409,12 +16481,12 @@ void Player::_SaveInventory()
     {
         if (!item) continue;
 
-        SaveItemToInventory(item);
+        SaveItemToInventory(item, queued);
     }
     m_itemUpdateQueue.clear();
 }
 
-void Player::_SaveHonorCP()
+void Player::_SaveHonorCP(bool queued)
 {
     HonorCPMap tempList;
 
@@ -16427,8 +16499,17 @@ void Player::_SaveHonorCP()
                 itr->state = HK_DELETED;
                 break;
             case HK_NEW:
-                CharacterDatabase.PExecute("INSERT INTO character_honor_cp (guid,victim_type,victim,honor,date,type) "
-                                           " VALUES (%u,%u,%u,%f,%u,%u)", GetGUIDLow(), itr->victimType, itr->victimID, itr->honorPoints, itr->date, itr->type);
+                if(queued)
+                {
+                    CharacterDatabase.PExecute("INSERT INTO character_honor_cp (guid,victim_type,victim,honor,date,type) "
+                                              " VALUES (%u,%u,%u,%f,%u,%u)", GetGUIDLow(), itr->victimType, itr->victimID, itr->honorPoints, itr->date, itr->type);
+                }
+                else
+                {
+                    CharacterDatabase.DirectPExecute("INSERT INTO character_honor_cp (guid,victim_type,victim,honor,date,type) "
+                                                    " VALUES (%u,%u,%u,%f,%u,%u)", GetGUIDLow(), itr->victimType, itr->victimID, itr->honorPoints, itr->date, itr->type);
+                }
+
                 itr->state = HK_UNCHANGED;
                 tempList.push_back(*itr);
                 break;
@@ -16445,7 +16526,7 @@ void Player::_SaveHonorCP()
     tempList.clear();
 }
 
-void Player::_SaveMail()
+void Player::_SaveMail(bool queued)
 {
     static SqlStatementID updateMail ;
     static SqlStatementID deleteMailItems ;
@@ -16469,17 +16550,27 @@ void Player::_SaveMail()
             stmt.addUInt32(m->COD);
             stmt.addUInt32(m->checked);
             stmt.addUInt32(m->messageID);
-            stmt.Execute();
+
+            if(queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
 
             if (!m->removedItems.empty())
             {
                 stmt = CharacterDatabase.CreateStatement(deleteMailItems, "DELETE FROM mail_items WHERE item_guid = ?");
 
                 for (std::vector<uint32>::const_iterator itr2 = m->removedItems.begin(); itr2 != m->removedItems.end(); ++itr2)
-                    stmt.PExecute(*itr2);
+                {
+                    if(queued)
+                        stmt.PExecute(*itr2);
+                    else
+                        stmt.DirectPExecute(*itr2);
+                }
 
                 m->removedItems.clear();
             }
+
             m->state = MAIL_STATE_UNCHANGED;
         }
         else if (m->state == MAIL_STATE_DELETED)
@@ -16488,20 +16579,37 @@ void Player::_SaveMail()
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(deleteItem, "DELETE FROM item_instance WHERE guid = ?");
                 for (MailItemInfoVec::const_iterator itr2 = m->items.begin(); itr2 != m->items.end(); ++itr2)
-                    stmt.PExecute(itr2->item_guid);
+                {
+                    if(queued)
+                        stmt.PExecute(itr2->item_guid);
+                    else
+                        stmt.DirectPExecute(itr2->item_guid);
+                }
             }
 
             if (m->itemTextId)
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(deleteItemText, "DELETE FROM item_text WHERE id = ?");
-                stmt.PExecute(m->itemTextId);
+
+                if(queued)
+                    stmt.PExecute(m->itemTextId);
+                else
+                    stmt.DirectPExecute(m->itemTextId);
             }
 
             SqlStatement stmt = CharacterDatabase.CreateStatement(deleteMain, "DELETE FROM mail WHERE id = ?");
-            stmt.PExecute(m->messageID);
+
+            if(queued)
+                stmt.PExecute(m->messageID);
+            else
+                stmt.DirectPExecute(m->messageID);
 
             stmt = CharacterDatabase.CreateStatement(deleteItems, "DELETE FROM mail_items WHERE mail_id = ?");
-            stmt.PExecute(m->messageID);
+
+            if(queued)
+                stmt.PExecute(m->messageID);
+            else
+                stmt.DirectPExecute(m->messageID);
         }
     }
 
@@ -16522,7 +16630,7 @@ void Player::_SaveMail()
     m_mailsUpdated = false;
 }
 
-void Player::_SaveQuestStatus()
+void Player::_SaveQuestStatus(bool queued)
 {
     static SqlStatementID insertQuestStatus ;
 
@@ -16553,7 +16661,11 @@ void Player::_SaveQuestStatus()
                     stmt.addUInt32(k);
                 for (unsigned int k : questStatus.m_itemcount)
                     stmt.addUInt32(k);
-                stmt.Execute();
+
+                if(queued)
+                    stmt.Execute();
+                else
+                    stmt.DirectExecute();
             }
             break;
             case QUEST_CHANGED :
@@ -16575,7 +16687,11 @@ void Player::_SaveQuestStatus()
                     stmt.addUInt32(k);
                 stmt.addUInt32(GetGUIDLow());
                 stmt.addUInt32(mQuestStatu.first);
-                stmt.Execute();
+
+                if(queued)
+                    stmt.Execute();
+                else
+                    stmt.DirectExecute();
             }
             break;
             case QUEST_UNCHANGED:
@@ -16585,7 +16701,7 @@ void Player::_SaveQuestStatus()
     }
 }
 
-void Player::_SaveWeeklyQuestStatus()
+void Player::_SaveWeeklyQuestStatus(bool queued)
 {
     if (!m_WeeklyQuestChanged || m_weeklyquests.empty())
         return;
@@ -16597,15 +16713,23 @@ void Player::_SaveWeeklyQuestStatus()
     SqlStatement stmtDel = CharacterDatabase.CreateStatement(delQuestStatus, "DELETE FROM character_queststatus_weekly WHERE guid = ?");
     SqlStatement stmtIns = CharacterDatabase.CreateStatement(insQuestStatus, "INSERT INTO character_queststatus_weekly (guid,quest) VALUES (?, ?)");
 
-    stmtDel.PExecute(GetGUIDLow());
+    if(queued)
+        stmtDel.PExecute(GetGUIDLow());
+    else
+        stmtDel.DirectPExecute(GetGUIDLow());
 
     for (uint32 quest_id : m_weeklyquests)
-        stmtIns.PExecute(GetGUIDLow(), quest_id);
+    {
+        if(queued)
+            stmtIns.PExecute(GetGUIDLow(), quest_id);
+        else
+            stmtIns.DirectPExecute(GetGUIDLow(), quest_id);
+    }
 
     m_WeeklyQuestChanged = false;
 }
 
-void Player::_SaveSkills()
+void Player::_SaveSkills(bool queued)
 {
     static SqlStatementID delSkills ;
     static SqlStatementID insSkills ;
@@ -16623,7 +16747,12 @@ void Player::_SaveSkills()
         if (itr->second.uState == SKILL_DELETED)
         {
             SqlStatement stmt = CharacterDatabase.CreateStatement(delSkills, "DELETE FROM character_skills WHERE guid = ? AND skill = ?");
-            stmt.PExecute(GetGUIDLow(), itr->first);
+
+            if(queued)
+                stmt.PExecute(GetGUIDLow(), itr->first);
+            else
+                stmt.DirectPExecute(GetGUIDLow(), itr->first);
+
             mSkillStatus.erase(itr++);
             continue;
         }
@@ -16637,13 +16766,21 @@ void Player::_SaveSkills()
             case SKILL_NEW:
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(insSkills, "INSERT INTO character_skills (guid, skill, value, max) VALUES (?, ?, ?, ?)");
-                stmt.PExecute(GetGUIDLow(), itr->first, value, max);
+
+                if(queued)
+                    stmt.PExecute(GetGUIDLow(), itr->first, value, max);
+                else
+                    stmt.DirectPExecute(GetGUIDLow(), itr->first, value, max);
             }
             break;
             case SKILL_CHANGED:
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(updSkills, "UPDATE character_skills SET value = ?, max = ? WHERE guid = ? AND skill = ?");
-                stmt.PExecute(value, max, GetGUIDLow(), itr->first);
+
+                if(queued)
+                    stmt.PExecute(value, max, GetGUIDLow(), itr->first);
+                else
+                    stmt.DirectPExecute(value, max, GetGUIDLow(), itr->first);
             }
             break;
             case SKILL_UNCHANGED:
@@ -16664,12 +16801,16 @@ void Player::_SaveSkills()
         if (itr.second > 1)
         {
             SqlStatement stmt = CharacterDatabase.CreateStatement(forSkills, "REPLACE INTO character_forgotten_skills (guid, skill, value) VALUES (?, ?, ?)");
-            stmt.PExecute(GetGUIDLow(), itr.first, itr.second);
+
+            if(queued)
+                stmt.PExecute(GetGUIDLow(), itr.first, itr.second);
+            else
+                stmt.DirectPExecute(GetGUIDLow(), itr.first, itr.second);
         }
     }
 }
 
-void Player::_SaveTalents()
+void Player::_SaveTalents(bool queued)
 {
     static SqlStatementID delTalents;
     static SqlStatementID insTalents;
@@ -16684,9 +16825,20 @@ void Player::_SaveTalents()
             PlayerTalent& playerTalent = itr->second;
 
             if (itr->second.state == PLAYERSPELL_REMOVED || itr->second.state == PLAYERSPELL_CHANGED)
-                stmtDel.PExecute(GetGUIDLow(), itr->first, itr->second.spec);
+            {
+                if(queued)
+                    stmtDel.PExecute(GetGUIDLow(), itr->first, itr->second.spec);
+                else
+                    stmtDel.DirectPExecute(GetGUIDLow(), itr->first, itr->second.spec);
+            }
+
             if (itr->second.state == PLAYERSPELL_NEW || itr->second.state == PLAYERSPELL_CHANGED)
-                stmtIns.PExecute(GetGUIDLow(), itr->first, itr->second.spec);
+            {
+                if(queued)
+                    stmtIns.PExecute(GetGUIDLow(), itr->first, itr->second.spec);
+                else
+                    stmtIns.DirectPExecute(GetGUIDLow(), itr->first, itr->second.spec);
+            }
 
             if (itr->second.state == PLAYERSPELL_REMOVED)
             {
@@ -16701,19 +16853,27 @@ void Player::_SaveTalents()
     }
 }
 
-void Player::_SaveTalentSpecNames()
+void Player::_SaveTalentSpecNames(bool queued)
 {
     for (uint8 i = 0; i < MAX_TALENT_SPECS; i++)
     {
         if (specNames[i] != "")
         {
-            CharacterDatabase.PExecute("DELETE FROM character_talent_name WHERE guid='%u' AND spec='%u'", GetGUIDLow(), i);
-            CharacterDatabase.PExecute("INSERT INTO character_talent_name (guid,spec,name) VALUES ('%u', '%u', '%s')", GetGUIDLow(), i, specNames[i].c_str());
+            if(queued)
+            {
+                CharacterDatabase.PExecute("DELETE FROM character_talent_name WHERE guid='%u' AND spec='%u'", GetGUIDLow(), i);
+                CharacterDatabase.PExecute("INSERT INTO character_talent_name (guid,spec,name) VALUES ('%u', '%u', '%s')", GetGUIDLow(), i, specNames[i].c_str());
+            }
+            else
+            {
+                CharacterDatabase.DirectPExecute("DELETE FROM character_talent_name WHERE guid='%u' AND spec='%u'", GetGUIDLow(), i);
+                CharacterDatabase.DirectPExecute("INSERT INTO character_talent_name (guid,spec,name) VALUES ('%u', '%u', '%s')", GetGUIDLow(), i, specNames[i].c_str());
+            }
         }
     }
 }
 
-void Player::_SaveSpells()
+void Player::_SaveSpells(bool queued)
 {
     static SqlStatementID delSpells ;
     static SqlStatementID insSpells ;
@@ -16726,11 +16886,21 @@ void Player::_SaveSpells()
         PlayerSpell& playerSpell = itr->second;
 
         if (playerSpell.state == PLAYERSPELL_REMOVED || playerSpell.state == PLAYERSPELL_CHANGED)
-            stmtDel.PExecute(GetGUIDLow(), itr->first);
+        {
+            if(queued)
+                stmtDel.PExecute(GetGUIDLow(), itr->first);
+            else
+                stmtDel.DirectPExecute(GetGUIDLow(), itr->first);
+        }
 
         // add only changed/new not dependent spells
         if (!playerSpell.dependent && (playerSpell.state == PLAYERSPELL_NEW || playerSpell.state == PLAYERSPELL_CHANGED))
-            stmtIns.PExecute(GetGUIDLow(), itr->first, uint8(playerSpell.active ? 1 : 0), uint8(playerSpell.disabled ? 1 : 0));
+        {
+            if(queued)
+                stmtIns.PExecute(GetGUIDLow(), itr->first, uint8(playerSpell.active ? 1 : 0), uint8(playerSpell.disabled ? 1 : 0));
+            else
+                stmtIns.DirectPExecute(GetGUIDLow(), itr->first, uint8(playerSpell.active ? 1 : 0), uint8(playerSpell.disabled ? 1 : 0));
+        }
 
         if (playerSpell.state == PLAYERSPELL_REMOVED)
             m_spells.erase(itr++);
@@ -16744,7 +16914,7 @@ void Player::_SaveSpells()
 
 // save player stats -- only for external usage
 // real stats will be recalculated on player login
-void Player::_SaveStats()
+void Player::_SaveStats(bool queued)
 {
     // check if stat saving is enabled and if char level is high enough
     if (!sWorld.getConfig(CONFIG_UINT32_MIN_LEVEL_STAT_SAVE) || GetLevel() < sWorld.getConfig(CONFIG_UINT32_MIN_LEVEL_STAT_SAVE))
@@ -16754,7 +16924,11 @@ void Player::_SaveStats()
     static SqlStatementID insertStats ;
 
     SqlStatement stmt = CharacterDatabase.CreateStatement(delStats, "DELETE FROM character_stats WHERE guid = ?");
-    stmt.PExecute(GetGUIDLow());
+
+    if(queued)
+        stmt.PExecute(GetGUIDLow());
+    else
+        stmt.DirectPExecute(GetGUIDLow());
 
     stmt = CharacterDatabase.CreateStatement(insertStats, "INSERT INTO character_stats (guid, maxhealth, maxpower1, maxpower2, maxpower3, maxpower4, maxpower5, "
             "strength, agility, stamina, intellect, spirit, armor, resHoly, resFire, resNature, resFrost, resShadow, resArcane, "
@@ -16873,7 +17047,10 @@ void Player::_SaveStats()
     // pvp rank
     stmt.addInt32(GetHonorRankInfo().visualRank);
 
-    stmt.Execute();
+    if(queued)
+        stmt.Execute();
+    else
+        stmt.DirectExecute();
 }
 
 void Player::outDebugStatsValues() const
@@ -20529,7 +20706,7 @@ void Player::ResummonPetTemporaryUnSummonedIfAny()
     m_temporaryUnsummonedPetNumber = 0;
 }
 
-void Player::_SaveBGData()
+void Player::_SaveBGData(bool queued)
 {
     // nothing save
     if (!m_bgData.m_needSave)
@@ -20539,8 +20716,12 @@ void Player::_SaveBGData()
     static SqlStatementID insBGData ;
 
     SqlStatement stmt =  CharacterDatabase.CreateStatement(delBGData, "DELETE FROM character_battleground_data WHERE guid = ?");
+    stmt.addUInt32(GetGUIDLow());
 
-    stmt.PExecute(GetGUIDLow());
+    if(queued)
+        stmt.Execute();
+    else
+        stmt.DirectExecute();
 
     if (m_bgData.bgInstanceID)
     {
@@ -20555,7 +20736,10 @@ void Player::_SaveBGData()
         stmt.addFloat(m_bgData.joinPos.orientation);
         stmt.addUInt32(m_bgData.joinPos.mapid);
 
-        stmt.Execute();
+        if(queued)
+            stmt.Execute();
+        else
+            stmt.DirectExecute();
     }
 
     m_bgData.m_needSave = false;
@@ -21145,9 +21329,12 @@ void Player::_LoadCreatedInstanceTimers()
     }
 }
 
-void Player::_SaveNewInstanceIdTimer()
+void Player::_SaveNewInstanceIdTimer(bool queued)
 {
-    CharacterDatabase.PExecute("DELETE FROM account_instances_entered WHERE AccountId = '%u'", m_session->GetAccountId());
+    if(queued)
+        CharacterDatabase.PExecute("DELETE FROM account_instances_entered WHERE AccountId = '%u'", m_session->GetAccountId());
+    else
+        CharacterDatabase.DirectPExecute("DELETE FROM account_instances_entered WHERE AccountId = '%u'", m_session->GetAccountId());
 
     if (m_enteredInstances.empty())
         return;
@@ -21161,7 +21348,11 @@ void Player::_SaveNewInstanceIdTimer()
         stmt.addUInt32(m_session->GetAccountId());
         stmt.addUInt64(Clock::to_time_t(enterInstItr.second));
         stmt.addUInt32(enterInstItr.first);
-        stmt.Execute();
+
+        if(queued)
+            stmt.Execute();
+        else
+            stmt.DirectExecute();
     }
 }
 
@@ -21452,11 +21643,11 @@ void Player::OnPostLoadAchievementsFromDB()
     }
 }
 
-void Player::SaveAchievementsToDB()
+void Player::SaveAchievementsToDB(bool queued)
 {
     if (m_achievementMgr)
     {
-        m_achievementMgr->SaveToDB();
+        m_achievementMgr->SaveToDB(queued);
     }
 }
 

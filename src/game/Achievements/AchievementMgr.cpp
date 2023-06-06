@@ -681,26 +681,50 @@ void AchievementMgr::DeleteFromDB(uint32 lowguid)
     //// CharacterDatabase.CommitTransaction(trans);
 }
 
-void AchievementMgr::SaveToDB() {
-    if (!m_completedAchievements.empty()) {
-        for (CompletedAchievementMap::iterator iter = m_completedAchievements.begin(); iter != m_completedAchievements.end(); ++iter) {
+void AchievementMgr::SaveToDB(bool queued) 
+{
+    if (!m_completedAchievements.empty()) 
+    {
+        for (CompletedAchievementMap::iterator iter = m_completedAchievements.begin(); iter != m_completedAchievements.end(); ++iter) 
+        {
             if (!iter->second.changed)
                 continue;
 
-            CharacterDatabase.PExecute("DELETE FROM `character_achievement` WHERE `achievement` = '%u' AND `guid` = '%u'",
-                iter->first,
-                GetPlayer()->GetGUIDLow()
-            );
+            if(queued)
+            {
+                CharacterDatabase.PExecute("DELETE FROM `character_achievement` WHERE `achievement` = '%u' AND `guid` = '%u'",
+                    iter->first,
+                    GetPlayer()->GetGUIDLow()
+                );
+            }
+            else
+            {
+                CharacterDatabase.DirectPExecute("DELETE FROM `character_achievement` WHERE `achievement` = '%u' AND `guid` = '%u'",
+                    iter->first,
+                    GetPlayer()->GetGUIDLow()
+                );
+            }
             // CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_ACHIEVEMENT_BY_ACHIEVEMENT); //  "DELETE FROM character_achievement WHERE achievement = ? AND guid = ?"
             // stmt->setUInt16(0, iter->first);
             // stmt->setUInt32(1, GetPlayer()->GetGUID().GetCounter());
             // trans->Append(stmt);
 
-            CharacterDatabase.PExecute("INSERT INTO `character_achievement` (`guid`, `achievement`, `date`) VALUES ('%u', '%u', '%u')",
-                GetPlayer()->GetGUIDLow(),
-                iter->first,
-                uint32(iter->second.date)
-            );
+            if (queued)
+            {
+                CharacterDatabase.PExecute("INSERT INTO `character_achievement` (`guid`, `achievement`, `date`) VALUES ('%u', '%u', '%u')",
+                    GetPlayer()->GetGUIDLow(),
+                    iter->first,
+                    uint32(iter->second.date)
+                );
+            }
+            else
+            {
+                CharacterDatabase.DirectPExecute("INSERT INTO `character_achievement` (`guid`, `achievement`, `date`) VALUES ('%u', '%u', '%u')",
+                    GetPlayer()->GetGUIDLow(),
+                    iter->first,
+                    uint32(iter->second.date)
+                );
+            }
             // stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHAR_ACHIEVEMENT); // "INSERT INTO character_achievement (guid, achievement, date) VALUES (?, ?, ?)"
             // stmt->setUInt32(0, GetPlayer()->GetGUID().GetCounter());
             // stmt->setUInt16(1, iter->first);
@@ -713,28 +737,53 @@ void AchievementMgr::SaveToDB() {
         }
     }
 
-    if (!m_criteriaProgress.empty()) {
-        for (CriteriaProgressMap::iterator iter = m_criteriaProgress.begin(); iter != m_criteriaProgress.end(); ++iter) {
+    if (!m_criteriaProgress.empty()) 
+    {
+        for (CriteriaProgressMap::iterator iter = m_criteriaProgress.begin(); iter != m_criteriaProgress.end(); ++iter) 
+        {
             if (!iter->second.changed)
                 continue;
 
-            CharacterDatabase.PExecute("DELETE FROM `character_achievement_progress` WHERE `guid` = '%u' AND `criteria` = '%u'",
-                GetPlayer()->GetGUIDLow(),
-                iter->first
-            );
+            if (queued)
+            {
+                CharacterDatabase.PExecute("DELETE FROM `character_achievement_progress` WHERE `guid` = '%u' AND `criteria` = '%u'",
+                    GetPlayer()->GetGUIDLow(),
+                    iter->first
+                );
+            }
+            else
+            {
+                CharacterDatabase.DirectPExecute("DELETE FROM `character_achievement_progress` WHERE `guid` = '%u' AND `criteria` = '%u'",
+                    GetPlayer()->GetGUIDLow(),
+                    iter->first
+                );
+            }
             // CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_ACHIEVEMENT_PROGRESS_BY_CRITERIA); //  "DELETE FROM character_achievement_progress WHERE guid = ? AND criteria = ?"
             // stmt->setUInt32(0, GetPlayer()->GetGUID().GetCounter());
             // stmt->setUInt16(1, iter->first);
             // trans->Append(stmt);
 
             // // pussywizard: insert only for (counter != 0) is very important! this is how criteria of completed achievements gets deleted from db (by setting counter to 0); if conflicted during merge - contact me
-            if (iter->second.counter) {
-                CharacterDatabase.PExecute("INSERT INTO `character_achievement_progress` (`guid`, `criteria`, `counter`, `date`) VALUES ('%u', '%u', '%u', '%u')",
-                    GetPlayer()->GetGUIDLow(),
-                    iter->first,
-                    iter->second.counter,
-                    uint32(iter->second.date)
-                );
+            if (iter->second.counter) 
+            {
+                if(queued)
+                {
+                    CharacterDatabase.PExecute("INSERT INTO `character_achievement_progress` (`guid`, `criteria`, `counter`, `date`) VALUES ('%u', '%u', '%u', '%u')",
+                        GetPlayer()->GetGUIDLow(),
+                        iter->first,
+                        iter->second.counter,
+                        uint32(iter->second.date)
+                    );
+                }
+                else
+                {
+                    CharacterDatabase.DirectPExecute("INSERT INTO `character_achievement_progress` (`guid`, `criteria`, `counter`, `date`) VALUES ('%u', '%u', '%u', '%u')",
+                        GetPlayer()->GetGUIDLow(),
+                        iter->first,
+                        iter->second.counter,
+                        uint32(iter->second.date)
+                    );
+                }
             //     stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHAR_ACHIEVEMENT_PROGRESS); //  "INSERT INTO character_achievement_progress (guid, criteria, counter, date) VALUES (?, ?, ?, ?)"
             //     stmt->setUInt32(0, GetPlayer()->GetGUID().GetCounter());
             //     stmt->setUInt16(1, iter->first);

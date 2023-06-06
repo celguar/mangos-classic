@@ -612,6 +612,8 @@ void WorldSession::HandleBotPackets()
 /// %Log the player out
 void WorldSession::LogoutPlayer()
 {
+    bool queued = sWorld.getConfig(CONFIG_BOOL_OPTIMIZATION_QUEUE_PLAYER_LOGIN);
+
     // if the player has just logged out, there is no need to do anything here
     if (m_playerRecentlyLogout)
         return;
@@ -633,7 +635,11 @@ void WorldSession::LogoutPlayer()
 #ifdef ENABLE_PLAYERBOTS
         if (_player->GetPlayerbotMgr() && (!_player->GetPlayerbotAI() || _player->GetPlayerbotAI()->IsRealPlayer()))
             _player->GetPlayerbotMgr()->LogoutAllBots();
+
         sRandomPlayerbotMgr.OnPlayerLogout(_player);
+
+        if (!_player->isRealPlayer())
+            queued = true;
 #endif
 
 #ifdef ENABLE_PLAYERBOTS
@@ -682,7 +688,7 @@ void WorldSession::LogoutPlayer()
         }
 
         // FG: finish pending transfers after starting the logout
-        // this should fix players beeing able to logout and login back with full hp at death position
+        // this should fix players being able to logout and login back with full hp at death position
         while (_player->IsBeingTeleportedFar())
             HandleMoveWorldportAckOpcode();
 
@@ -705,11 +711,23 @@ void WorldSession::LogoutPlayer()
         {
             // Unmodded core code below
             SqlStatement stmt = LoginDatabase.CreateStatement(id, "UPDATE account SET active_realm_id = ? WHERE id = ?");
-            stmt.PExecute(uint32(0), GetAccountId());
+            stmt.addUInt32(uint32(0));
+            stmt.addUInt32(GetAccountId());
+
+            if(queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
 #else
         SqlStatement stmt = LoginDatabase.CreateStatement(id, "UPDATE account SET active_realm_id = ? WHERE id = ?");
-        stmt.PExecute(uint32(0), GetAccountId());
+        stmt.addUInt32(uint32(0));
+        stmt.addUInt32(GetAccountId());
+
+        if (queued)
+            stmt.Execute();
+        else
+            stmt.DirectExecute();
 #endif
 
         ///- If the player is in a guild, update the guild roster and broadcast a logout message to other guild members
@@ -730,7 +748,7 @@ void WorldSession::LogoutPlayer()
         ///- empty buyback items and save the player in the database
         // some save parts only correctly work in case player present in map/player_lists (pets, etc)
         if (m_playerSave)
-            _player->SaveToDB();
+            _player->SaveToDB(queued);
 
         ///- Leave all channels before player delete...
         _player->CleanupChannels();
@@ -780,7 +798,10 @@ void WorldSession::LogoutPlayer()
 #endif
 
         //Start Solocraft Function
-        CharacterDatabase.PExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
+        if(queued)
+            CharacterDatabase.PExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
+        else
+            CharacterDatabase.DirectPExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
         //End Solocraft Function
 
         ///- Remove the player from the world
@@ -814,18 +835,32 @@ void WorldSession::LogoutPlayer()
         // Set for only character instead of accountid
         // Different characters can be alive as bots
         SqlStatement stmt = CharacterDatabase.CreateStatement(updChars, "UPDATE characters SET online = 0 WHERE guid = ?");
-        stmt.PExecute(guid);
+
+        if (queued)
+            stmt.Execute();
+        else
+            stmt.DirectExecute();
 #else
 #ifdef ENABLE_PLAYERBOTS
         // Set for only character instead of accountid
         // Different characters can be alive as bots
         stmt = CharacterDatabase.CreateStatement(updChars, "UPDATE characters SET online = 0 WHERE guid = ?");
-        stmt.PExecute(guid);
+        stmt.addUInt32(guid);
+
+        if(queued)
+            stmt.Execute();
+        else
+            stmt.DirectExecute();
 #else
         ///- Since each account can only have one online character at any given time, ensure all characters for active account are marked as offline
         // No SQL injection as AccountId is uint32
         stmt = CharacterDatabase.CreateStatement(updChars, "UPDATE characters SET online = 0 WHERE account = ?");
-        stmt.PExecute(GetAccountId());
+        stmt.addUInt32(GetAccountId());
+
+        if (queued)
+            stmt.Execute();
+        else
+            stmt.DirectExecute();
 #endif
 #endif
 
@@ -1177,7 +1212,7 @@ void WorldSession::SendTutorialsData()
     SendPacket(data);
 }
 
-void WorldSession::SaveTutorialsData()
+void WorldSession::SaveTutorialsData(bool queued)
 {
     static SqlStatementID updTutorial ;
     static SqlStatementID insTutorial ;
@@ -1191,7 +1226,11 @@ void WorldSession::SaveTutorialsData()
                 stmt.addUInt32(m_Tutorial);
 
             stmt.addUInt32(GetAccountId());
-            stmt.Execute();
+
+            if(queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
         break;
 
@@ -1203,7 +1242,10 @@ void WorldSession::SaveTutorialsData()
             for (unsigned int m_Tutorial : m_Tutorials)
                 stmt.addUInt32(m_Tutorial);
 
-            stmt.Execute();
+            if(queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
         break;
         case TUTORIALDATA_UNCHANGED:

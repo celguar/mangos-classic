@@ -405,7 +405,7 @@ bool Pet::LoadPetFromDB(Player* owner, Position const& spawnPos, uint32 petentry
     return true;
 }
 
-void Pet::SavePetToDB(PetSaveMode mode, Player* owner)
+void Pet::SavePetToDB(PetSaveMode mode, Player* owner, bool queued)
 {
     if (!GetEntry())
         return;
@@ -450,9 +450,9 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner)
 
         // save pet's data as one single transaction
         CharacterDatabase.BeginTransaction();
-        _SaveSpells();
-        _SaveSpellCooldowns();
-        _SaveAuras();
+        _SaveSpells(queued);
+        _SaveSpellCooldowns(queued);
+        _SaveAuras(queued);
 
         uint32 loyalty = 1;
         if (getPetType() == HUNTER_PET)
@@ -464,7 +464,11 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner)
         static SqlStatementID insPet ;
 
         SqlStatement stmt = CharacterDatabase.CreateStatement(delPet, "DELETE FROM character_pet WHERE owner = ? AND id = ?");
-        stmt.PExecute(ownerLow, m_charmInfo->GetPetNumber());
+
+        if(queued)
+            stmt.PExecute(ownerLow, m_charmInfo->GetPetNumber());
+        else
+            stmt.DirectPExecute(ownerLow, m_charmInfo->GetPetNumber());
 
         // prevent duplicate using slot (except PET_SAVE_NOT_IN_SLOT)
         if (mode <= PET_SAVE_LAST_STABLE_SLOT)
@@ -472,7 +476,11 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner)
             static SqlStatementID updPet ;
 
             stmt = CharacterDatabase.CreateStatement(updPet, "UPDATE character_pet SET slot = ? WHERE owner = ? AND slot = ?");
-            stmt.PExecute(uint32(PET_SAVE_NOT_IN_SLOT), ownerLow, uint32(mode));
+
+            if(queued)
+                stmt.PExecute(uint32(PET_SAVE_NOT_IN_SLOT), ownerLow, uint32(mode));
+            else
+                stmt.DirectPExecute(uint32(PET_SAVE_NOT_IN_SLOT), ownerLow, uint32(mode));
         }
 
         // prevent existence another hunter pet in PET_SAVE_AS_CURRENT and PET_SAVE_NOT_IN_SLOT
@@ -481,7 +489,11 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner)
             static SqlStatementID del ;
 
             stmt = CharacterDatabase.CreateStatement(del, "DELETE FROM character_pet WHERE owner = ? AND (slot = ? OR slot > ?)");
-            stmt.PExecute(ownerLow, uint32(PET_SAVE_AS_CURRENT), uint32(PET_SAVE_LAST_STABLE_SLOT));
+
+            if(queued)
+                stmt.PExecute(ownerLow, uint32(PET_SAVE_AS_CURRENT), uint32(PET_SAVE_LAST_STABLE_SLOT));
+            else
+                stmt.DirectPExecute(ownerLow, uint32(PET_SAVE_AS_CURRENT), uint32(PET_SAVE_LAST_STABLE_SLOT));
         }
 
         // save pet
@@ -536,7 +548,11 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner)
         else
             savePet.addUInt32(0);
 
-        savePet.Execute();
+        if(queued)
+            savePet.Execute();
+        else
+            savePet.DirectExecute();
+
         CharacterDatabase.CommitTransaction();
     }
     else
@@ -1523,13 +1539,17 @@ void Pet::_LoadSpellCooldowns()
     }
 }
 
-void Pet::_SaveSpellCooldowns()
+void Pet::_SaveSpellCooldowns(bool queued)
 {
     static SqlStatementID delSpellCD;
     static SqlStatementID insSpellCD;
 
     SqlStatement stmt = CharacterDatabase.CreateStatement(delSpellCD, "DELETE FROM pet_spell_cooldown WHERE guid = ?");
-    stmt.PExecute(m_charmInfo->GetPetNumber());
+    
+    if(queued)
+        stmt.PExecute(m_charmInfo->GetPetNumber());
+    else
+        stmt.DirectPExecute(m_charmInfo->GetPetNumber());
 
     TimePoint currTime = GetMap()->GetCurrentClockTime();
 
@@ -1543,7 +1563,11 @@ void Pet::_SaveSpellCooldowns()
             uint64 spellExpireTime = uint64(Clock::to_time_t(sTime));
 
             stmt = CharacterDatabase.CreateStatement(insSpellCD, "INSERT INTO pet_spell_cooldown (guid,spell,time) VALUES (?, ?, ?)");
-            stmt.PExecute(m_charmInfo->GetPetNumber(), cdItr.first, spellExpireTime);
+
+            if(queued)
+                stmt.PExecute(m_charmInfo->GetPetNumber(), cdItr.first, spellExpireTime);
+            else
+                stmt.DirectPExecute(m_charmInfo->GetPetNumber(), cdItr.first, spellExpireTime);
         }
     }
 }
@@ -1566,7 +1590,7 @@ void Pet::_LoadSpells()
     }
 }
 
-void Pet::_SaveSpells()
+void Pet::_SaveSpells(bool queued)
 {
     static SqlStatementID delSpell ;
     static SqlStatementID insSpell ;
@@ -1584,23 +1608,40 @@ void Pet::_SaveSpells()
             case PETSPELL_REMOVED:
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(delSpell, "DELETE FROM pet_spell WHERE guid = ? and spell = ?");
-                stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first);
+
+                if(queued)
+                    stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first);
+                else
+                    stmt.DirectPExecute(m_charmInfo->GetPetNumber(), itr->first);
+
                 m_spells.erase(itr);
             }
             continue;
             case PETSPELL_CHANGED:
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(delSpell, "DELETE FROM pet_spell WHERE guid = ? and spell = ?");
-                stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first);
+
+                if(queued)
+                    stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first);
+                else
+                    stmt.DirectPExecute(m_charmInfo->GetPetNumber(), itr->first);
 
                 stmt = CharacterDatabase.CreateStatement(insSpell, "INSERT INTO pet_spell (guid,spell,active) VALUES (?, ?, ?)");
-                stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
+
+                if(queued)
+                    stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
+                else
+                    stmt.DirectPExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
             }
             break;
             case PETSPELL_NEW:
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(insSpell, "INSERT INTO pet_spell (guid,spell,active) VALUES (?, ?, ?)");
-                stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
+
+                if(queued)
+                    stmt.PExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
+                else
+                    stmt.DirectPExecute(m_charmInfo->GetPetNumber(), itr->first, uint32(itr->second.active));
             }
             break;
             case PETSPELL_UNCHANGED:
@@ -1715,13 +1756,17 @@ void Pet::_LoadAuras(uint32 timediff)
     }
 }
 
-void Pet::_SaveAuras()
+void Pet::_SaveAuras(bool queued)
 {
     static SqlStatementID delAuras ;
     static SqlStatementID insAuras ;
 
     SqlStatement stmt = CharacterDatabase.CreateStatement(delAuras, "DELETE FROM pet_aura WHERE guid = ?");
-    stmt.PExecute(m_charmInfo->GetPetNumber());
+
+    if(queued)
+        stmt.PExecute(m_charmInfo->GetPetNumber());
+    else
+        stmt.DirectPExecute(m_charmInfo->GetPetNumber());
 
     SpellAuraHolderMap const& auraHolders = GetSpellAuraHolderMap();
 
@@ -1792,7 +1837,11 @@ void Pet::_SaveAuras()
             stmt.addInt32(holder->GetAuraMaxDuration());
             stmt.addInt32(holder->GetAuraDuration());
             stmt.addUInt32(effIndexMask);
-            stmt.Execute();
+
+            if(queued)
+                stmt.Execute();
+            else
+                stmt.DirectExecute();
         }
     }
 }
