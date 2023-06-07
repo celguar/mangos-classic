@@ -812,6 +812,9 @@ void AchievementMgr::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder) {
             progress.changed = false;
         } while (criteriaResult->NextRow());
     }
+
+    delete achievementResult;
+    delete criteriaResult;
 }
 
 void AchievementMgr::EnableAchiever(uint32 version)
@@ -3705,6 +3708,8 @@ void AchievementGlobalMgr::LoadAchievementCriteriaData()
     } 
     while (result->NextRow());
 
+    delete result;
+
     // post loading checks
     for (uint32 entryId = 0; entryId < sAchievementCriteriaStore.GetMaxEntry(); ++entryId)
     {
@@ -3825,6 +3830,8 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
             m_allCompletedAchievements[achievementId] =  std::chrono::system_clock::time_point::max();
     } 
     while (result->NextRow());
+
+    delete result;
 
     sLog.outBasic(">> Loaded %lu completed achievements in %u ms", (unsigned long)m_allCompletedAchievements.size(), WorldTimer::getMSTimeDiff(oldMSTime, WorldTimer::getMSTime()));
 }
@@ -3949,6 +3956,8 @@ void AchievementGlobalMgr::LoadRewards()
     } 
     while (result->NextRow());
 
+    delete result;
+
     sLog.outBasic(">> Loaded %u achievement rewards in %u ms", count, WorldTimer::getMSTimeDiff(oldMSTime, WorldTimer::getMSTime()));
 }
 
@@ -3988,6 +3997,8 @@ void AchievementGlobalMgr::LoadRewardLocales()
         // ObjectMgr::AddLocaleString(fields[3].GetString(), locale, data.Text);
     } 
     while (result->NextRow());
+
+    delete result;
 
     sLog.outBasic(">> Loaded %lu Achievement Reward Locale strings in %u ms", (unsigned long)m_achievementRewardLocales.size(), WorldTimer::getMSTimeDiff(oldMSTime, WorldTimer::getMSTime()));
 }
