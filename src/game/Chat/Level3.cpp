@@ -1170,29 +1170,29 @@ bool ::ChatHandler::HandleAccountSetEditionCommand(char* args)
 
     if (value)
     {
-        if (targetPlayer && targetPlayer->GetSession()->HasAccountFlag(ACCOUNT_FLAG_COLLECTOR))
+        if (targetPlayer && targetPlayer->GetSession()->HasAccountFlag(ACCOUNT_FLAG_COLLECTOR_CLASSIC))
         {
             SendSysMessage("Target account already has Collector's Edition enabled");
             return false;
         }
         if (targetPlayer)
-            targetPlayer->GetSession()->AddAccountFlag(ACCOUNT_FLAG_COLLECTOR);
+            targetPlayer->GetSession()->AddAccountFlag(ACCOUNT_FLAG_COLLECTOR_CLASSIC);
 
-        LoginDatabase.PExecute("UPDATE account SET flags = flags | 0x%x WHERE id = %u", targetAccountId, ACCOUNT_FLAG_COLLECTOR);
+        LoginDatabase.PExecute("UPDATE account SET flags = flags | 0x%x WHERE id = %u", ACCOUNT_FLAG_COLLECTOR_CLASSIC, targetAccountId);
         SendSysMessage("Target account Collector's Edition enabled");
         return true;
     }
     else
     {
-        if (targetPlayer && !targetPlayer->GetSession()->HasAccountFlag(ACCOUNT_FLAG_COLLECTOR))
+        if (targetPlayer && !targetPlayer->GetSession()->HasAccountFlag(ACCOUNT_FLAG_COLLECTOR_CLASSIC))
         {
             SendSysMessage("Target account does not have Collector's Edition enabled");
             return false;
         }
         if (targetPlayer)
-            targetPlayer->GetSession()->AddAccountFlag(ACCOUNT_FLAG_COLLECTOR);
+            targetPlayer->GetSession()->RemoveAccountFlag(ACCOUNT_FLAG_COLLECTOR_CLASSIC);
 
-        LoginDatabase.PExecute("UPDATE account SET flags = flags & ~0x%x WHERE id = %u", targetAccountId, ACCOUNT_FLAG_COLLECTOR);
+        LoginDatabase.PExecute("UPDATE account SET flags = flags & ~0x%x WHERE id = %u", ACCOUNT_FLAG_COLLECTOR_CLASSIC, targetAccountId);
         SendSysMessage("Target account Collector's Edition disabled");
         return true;
     }
