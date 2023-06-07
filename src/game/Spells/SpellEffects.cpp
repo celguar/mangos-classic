@@ -3671,6 +3671,79 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
         {
             switch (m_spellInfo->Id)
             {
+                case 456: // SHOWLABEL Only OFF
+                {
+                    if (Player* pPlayer = static_cast<Player*>(m_caster))
+                    {
+                        pPlayer->SetGMChat(false);
+                        pPlayer->GetSession()->SendNotification(LANG_GM_CHAT_OFF);
+                    }
+                    return;
+                }
+                case 2765: // SHOWLABEL Only ON
+                {
+                    if (Player* pPlayer = static_cast<Player*>(m_caster))
+                        if (Player* pPlayer = static_cast<Player*>(m_caster))
+                        {
+                            pPlayer->SetGMChat(true);
+                            pPlayer->GetSession()->SendNotification(LANG_GM_CHAT_ON);
+                        }
+                    return;
+                }
+                case 1509: // GM Only OFF
+                {
+                    if (Player* pPlayer = static_cast<Player*>(m_caster))
+                    {
+                        pPlayer->SetGameMaster(false);
+                        pPlayer->GetSession()->SendNotification(LANG_GM_OFF);
+                    }
+                    return;
+                }
+                case 18139: // GM Only ON
+                {
+                    if (Player* pPlayer = static_cast<Player*>(m_caster))
+                    {
+                        pPlayer->SetGameMaster(true);
+                        pPlayer->GetSession()->SendNotification(LANG_GM_ON);
+                    }
+                    return;
+                }
+                case 6147: // INVIS Only OFF
+                {
+                    if (Player* pPlayer = static_cast<Player*>(m_caster))
+                    {
+                        pPlayer->SetGMVisible(false);
+                        pPlayer->GetSession()->SendNotification(LANG_INVISIBLE_VISIBLE);
+                    }
+                    return;
+                }
+                case 2763: // INVIS Only ON
+                {
+                    if (Player* pPlayer = static_cast<Player*>(m_caster))
+                    {
+                        pPlayer->SetGMVisible(true);
+                        pPlayer->GetSession()->SendNotification(LANG_INVISIBLE_INVISIBLE);
+                    }
+                    return;
+                }
+                //case 20114: // BM Only OFF
+                //{
+                //    if (Player* pPlayer = static_cast<Player*>(m_caster))
+                //        pPlayer->SetCheatGod(false, true);
+                //    return;
+                //}
+                //case 20115: // BM Only ON
+                //{
+                //    if (Player* pPlayer = static_cast<Player*>(m_caster))
+                //        pPlayer->SetCheatGod(true, true);
+                //    return;
+                //}
+                case 29313: // CooldownAll
+                {
+                    if (m_caster)
+                        m_caster->RemoveAllCooldowns();
+                    return;
+                }
                 case 5249:                                  // Ice Lock
                 {
                     if (unitTarget)
