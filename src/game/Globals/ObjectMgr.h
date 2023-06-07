@@ -433,6 +433,11 @@ class HonorStanding
         {
             return honorPoints > rhs.honorPoints;
         }
+
+        operator bool() const
+        {
+            return honorPoints || honorKills || guid || rpEarning;
+        }
 };
 
 typedef std::list<HonorStanding> HonorStandingList;
