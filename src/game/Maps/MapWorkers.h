@@ -32,7 +32,7 @@ class Worker
         Worker(MapUpdater& updater) : m_updater(updater) {}
         virtual ~Worker() = default;
         virtual void execute() {};
-
+        virtual ~Worker() = default;
     protected:
         MapUpdater& GetWorker() { return m_updater; }
 
