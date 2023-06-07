@@ -515,6 +515,7 @@ bool inline ConditionEntry::Evaluate(WorldObject const* target, Map const* map, 
 // Which params must be provided to a Condition
 bool ConditionEntry::CheckParamRequirements(WorldObject const* target, Map const* map, WorldObject const* source) const
 {
+    MANGOS_ASSERT(m_condition < 43);
     switch (ConditionTargets[m_condition])
     {
         case CONDITION_REQ_NONE:
