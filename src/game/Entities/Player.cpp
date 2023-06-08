@@ -6667,7 +6667,7 @@ void Player::UpdateHonor()
     std::optional<HonorStanding> standing = sObjectMgr.GetHonorStandingByGUID(GetGUIDLow(), GetTeam());
     float rankP = GetStoredHonor();
     if (standing)
-        rankP += standing.rpEarning;
+        rankP += standing->rpEarning;
 
     SetRankPoints(rankP);
 
