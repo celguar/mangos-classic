@@ -681,9 +681,149 @@ void AchievementMgr::DeleteFromDB(uint32 lowguid)
     //// CharacterDatabase.CommitTransaction(trans);
 }
 
-void AchievementMgr::SaveToDB() {
-    if (!m_completedAchievements.empty()) {
-        for (CompletedAchievementMap::iterator iter = m_completedAchievements.begin(); iter != m_completedAchievements.end(); ++iter) {
+void AchievementMgr::SyncAccountAcchievements()
+{
+    if (GetPlayer()->isRealPlayer())
+    {
+        // Check if its a new character
+        if (GetPlayer()->GetTotalPlayedTime() == 0)
+        {
+            // Copy other characters achievements into this character
+            const uint8 newCharacterRace = GetPlayer()->getRace();
+            const uint32 newCharacterGuid = GetPlayer()->GetGUIDLow();
+            const uint32 accountId = GetPlayer()->GetSession()->GetAccountId();
+            const bool newCharacterIsAlliance = newCharacterRace == 1 || newCharacterRace == 3 || newCharacterRace == 4 || newCharacterRace == 7 || newCharacterRace == 11;
+            
+            std::vector<uint32> accountCharacterGuids;
+            QueryResult* result = CharacterDatabase.PQuery("SELECT guid, race FROM `characters` WHERE `account` = '%u' ORDER BY guid", accountId);
+            if (result)
+            {
+                do
+                {
+                    Field* fields = result->Fetch();
+                    const uint32 characterGuid = fields[0].GetUInt32();
+                    const uint8 characterRace = fields[1].GetUInt8();
+                    if (characterGuid != newCharacterGuid)
+                    {
+                        accountCharacterGuids.push_back(characterGuid);
+                    }
+                } 
+                while (result->NextRow());
+                delete result;
+            }
+
+            for (const uint32& characterGuid : accountCharacterGuids)
+            {
+                result = CharacterDatabase.PQuery("SELECT achievement, date FROM `character_achievement` WHERE `guid` = '%u'", characterGuid);
+                if (result)
+                {
+                    do
+                    {
+                        Field* fields = result->Fetch();
+                        const uint32 achievementId = fields[0].GetUInt32();
+                        const uint32 achievementDate = fields[1].GetUInt32();
+                        const AchievementEntry* achievement = sAchievementStore.LookupEntry<AchievementEntry>(achievementId);
+                        if (achievement)
+                        {
+                            // Check if the achievement is valid for the character's faction
+                            if (achievement->requiredFaction == -1 ||
+                               (newCharacterIsAlliance && achievement->requiredFaction == 1) ||
+                               (!newCharacterIsAlliance && achievement->requiredFaction == 0))
+                            {
+                                CharacterDatabase.PExecute("DELETE FROM `character_achievement` WHERE `achievement` = '%u' AND `guid` = '%u'",
+                                    achievementId,
+                                    newCharacterGuid
+                                );
+
+                                CharacterDatabase.PExecute("INSERT INTO `character_achievement` (`guid`, `achievement`, `date`) VALUES ('%u', '%u', '%u')",
+                                    newCharacterGuid,
+                                    achievementId,
+                                    achievementDate
+                                );
+                            }
+                        }
+
+                    } 
+                    while (result->NextRow());
+                    delete result;
+                }
+            }
+        }
+        else
+        {
+            // Copy the character achievement to other characters in the account
+            std::vector<std::pair<uint32, bool>> accountCharacterGuids;
+            const uint32 currentCharacterGuid = GetPlayer()->GetGUIDLow();
+            const uint32 accountId = GetPlayer()->GetSession()->GetAccountId();
+            QueryResult* result = CharacterDatabase.PQuery("SELECT guid, race FROM `characters` WHERE `account` = '%u'", accountId);
+            if (result)
+            {
+                do
+                {
+                    Field* fields = result->Fetch();
+                    const uint32 characterGuid = fields[0].GetUInt32();
+                    const uint8 characterRace = fields[1].GetUInt8();
+                    if (characterGuid != currentCharacterGuid)
+                    {
+                        const bool isAlliance = characterRace == 1 || characterRace == 3 || characterRace == 4 || characterRace == 7 || characterRace == 11;
+                        accountCharacterGuids.push_back(std::make_pair(characterGuid, isAlliance));
+                    }
+                } 
+                while (result->NextRow());
+                delete result;
+            }
+
+            // Sync earned achievements
+            if (!m_completedAchievements.empty())
+            {
+                for (CompletedAchievementMap::iterator iter = m_completedAchievements.begin(); iter != m_completedAchievements.end(); ++iter)
+                {
+                    const AchievementEntry* achievement = sAchievementStore.LookupEntry<AchievementEntry>(iter->first);
+                    if (achievement)
+                    {
+                        for (const auto& pair : accountCharacterGuids)
+                        {
+                            const uint32 characterGuid = pair.first;
+                            const bool isAlliance = pair.second;
+
+                            // Check if the achievement is valid for the character's faction
+                            if (achievement->requiredFaction == -1 ||
+                               (isAlliance && achievement->requiredFaction == 1) ||
+                               (!isAlliance && achievement->requiredFaction == 0))
+                            {
+                                CharacterDatabase.PExecute("DELETE FROM `character_achievement` WHERE `achievement` = '%u' AND `guid` = '%u'",
+                                    iter->first,
+                                    characterGuid
+                                );
+
+                                CharacterDatabase.PExecute("INSERT INTO `character_achievement` (`guid`, `achievement`, `date`) VALUES ('%u', '%u', '%u')",
+                                    characterGuid,
+                                    iter->first,
+                                    uint32(iter->second.date)
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // TO DO: Sync achievement progress
+        // ...
+    }
+}
+
+void AchievementMgr::SaveToDB() 
+{
+    if (sWorld.getConfig(CONFIG_BOOL_ACHIEVEMENTS_ACCOUNT_ACHIEVEMENTS))
+    {
+        SyncAccountAcchievements();
+    }
+
+    if (!m_completedAchievements.empty()) 
+    {
+        for (CompletedAchievementMap::iterator iter = m_completedAchievements.begin(); iter != m_completedAchievements.end(); ++iter)
+        {
             if (!iter->second.changed)
                 continue;
 
@@ -713,8 +853,10 @@ void AchievementMgr::SaveToDB() {
         }
     }
 
-    if (!m_criteriaProgress.empty()) {
-        for (CriteriaProgressMap::iterator iter = m_criteriaProgress.begin(); iter != m_criteriaProgress.end(); ++iter) {
+    if (!m_criteriaProgress.empty()) 
+    {
+        for (CriteriaProgressMap::iterator iter = m_criteriaProgress.begin(); iter != m_criteriaProgress.end(); ++iter) 
+        {
             if (!iter->second.changed)
                 continue;
 
@@ -728,7 +870,8 @@ void AchievementMgr::SaveToDB() {
             // trans->Append(stmt);
 
             // // pussywizard: insert only for (counter != 0) is very important! this is how criteria of completed achievements gets deleted from db (by setting counter to 0); if conflicted during merge - contact me
-            if (iter->second.counter) {
+            if (iter->second.counter) 
+            {
                 CharacterDatabase.PExecute("INSERT INTO `character_achievement_progress` (`guid`, `criteria`, `counter`, `date`) VALUES ('%u', '%u', '%u', '%u')",
                     GetPlayer()->GetGUIDLow(),
                     iter->first,
@@ -750,12 +893,15 @@ void AchievementMgr::SaveToDB() {
     }
 }
 
-void AchievementMgr::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder) {
+void AchievementMgr::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder) 
+{
     QueryResult* achievementResult = holder->GetResult(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS);
     QueryResult* criteriaResult = holder->GetResult(PLAYER_LOGIN_QUERY_LOAD_CRITERIA_PROGRESS);
 
-    if (achievementResult) {
-        do {
+    if (achievementResult) 
+    {
+        do 
+        {
             Field* fields = achievementResult->Fetch();
             uint32 achievementid = fields[0].GetUInt16();
 
@@ -775,18 +921,22 @@ void AchievementMgr::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder) {
             //         if (CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId))
             //             if (!GetPlayer()->HasTitle(titleEntry))
             //                 GetPlayer()->SetTitle(titleEntry);
-        } while (achievementResult->NextRow());
+        } 
+        while (achievementResult->NextRow());
     }
 
-    if (criteriaResult) {
-        do {
+    if (criteriaResult) 
+    {
+        do 
+        {
             Field* fields = criteriaResult->Fetch();
             uint32 id      = fields[0].GetUInt16();
             uint32 counter = fields[1].GetUInt32();
             time_t date    = time_t(fields[2].GetUInt32());
 
             AchievementCriteriaEntry const* criteria = sAchievementCriteriaStore.LookupEntry<AchievementCriteriaEntry>(id);
-            if (!criteria) {
+            if (!criteria) 
+            {
                 // we will remove not existed criteria for all characters
                 sLog.outError("achievement, Non-existing achievement criteria %u data removed from table `character_achievement_progress`.", id);
 
@@ -810,7 +960,8 @@ void AchievementMgr::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder) {
             progress.counter = counter;
             progress.date    = date;
             progress.changed = false;
-        } while (criteriaResult->NextRow());
+        } 
+        while (criteriaResult->NextRow());
     }
 
     delete achievementResult;
@@ -957,10 +1108,12 @@ void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement) 
             guild->BroadcastPacket(gmsg);
         }
 
-        if (achievement->flags & (ACHIEVEMENT_FLAG_REALM_FIRST_KILL | ACHIEVEMENT_FLAG_REALM_FIRST_REACH)) {
+        if (achievement->flags & (ACHIEVEMENT_FLAG_REALM_FIRST_KILL | ACHIEVEMENT_FLAG_REALM_FIRST_REACH)) 
+        {
             // If guild exists - send its name to the server
             // If guild does not exist - send player's name to the server
-            if (achievement->flags & ACHIEVEMENT_FLAG_REALM_FIRST_KILL && guild) {
+            if (achievement->flags & ACHIEVEMENT_FLAG_REALM_FIRST_KILL && guild) 
+            {
                 // WorldPacket data(SMSG_SERVER_FIRST_ACHIEVEMENT, guild->GetName().size() + 1 + 8 + 4 + 4);
                 // data << guild->GetName();
                 // data << GetPlayer()->GetGUID();
@@ -968,7 +1121,8 @@ void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement) 
                 // data << uint32(0);                                  // display name as plain string in chat (always 0 for guild)
                 // sWorld.SendGlobalMessage(&data);
             }
-            else {
+            else 
+            {
                 // BattleGroundWinner teamId = GetPlayer()->GetTeamId();
 
                 // // broadcast realm first reached
@@ -1184,7 +1338,6 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
             achievementCriteriaList = sAchievementMgr.GetAchievementCriteriaByType(type);
             break;
     }
-
 
     if (!achievementCriteriaList)
         return;
@@ -2248,18 +2401,30 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
         }
 
         if (IsCompletedCriteria(achievementCriteria, achievement))
+        {
             CompletedCriteriaFor(achievement);
+        }
 
         // check again the completeness for SUMM and REQ COUNT achievements,
         // as they don't depend on the completed criteria but on the sum of the progress of each individual criteria
         if (achievement->flags & ACHIEVEMENT_FLAG_SUMM)
+        {
             if (IsCompletedAchievement(achievement))
+            {
                 CompletedAchievement(achievement);
+            }
+        }
 
         if (AchievementEntryList const* achRefList = sAchievementMgr.GetAchievementByReferencedId(achievement->ID))
+        {
             for (AchievementEntryList::const_iterator itr = achRefList->begin(); itr != achRefList->end(); ++itr)
+            {
                 if (IsCompletedAchievement(*itr))
+                {
                     CompletedAchievement(*itr);
+                }
+            }
+        }
     }
 }
 
@@ -2290,12 +2455,16 @@ bool AchievementMgr::IsCompletedCriteria(AchievementCriteriaEntry const* achieve
 
         // completed only after all referenced achievements are also completed
         if (AchievementEntryList const* achRefList = sAchievementMgr.GetAchievementByReferencedId(achievement->ID))
+        {
             for (AchievementEntryList::const_iterator itr = achRefList->begin(); itr != achRefList->end(); ++itr)
+            {
                 if (!IsCompletedAchievement(*itr))
                 {
                     completed = false;
                     break;
                 }
+            }
+        }
 
         if (completed)
             return true;
@@ -2788,16 +2957,23 @@ void AchievementMgr::CompletedAchievement(AchievementEntry const* achievement)
         uint32 achiCheckId = achievement->refAchievement ? achievement->refAchievement : achievement->ID;
 
         if (AchievementEntryList const* achRefList = sAchievementMgr.GetAchievementByReferencedId(achiCheckId))
+        {
             for (AchievementEntryList::const_iterator itr = achRefList->begin(); itr != achRefList->end(); ++itr)
+            {
                 if (!IsCompletedAchievement(*itr))
                 {
                     allRefsCompleted = false;
                     break;
                 }
+            }
+        }
 
         if (allRefsCompleted)
+        {
             if (AchievementCriteriaEntryList const* cList = sAchievementMgr.GetAchievementCriteriaByAchievement(achiCheckId))
+            {
                 for (AchievementCriteriaEntryList::const_iterator itr = cList->begin(); itr != cList->end(); ++itr)
+                {
                     if (CriteriaProgress* progress = GetCriteriaProgress(*itr))
                     {
                         AchievementCriteriaEntry const* crt = (*itr);
@@ -2807,6 +2983,9 @@ void AchievementMgr::CompletedAchievement(AchievementEntry const* achievement)
                             progress->counter = 0;
                         }
                     }
+                }
+            }
+        }
     }
 
     if (achievement->flags & (ACHIEVEMENT_FLAG_REALM_FIRST_REACH | ACHIEVEMENT_FLAG_REALM_FIRST_KILL) && SEC_PLAYER == m_player->GetSession()->GetSecurity())
