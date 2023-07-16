@@ -135,7 +135,15 @@ class Database
             return guard->Execute(sql);
         }
 
+        bool DirectExecuteAsync(const char* sql)
+        {
+            SqlConnection::Lock guard(getQueryConnection());
+            return guard->Execute(sql);
+        }
+
         bool DirectPExecute(const char* format, ...) ATTR_PRINTF(2, 3);
+
+        bool DirectPExecuteAsync(const char* format, ...) ATTR_PRINTF(2, 3);
 
         /// Async queries and query holders, implemented in DatabaseImpl.h
 
@@ -251,6 +259,7 @@ class Database
         // query function for prepared statements
         bool ExecuteStmt(const SqlStatementID& id, SqlStmtParameters* params);
         bool DirectExecuteStmt(const SqlStatementID& id, SqlStmtParameters* params);
+        bool DirectExecuteStmtAsync(const SqlStatementID& id, SqlStmtParameters* params);
 
         // connection helper counters
         int m_nQueryConnPoolSize;                           // current size of query connection pool

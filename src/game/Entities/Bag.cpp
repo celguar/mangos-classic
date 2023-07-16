@@ -87,9 +87,9 @@ bool Bag::Create(uint32 guidlow, uint32 itemid, Player const* owner)
     return true;
 }
 
-void Bag::SaveToDB()
+void Bag::SaveToDB(bool queued)
 {
-    Item::SaveToDB();
+    Item::SaveToDB(queued);
 }
 
 bool Bag::LoadFromDB(uint32 guidLow, Field* fields, ObjectGuid ownerGuid)

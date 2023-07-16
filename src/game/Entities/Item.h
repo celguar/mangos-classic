@@ -248,7 +248,7 @@ class Item : public Object
         bool IsBindedNotWith(Player const* player) const;
         bool IsBoundByEnchant() const;
         bool IsMainHandOnlyEnchant(EnchantmentSlot slot) const;
-        virtual void SaveToDB();
+        virtual void SaveToDB(bool queued = true);
         virtual bool LoadFromDB(uint32 guidLow, Field* fields, ObjectGuid ownerGuid = ObjectGuid());
         virtual void DeleteFromDB();
         void DeleteFromInventoryDB() const;

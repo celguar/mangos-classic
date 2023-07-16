@@ -202,6 +202,7 @@ class SqlStatement
 
         bool Execute();
         bool DirectExecute();
+        bool DirectExecuteAsync();
 
         // templates to simplify 1-4 parameter bindings
         template<typename ParamType1>
@@ -236,6 +237,40 @@ class SqlStatement
             arg(param3);
             arg(param4);
             return Execute();
+        }
+
+        template<typename ParamType1>
+        bool DirectPExecuteAsync(ParamType1 param1)
+        {
+            arg(param1);
+            return DirectExecuteAsync();
+        }
+
+        template<typename ParamType1, typename ParamType2>
+        bool DirectPExecuteAsync(ParamType1 param1, ParamType2 param2)
+        {
+            arg(param1);
+            arg(param2);
+            return DirectExecuteAsync();
+        }
+
+        template<typename ParamType1, typename ParamType2, typename ParamType3>
+        bool DirectPExecuteAsync(ParamType1 param1, ParamType2 param2, ParamType3 param3)
+        {
+            arg(param1);
+            arg(param2);
+            arg(param3);
+            return DirectExecuteAsync();
+        }
+
+        template<typename ParamType1, typename ParamType2, typename ParamType3, typename ParamType4>
+        bool DirectPExecuteAsync(ParamType1 param1, ParamType2 param2, ParamType3 param3, ParamType4 param4)
+        {
+            arg(param1);
+            arg(param2);
+            arg(param3);
+            arg(param4);
+            return DirectExecuteAsync();
         }
 
         // bind parameters with specified type

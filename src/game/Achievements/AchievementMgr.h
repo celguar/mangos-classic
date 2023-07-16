@@ -968,7 +968,7 @@ public:
     void Reset();
     static void DeleteFromDB(uint32 lowguid);
     void LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder);
-    void SaveToDB();
+    void SaveToDB(bool queued = true);
     // void LoadFromDB(PreparedQueryResult achievementResult, PreparedQueryResult criteriaResult);
     // void SaveToDB(CharacterDatabaseTransaction trans);
     void ResetAchievementCriteria(AchievementCriteriaCondition condition, uint32 value, bool evenIfCriteriaComplete = false);
@@ -1005,7 +1005,7 @@ private:
     // void BuildAllDataPacket(WorldPacket* data) const;
 
     uint8 GetPlayerLocale() const;
-    void SyncAccountAcchievements();
+    void SyncAccountAcchievements(bool queued);
 
     Player* m_player;
     CriteriaProgressMap m_criteriaProgress;

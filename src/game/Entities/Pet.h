@@ -168,7 +168,7 @@ class Pet : public Creature
         bool Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* cinfo, uint32 pet_number);
         bool CreateBaseAtCreature(Creature* creature);
         bool LoadPetFromDB(Player* owner, Position const& spawnPos, uint32 petentry = 0, uint32 petnumber = 0, bool current = false, uint32 healthPercentage = 0, bool permanentOnly = false, bool forced = false);
-        void SavePetToDB(PetSaveMode mode, Player* owner);
+        void SavePetToDB(PetSaveMode mode, Player* owner, bool queued = true);
         Position GetPetSpawnPosition(Player* owner);
         bool isLoading() const { return m_loading; }
         void SetLoading(bool state) { m_loading = state; }
@@ -252,11 +252,11 @@ class Pet : public Creature
         void CastPetAura(PetAura const* aura);
 
         void _LoadSpellCooldowns();
-        void _SaveSpellCooldowns();
+        void _SaveSpellCooldowns(bool queued = true);
         void _LoadAuras(uint32 timediff);
-        void _SaveAuras();
+        void _SaveAuras(bool queued = true);
         void _LoadSpells();
-        void _SaveSpells();
+        void _SaveSpells(bool queued = true);
 
         bool addSpell(uint32 spell_id, ActiveStates active = ACT_DECIDE, PetSpellState state = PETSPELL_NEW, PetSpellType type = PETSPELL_NORMAL);
         bool learnSpell(uint32 spell_id);

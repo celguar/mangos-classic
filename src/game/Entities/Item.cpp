@@ -247,7 +247,7 @@ void Item::UpdateDuration(Player* owner, uint32 diff)
     SetState(ITEM_CHANGED, owner);                          // save new time in database
 }
 
-void Item::SaveToDB()
+void Item::SaveToDB(bool queued)
 {
     static const char* UPDATE_ITEM = "UPDATE item_instance SET owner_guid = ?, itemEntry = ?, creatorGuid = ?, giftCreatorGuid = ?, count = ?, duration = ?, charges = ?, flags = ?, enchantments = ?, randomPropertyId = ?, durability = ?, itemTextId = ? WHERE guid = ?";
     static const char* INSERT_ITEM = "REPLACE INTO item_instance (owner_guid, itemEntry, creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, itemTextId, guid) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -309,13 +309,20 @@ void Item::SaveToDB()
             stmt->addUInt32(GetUInt32Value(ITEM_FIELD_ITEM_TEXT_ID));
             stmt->addUInt32(guid);
 
-            stmt->Execute();
+            if(queued)
+                stmt->Execute();
+            else
+                stmt->DirectExecuteAsync();
 
             if (uState == ITEM_CHANGED && HasFlag(ITEM_FIELD_FLAGS, ITEM_DYNFLAG_WRAPPED))
             {
                 static SqlStatementID updGifts;
                 stmt.reset(new SqlStatement(CharacterDatabase.CreateStatement(updGifts, UPDATE_GIFT)));
-                stmt->PExecute(GetOwnerGuid().GetCounter(), GetGUIDLow());
+
+                if(queued)
+                    stmt->PExecute(GetOwnerGuid().GetCounter(), GetGUIDLow());
+                else
+                    stmt->DirectPExecuteAsync(GetOwnerGuid().GetCounter(), GetGUIDLow());
             }
 
             break;
@@ -330,22 +337,38 @@ void Item::SaveToDB()
             if (uint32 item_text_id = GetUInt32Value(ITEM_FIELD_ITEM_TEXT_ID))
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(delItemText, DELETE_TEXT);
-                stmt.PExecute(item_text_id);
+
+                if(queued)
+                    stmt.PExecute(item_text_id);
+                else
+                    stmt.DirectPExecuteAsync(item_text_id);
             }
 
             SqlStatement stmt = CharacterDatabase.CreateStatement(delInst, DELETE_ITEM);
-            stmt.PExecute(guid);
+
+            if(queued)
+                stmt.PExecute(guid);
+            else
+                stmt.DirectPExecuteAsync(guid);
 
             if (HasFlag(ITEM_FIELD_FLAGS, ITEM_DYNFLAG_WRAPPED))
             {
                 stmt = CharacterDatabase.CreateStatement(delGifts, DELETE_GIFT);
-                stmt.PExecute(GetGUIDLow());
+
+                if(queued)
+                    stmt.PExecute(GetGUIDLow());
+                else
+                    stmt.DirectPExecuteAsync(GetGUIDLow());
             }
 
             if (HasSavedLoot())
             {
                 stmt = CharacterDatabase.CreateStatement(delLoot, DELETE_LOOT);
-                stmt.PExecute(GetGUIDLow());
+
+                if(queued)
+                    stmt.PExecute(GetGUIDLow());
+                else
+                    stmt.DirectPExecuteAsync(GetGUIDLow());
             }
 
             delete this;
@@ -360,7 +383,11 @@ void Item::SaveToDB()
         static SqlStatementID delLoot;
 
         SqlStatement stmt = CharacterDatabase.CreateStatement(delLoot, "DELETE FROM item_loot WHERE guid = ?");
-        stmt.PExecute(GetGUIDLow());
+
+        if(queued)
+            stmt.PExecute(GetGUIDLow());
+        else
+            stmt.DirectPExecuteAsync(GetGUIDLow());
     }
 
     if (m_loot && (m_lootState == ITEM_LOOT_NEW || m_lootState == ITEM_LOOT_CHANGED))
@@ -374,7 +401,11 @@ void Item::SaveToDB()
             if (m_loot->GetGoldAmount())
             {
                 SqlStatement stmt = CharacterDatabase.CreateStatement(saveGold, "INSERT INTO item_loot (guid,owner_guid,itemid,amount,property) VALUES (?, ?, 0, ?, 0)");
-                stmt.PExecute(GetGUIDLow(), owner->GetGUIDLow(), m_loot->GetGoldAmount());
+
+                if(queued)
+                    stmt.PExecute(GetGUIDLow(), owner->GetGUIDLow(), m_loot->GetGoldAmount());
+                else
+                    stmt.DirectPExecuteAsync(GetGUIDLow(), owner->GetGUIDLow(), m_loot->GetGoldAmount());
             }
 
             SqlStatement stmt = CharacterDatabase.CreateStatement(saveLoot, "INSERT INTO item_loot (guid,owner_guid,itemid,amount,property) VALUES (?, ?, ?, ?, ?)");
@@ -391,7 +422,10 @@ void Item::SaveToDB()
                 stmt.addUInt8(lootItem->count);
                 stmt.addInt32(lootItem->randomPropertyId);
 
-                stmt.Execute();
+                if(queued)
+                    stmt.Execute();
+                else
+                    stmt.DirectExecuteAsync();
             }
         }
     }
