@@ -870,6 +870,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_BOOL_ACHIEVEMENTS_SEND_VISUAL, "Achievements.SendVisual", true);
     setConfig(CONFIG_BOOL_ACHIEVEMENTS_FOR_BOTS, "Achievements.RandomBots", true);
     setConfig(CONFIG_BOOL_ACHIEVEMENTS_REALM_FIRST_FOR_BOTS, "Achievements.RandomBotsRealmFirst", false);
+    setConfig(CONFIG_BOOL_ACHIEVEMENTS_ACCOUNT_ACHIEVEMENTS, "Achievements.AccountAcchievenemts", false);
     setConfig(CONFIG_UINT32_ACHIEVEMENTS_EFFECT_ID, "Achievements.EffectId", 146);
     // End Achievements
 #endif

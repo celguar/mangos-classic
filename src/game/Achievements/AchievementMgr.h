@@ -1005,6 +1005,7 @@ private:
     // void BuildAllDataPacket(WorldPacket* data) const;
 
     uint8 GetPlayerLocale() const;
+    void SyncAccountAcchievements();
 
     Player* m_player;
     CriteriaProgressMap m_criteriaProgress;

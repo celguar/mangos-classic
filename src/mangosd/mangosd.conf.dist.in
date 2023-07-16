@@ -2087,6 +2087,10 @@ Hardcore.MaxPlayerLoot = 1
 #        Default: 0 (random bots do not earn Realm First achievements)
 #                 1 (random bots can earn Realm First achievements)
 #
+#    Achievements.AccountAcchievenemts
+#        Sync all achievements for the characters on the same account
+#        Default: 0 (disabled)
+#                 1 (enabled)
 #
 #    Achievements.EffectId
 #        ID of visual effect sent if visual effect is enabled
@@ -2100,6 +2104,7 @@ Achievements.SendAddon = 1
 Achievements.SendVisual = 1
 Achievements.RandomBots = 1
 Achievements.RandomBotsRealmFirst = 0
+Achievements.AccountAcchievenemts = 0
 Achievements.EffectId = 146
 
 ###################################################################################################################
