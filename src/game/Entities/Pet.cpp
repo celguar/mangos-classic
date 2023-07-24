@@ -2123,7 +2123,21 @@ bool Pet::Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* ci
     SetSheath(SHEATH_STATE_MELEE);
 
     if (getPetType() == MINI_PET)                           // always non-attackable
+    {
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SPAWNING);
+
+        CreatureDataAddon const* addon = sObjectMgr.GetCreatureTemplateAddon(cinfo->Entry);
+        if (addon && addon->auras)
+        {
+            for (uint32 const* cAura = addon->auras; *cAura; ++cAura)
+            {
+                if (HasAura(*cAura))
+                    continue;
+
+                CastSpell(this, *cAura, TRIGGERED_OLD_TRIGGERED);
+            }
+        }
+    }
 
     if (getPetType() == SUMMON_PET)
         SetCorpseDelay(5);
