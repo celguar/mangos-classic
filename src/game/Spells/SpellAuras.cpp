@@ -1375,6 +1375,12 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                             caster->CastCustomSpell(target, 28836, &damage, nullptr, nullptr, TRIGGERED_OLD_TRIGGERED, nullptr, this);
                         return;
                     }
+                    case 24984:                             // Murloc Critter Dance
+                    case 25165:
+                    {
+                        target->HandleEmoteCommand(EMOTE_STATE_DANCE);
+                        break;
+                    }
                 }
                 break;
             }
