@@ -131,7 +131,6 @@ class SqlQueryHolder
         std::unique_ptr<QueryResult> GetResult(size_t index);
         void SetResult(size_t index, std::unique_ptr<QueryResult> queryResult);
         bool Execute(MaNGOS::IQueryCallback* callback, SqlDelayThread* thread, SqlResultQueue* queue);
-        bool ManualExecute(Database* db);
 };
 
 class SqlQueryHolderEx : public SqlOperation
