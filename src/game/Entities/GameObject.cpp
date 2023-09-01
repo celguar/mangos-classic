@@ -45,6 +45,7 @@
 #include <G3D/CoordinateFrame.h>
 #include <G3D/Quat.h>
 #include "Entities/Transports.h"
+#include "Immersive/Immersive.h"
 
 bool QuaternionData::isUnit() const
 {
@@ -1725,6 +1726,8 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
 
                     // normal chance
                     bool success = skill >= zone_skill && chance >= roll;
+                    success = sImmersive.OnFishing(player, success);
+
                     GameObject* fishingHole = nullptr;
 
                     // overwrite fail in case fishhole if allowed (after 3.3.0)
