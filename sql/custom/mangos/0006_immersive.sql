@@ -10,15 +10,28 @@ DELETE FROM `gossip_menu_option` where option_text = 'Manage attributes';
 DELETE FROM `locales_gossip_menu_option` where menu_id in (60000, 60001, 60002, 60003, 60004);
 DELETE FROM `locales_gossip_menu_option` where option_text_loc6 = 'Administrat atributos';
 
+SET @TEXT_ID := 50800;
+DELETE FROM `npc_text` WHERE `ID` in (@TEXT_ID, @TEXT_ID+1, @TEXT_ID+2);
+INSERT INTO `npc_text` (`ID`, `text0_0`) VALUES
+(@TEXT_ID, "Ah, $N, it appears our journey has brought us to this crucial point. Let's review your attributes to ensure you are prepared for the challenges ahead."),
+(@TEXT_ID+1, "Are you sure you want to unlearn all your attributes?"),
+(@TEXT_ID+2, "Interesting... Reducing your attributes will make your experience more challenging. Are you sure?");
+
+DELETE FROM `locales_npc_text` WHERE `entry` in (@TEXT_ID, @TEXT_ID+1, @TEXT_ID+2);
+INSERT INTO `locales_npc_text` (`entry`, `text0_0_loc6`) VALUES
+(@TEXT_ID, "Ah, $N, parece que nuestro viaje nos ha llevado a este punto crucial. Revisemos tus atributos para asegurarnos de que estas preparados para los desafíos que se avecinan."),
+(@TEXT_ID+1, "¿Estás seguro de que quieres reiniciar todos tus atributos?"),
+(@TEXT_ID+2, "Interesante... Reducir tus atributos hará que tu experiencia sea más desafiante. ¿Estas seguro?");
+
 -- root menu
 INSERT INTO `gossip_menu` (`entry`, `text_id`, `script_id`, `condition_id`)
-VALUES (60001, 1, 0, 0);
+VALUES (60001, @TEXT_ID, 0, 0);
 
 INSERT INTO `gossip_menu` (`entry`, `text_id`, `script_id`, `condition_id`)
-VALUES (60002, 1, 0, 0);
+VALUES (60002, @TEXT_ID+1, 0, 0);
 
 INSERT INTO `gossip_menu` (`entry`, `text_id`, `script_id`, `condition_id`)
-VALUES (60003, 1, 0, 0);
+VALUES (60003, @TEXT_ID+2, 0, 0);
 
 INSERT INTO `gossip_menu_option`
 (`menu_id`, `id`, `option_icon`, `option_text`, `option_id`, `npc_option_npcflag`, `action_menu_id`, `action_poi_id`, `action_script_id`, `box_coded`,
