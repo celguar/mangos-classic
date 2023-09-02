@@ -2127,6 +2127,10 @@ Achievements.EffectId = 146
 #		The money multiplier per attribute (increases gradually per stat applied)
 #       Default: 5
 #
+#   Immersive.ManualAttributesMax
+#		The total amount of attributes that you can get at max level
+#       Default: 0 (Automatically assign it based on blizzlike stats) (A good blizzlike value would be 390)
+#
 #   Immersive.SharedXpPercent
 #		All your alts get a percent of your XP whenever you get it (From 0 to 100) (Must have alt character logged in as a bot)
 #       Default: 0
@@ -2197,6 +2201,7 @@ Immersive.ManualAttributes = 0
 Immersive.ManualAttributesIncrease = 5
 Immersive.ManualAttributesPercent = 100
 Immersive.ManualAttributesCostMult = 5
+Immersive.ManualAttributesMaxPoints = 0
 Immersive.SharedXpPercent = 0
 Immersive.SharedRepPercent = 0
 Immersive.SharedMoneyPercent = 0
@@ -2207,7 +2212,7 @@ Immersive.SharedPercentClassRestriction = 0
 Immersive.SharedPercentGuildRestriction = 0
 Immersive.SharedPercentFactionRestriction = 0
 Immersive.SharedPercentMinLevel = 1
-Immersive.AttributeLossPerDeath = 1
+Immersive.AttributeLossPerDeath = 2
 Immersive.FallDamageMultiplier = 1.0
 Immersive.SharedXpPercentLevelDiff = 0
 Immersive.ScaleModifierWorkaround = 0

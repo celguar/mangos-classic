@@ -858,6 +858,30 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN, "Hardcore.LevelDown", 0.0f);
     // End Hardcore Config
 
+    // Start Immersive Config
+    setConfig(CONFIG_BOOL_IMMERSIVE_ENABLED, "Immersive.Enable", false);
+    setConfig(CONFIG_BOOL_IMMERSIVE_MANUAL_ATTRIBUTES, "Immersive.ManualAttributes", false);
+    setConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_PCT, "Immersive.ManualAttributesPercent", 100);
+    setConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE, "Immersive.ManualAttributesIncrease", 5);
+    setConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_COST_MULT, "Immersive.ManualAttributesCostMult", 5);
+    setConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_MAX_POINTS, "Immersive.ManualAttributesMaxPoints", 0);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT, "Immersive.SharedXpPercent", 0);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_REP_PCT, "Immersive.SharedRepPercent", 0);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_MONEY_PCT, "Immersive.SharedMoneyPercent", 0);
+    setConfig(CONFIG_BOOL_IMMERSIVE_SHARED_QUESTS, "Immersive.SharedQuests", false);
+    setConfig(CONFIG_BOOL_IMMERSIVE_FISHING_BAUBLES, "Immersive.FishingBaubles", false);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_PCT_RACE_RESTR, "Immersive.SharedPercentRaceRestriction", 0);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_PCT_CLASS_RESTR, "Immersive.SharedPercentClassRestriction", 0);
+    setConfig(CONFIG_BOOL_IMMERSIVE_SHARED_PCT_GUILD_RESTR, "Immersive.SharedPercentGuildRestriction", false);
+    setConfig(CONFIG_BOOL_IMMERSIVE_SHARED_PCT_FACTION_RESTR, "Immersive.SharedPercentFactionRestriction", false);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_PCT_MIN_LVL, "Immersive.SharedPercentMinLevel", 1);
+    setConfig(CONFIG_UINT32_IMMERSIVE_ATTR_LOSS_PER_DEATH, "Immersive.AttributeLossPerDeath", 1);
+    setConfig(CONFIG_FLOAT_IMMERSIVE_FALL_DAMAGE_MULT, "Immersive.FallDamageMultiplier", 1.0f);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF, "Immersive.SharedXpPercentLevelDiff", 0);
+    setConfig(CONFIG_BOOL_IMMERSIVE_SCALE_MOD_WORKAROUND, "Immersive.ScaleModifierWorkaround", false);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_RANDOM_PCT, "Immersive.SharedRandomPercent", 0);
+    // End Immersive Config
+
 #ifdef USE_ACHIEVEMENTS
     // Start Achievements
     setConfig(CONFIG_BOOL_ACHIEVEMENTS_ENABLED, "Achievements.Enable", true);
