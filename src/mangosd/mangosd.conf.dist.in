@@ -2017,7 +2017,7 @@ Solocraft.StratholmeRaid.Level = 60
 #       If the player gets level down after dying. A percentage of xp to lose being 0 none, 0.5 half a level, 1.0 one level and 2.0 two levels
 #       Default: 0
 #
-#   Hardcore.MaxPlayerLoot
+#	Hardcore.MaxPlayerLoot
 #       The amount of loot droped after death allowed. E.g If the player died 3 times and this value is set to 2, the game will spawn a new loot and the oldest spawned loot will get deleted
 #       Default: 1
 #
@@ -2053,48 +2053,44 @@ Hardcore.MaxPlayerLoot = 1
 ###################################################################################################################
 # ACHIEVEMENTS SETTINGS
 #
-#    Achievements.Enable
-#        Enable Achievements system
-#        Default: 1 (enable - tracks all achievements and statistics)
-#                 0 (disable - disables achievements)
+#	Achievements.Enable
+#   	Enable Achievements system
+#       Default: 1 (enable - tracks all achievements and statistics)
+#                0 (disable - disables achievements)
 #
-#    Achievements.SendMessage
-#        Send message in chat and in guild when someone earns an achievement
-#        Default: 1 (send message)
-#                 0 (do not send message)
+#	Achievements.SendMessage
+#       Send message in chat and in guild when someone earns an achievement
+#       Default: 1 (send message)
+#                0 (do not send message)
 #
+#   Achievements.SendAddon
+#       Enable support for Achiever addon
+#       Default: 1 (send special messages to make addon work)
+#                0 (do not send messages, Achiever addon will not work)
 #
-#    Achievements.SendAddon
-#        Enable support for Achiever addon
-#        Default: 1 (send special messages to make addon work)
-#                 0 (do not send messages, Achiever addon will not work)
+#   Achievements.SendVisual
+#       Enable showing visual effect on player when earning achievement
+#       Default: 1 (show visual effect on player)
+#                0 (do not show visual effect on player)
 #
+#	Achievements.RandomBots
+#       Enable achievement system for random bots
+#       Default: 1 (enable, random bots can earn achievements or statistics)
+#                0 (disable, random bots do not earn achievements or statistics)
 #
-#    Achievements.SendVisual
-#        Enable showing visual effect on player when earning achievement
-#        Default: 1 (show visual effect on player)
-#                 0 (do not show visual effect on player)
+#   Achievements.RandomBotsRealmFirst
+#       Enable Realm First achievements for random bots
+#       Default: 0 (random bots do not earn Realm First achievements)
+#                1 (random bots can earn Realm First achievements)
 #
+#   Achievements.AccountAcchievenemts
+#       Sync all achievements for the characters on the same account
+#       Default: 0 (disabled)
+#                1 (enabled)
 #
-#    Achievements.RandomBots
-#        Enable achievement system for random bots
-#        Default: 1 (enable, random bots can earn achievements or statistics)
-#                 0 (disable, random bots do not earn achievements or statistics)
-#
-#
-#    Achievements.RandomBotsRealmFirst
-#        Enable Realm First achievements for random bots
-#        Default: 0 (random bots do not earn Realm First achievements)
-#                 1 (random bots can earn Realm First achievements)
-#
-#    Achievements.AccountAcchievenemts
-#        Sync all achievements for the characters on the same account
-#        Default: 0 (disabled)
-#                 1 (enabled)
-#
-#    Achievements.EffectId
-#        ID of visual effect sent if visual effect is enabled
-#        Default: 146
+#   Achievements.EffectId
+#       ID of visual effect sent if visual effect is enabled
+#       Default: 146
 #
 ###################################################################################################################
 
@@ -2106,6 +2102,116 @@ Achievements.RandomBots = 1
 Achievements.RandomBotsRealmFirst = 0
 Achievements.AccountAcchievenemts = 0
 Achievements.EffectId = 146
+
+###################################################################################################################
+#  IMMERSIVE SETTINGS
+#
+#   Immersive.Enable
+#       Enable Immersive module
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.ManualAttributes
+#		Player must spend gold buying the attributes from your class trainer
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.ManualAttributesPercent
+#       Default: 100
+#
+#   Immersive.ManualAttributesIncrease
+#		The amount of attributes you can get per level
+#       Default: 5
+#
+#   Immersive.ManualAttributesCostMult
+#		The money multiplier per attribute (increases gradually per stat applied)
+#       Default: 5
+#
+#   Immersive.SharedXpPercent
+#		All your alts get a percent of your XP whenever you get it (From 0 to 100) (Must have alt character logged in as a bot)
+#       Default: 0
+#
+#   Immersive.SharedRepPercent
+#		All your alts get a percent of your reputation whenever you get it (From 0 to 100) (Must have alt character logged in as a bot)
+#       Default: 0
+#
+#   Immersive.SharedMoneyPercent
+#		All your alts get a percent of your money whenever you get it (From 0 to 100) (Must have alt character logged in as a bot)
+#       Default: 0
+#
+#   Immersive.SharedQuests
+#		All your alts complete quests when you have completed them. Can be used as a compensation for Immersive.sharedXpPercent and Immersive.sharedRepPercent (Must have alt character logged in as a bot)
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.FishingBaubles
+#		Fishing requires a bauble otherwise any fish will run away
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.SharedPercentRaceRestriction
+# 		Shared Percent gains are restricted to your race (1). (2) makes dwarf and gnome (orc and troll) the same race in terms of restriction
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.SharedPercentClassRestriction
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.SharedPercentGuildRestriction
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.SharedPercentFactionRestriction
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.SharedPercentMinLevel
+# 		Minimum player level to enable Shared Percent gains
+#       Default: 1
+#
+#   Immersive.AttributeLossPerDeath
+# 		How many attributes is lost on death (release spirit)
+#       Default: 1
+#
+#   Immersive.FallDamageMultiplier
+# 		Fall damage multiplier
+#       Default: 1.0
+#
+#   Immersive.SharedXpPercentLevelDiff
+# 		Only share experience if the level difference between your alt characters and your current character is less than this
+#       Default: 0
+#
+#   Immersive.ScaleModifierWorkaround
+# 		???
+#       Default: 0 (Disabled)
+#                1 (Enabled)
+#
+#   Immersive.SharedRandomPercent
+#       Default: 0
+#
+###################################################################################################################
+
+Immersive.Enable = 0
+Immersive.ManualAttributes = 0
+Immersive.ManualAttributesIncrease = 5
+Immersive.ManualAttributesPercent = 100
+Immersive.ManualAttributesCostMult = 5
+Immersive.SharedXpPercent = 0
+Immersive.SharedRepPercent = 0
+Immersive.SharedMoneyPercent = 0
+Immersive.SharedQuests = 0
+Immersive.FishingBaubles = 0
+Immersive.SharedPercentRaceRestriction = 0
+Immersive.SharedPercentClassRestriction = 0
+Immersive.SharedPercentGuildRestriction = 0
+Immersive.SharedPercentFactionRestriction = 0
+Immersive.SharedPercentMinLevel = 1
+Immersive.AttributeLossPerDeath = 1
+Immersive.FallDamageMultiplier = 1.0
+Immersive.SharedXpPercentLevelDiff = 0
+Immersive.ScaleModifierWorkaround = 0
+Immersive.SharedRandomPercent = 0
 
 ###################################################################################################################
 # NETWORK CONFIG
