@@ -574,8 +574,7 @@ void Immersive::SendMessage(Player *player, string message)
     }
 #endif
 
-    ChatHandler &chat = ChatHandler(player->GetSession());
-    chat.PSendSysMessage(message.c_str());
+    ChatHandler(player).PSendSysMessage(message.c_str());
 }
 
 bool ImmersiveAction::CheckSharedPercentReqs(Player* player, Player* bot)
