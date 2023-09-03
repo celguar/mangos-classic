@@ -458,24 +458,46 @@ void Immersive::ResetStats(Player *player)
 
 uint32 Immersive::GetTotalStats(Player *player, uint8 level)
 {
-    PlayerInfo const* info = GetPlayerInfo(player->getRace(), player->getClass());
-    PlayerLevelInfo level1Info = info->levelInfo[0];
-    if (!level) level = player->GetLevel();
-
-    PlayerLevelInfo levelCInfo = info->levelInfo[level - 1];
-    int total = 0;
-    for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
+    constexpr uint8 maxLvl = 60;
+    if (!level) 
     {
-        total += ((int)levelCInfo.stats[i] - (int)level1Info.stats[i]);
+        level = player->GetLevel();
     }
 
-    if(level >= 60)
+    const uint32 maxStats = sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_MAX_POINTS);
+    if(maxStats > 0)
     {
-        total += 5;
-    }
+        // Calculate the amount of base stats
+        uint32 base = 0;
+        PlayerInfo const* info = GetPlayerInfo(player->getRace(), player->getClass());
+        PlayerLevelInfo level1Info = info->levelInfo[0];
+        for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
+        {
+            base += level1Info.stats[i];
+        }
 
-    uint32 byPercent = (uint32)floor(total * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_PCT) / 100.0f);
-    return byPercent / sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE) * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE);
+        return (uint32)((level * (maxStats - base)) / maxLvl);
+    }
+    else
+    {
+        PlayerInfo const* info = GetPlayerInfo(player->getRace(), player->getClass());
+        PlayerLevelInfo level1Info = info->levelInfo[0];
+
+        PlayerLevelInfo levelCInfo = info->levelInfo[level - 1];
+        int total = 0;
+        for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
+        {
+            total += ((int)levelCInfo.stats[i] - (int)level1Info.stats[i]);
+        }
+
+        if(level >= maxLvl)
+        {
+            total += 5;
+        }
+
+        uint32 byPercent = (uint32)floor(total * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_PCT) / 100.0f);
+        return byPercent / sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE) * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE);
+    }
 }
 
 uint32 Immersive::GetUsedStats(Player *player)
