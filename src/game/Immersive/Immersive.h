@@ -58,6 +58,8 @@ namespace immersive
 
     private:
         void PrintHelp(Player *player, bool detailed = false, bool help = false);
+        void PrintUsedStats(Player* player);
+        void PrintSuggestedStats(Player* player);
         void IncreaseStat(Player *player, uint32 type);
         void ChangeModifier(Player *player, uint32 type);
         void ResetStats(Player *player);

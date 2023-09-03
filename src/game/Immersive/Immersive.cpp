@@ -108,6 +108,7 @@ void Immersive::GetPlayerLevelInfo(Player *player, PlayerLevelInfo* info)
     if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_MANUAL_ATTRIBUTES)) return;
 
 #ifdef ENABLE_PLAYERBOTS
+    // Don't use custom stats on random bots
     uint32 account = sObjectMgr.GetPlayerAccountIdByGUID(player->GetObjectGuid());
     if (sPlayerbotAIConfig.IsInRandomAccountList(account))
         return;
@@ -222,48 +223,49 @@ void Immersive::OnDeath(Player *player)
 {
     if(sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED))
     {
-        int lossPerDeath = sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_ATTR_LOSS_PER_DEATH);
-        if(lossPerDeath > 0)
+        const uint8 lossPerDeath = sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_ATTR_LOSS_PER_DEATH);
+        const uint32 usedStats = GetUsedStats(player);
+        if(lossPerDeath > 0 && usedStats > 0)
         {
-            uint32 owner = player->GetObjectGuid().GetRawValue();
-
+#ifdef ENABLE_PLAYERBOTS
+            // Don't lose stats on bots
+            if(!player->isRealPlayer())
+                return;
+#endif
+          
             map<Stats, int> loss;
-            for (int j = STAT_STRENGTH; j < MAX_STATS; ++j)
-                loss[(Stats)j] = 0;
-
-            int totalLoss = 0;
-            for (int i = 0; i < lossPerDeath && totalLoss < lossPerDeath; i++)
+            for (uint8 j = STAT_STRENGTH; j < MAX_STATS; ++j)
             {
-                for (int type = STAT_STRENGTH; type < MAX_STATS && totalLoss < lossPerDeath; ++type)
+                loss[(Stats)j] = 0;
+            }
+
+            const uint32 owner = player->GetObjectGuid().GetRawValue();
+            uint32 pointsToLose = lossPerDeath > usedStats ? usedStats : lossPerDeath;
+            while (pointsToLose > 0)
+            {
+                const Stats statType = (Stats)urand(STAT_STRENGTH, MAX_STATS - 1);
+                const uint32 statValue = GetStatsValue(owner, statType);
+                if(statValue > 0)
                 {
-                    uint32 value = GetStatsValue(owner, (Stats)type);
-                    if (value)
-                    {
-                        SetStatsValue(owner, (Stats)type, value - 1);
-                        loss[(Stats)type]++;
-                        totalLoss++;
-                    }
+                    SetStatsValue(owner, statType, statValue - 1);
+                    loss[statType]++;
+                    pointsToLose--;
                 }
             }
 
-            ostringstream out;
-            out << "|cffffff00You have lost these attributes: ";
+            ostringstream out; out << "|cffffff00You have lost these attributes: ";
             bool first = true;
-            bool used = false;
             for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
             {
-                uint32 value = loss[(Stats)i];
-                if (!value) continue;
-                if (!first) out << ", "; else first = false;
-                out << "|cffffa0a0-" << value << "|cffffff00 " << statNames[(Stats)i];
-                used = true;
+                const uint32 value = loss[(Stats)i];
+                if(value > 0)
+                {
+                    if (!first) out << ", "; else first = false;
+                    out << "|cffffa0a0-" << value << "|cffffff00 " << statNames[(Stats)i];
+                }
             }
 
-            if (used)
-            {
-                SendMessage(player, out.str());
-            }
-
+            SendMessage(player, out.str());
             player->InitStatsForLevel(true);
             player->UpdateAllStats();
         }
@@ -277,8 +279,6 @@ string percent(Player *player)
 
 void Immersive::PrintHelp(Player *player, bool detailed, bool help)
 {
-    uint32 owner = player->GetObjectGuid().GetRawValue();
-
     uint32 usedStats = GetUsedStats(player);
     uint32 totalStats = GetTotalStats(player);
     uint32 cost = GetStatCost(player);
@@ -303,46 +303,70 @@ void Immersive::PrintHelp(Player *player, bool detailed, bool help)
 
     if (detailed)
     {
-        ostringstream out;
-        out << "|cffffff00Current Attribute Points: ";
-        bool first = true;
-        bool used = false;
-        uint32 modifier = GetModifierValue(owner);
-        for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
-        {
-            uint32 value = GetStatsValue(owner, (Stats)i) * modifier / 100;
-            if (!value) continue;
-            if (!first) out << ", "; else first = false;
-            out << "|cff00ff00+" << value << "|cffffff00 " << statNames[(Stats)i];
-            used = true;
-        }
-
-        if (modifier != 100) out << " (|cff00ff00" << modifier << percent(player) << "|cffffff00 modifier)";
-        if (used)
-            SendMessage(player, out.str().c_str());
+        PrintUsedStats(player);
     }
 
     if (help)
     {
-        ostringstream out;
-        out << "|cffffff00Suggested Attribute Points: ";
-        PlayerInfo const* info = GetPlayerInfo(player->getRace(), player->getClass());
-        PlayerLevelInfo level1Info = info->levelInfo[0];
-        uint8 level = player->GetLevel();
-        PlayerLevelInfo levelCInfo = info->levelInfo[level - 1];
-        bool first = true;
-        bool used = false;
-        for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
-        {
-            uint32 value = ((int)levelCInfo.stats[i] - (int)level1Info.stats[i]);
-            value = (uint32)floor(value * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_PCT) / 100.0f);
-            if (!value) continue;
-            if (!first) out << ", "; else first = false;
-            out << "|cff00ff00+" << value << "|cffffff00 " << statNames[(Stats)i];
-            used = true;
-        }
-        if (used)
-            SendMessage(player, out.str().c_str());
+        PrintSuggestedStats(player);
+    }
+}
+
+void Immersive::PrintUsedStats(Player* player)
+{
+    uint32 owner = player->GetObjectGuid().GetRawValue();
+    uint32 modifier = GetModifierValue(owner);
+
+    ostringstream out;
+    out << "|cffffff00Current Attribute Points: ";
+    bool first = true;
+    bool used = false;
+
+    PlayerInfo const* info = GetPlayerInfo(player->getRace(), player->getClass());
+    PlayerLevelInfo level1Info = info->levelInfo[0];
+
+    for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
+    {
+        uint32 value = level1Info.stats[i];
+        value += GetStatsValue(owner, (Stats)i) * modifier / 100;
+        if (!value) continue;
+        if (!first) out << ", "; else first = false;
+        out << "|cff00ff00+" << value << "|cffffff00 " << statNames[(Stats)i];
+        used = true;
+    }
+
+    if (modifier != 100)
+    {
+        out << " (|cff00ff00" << modifier << percent(player) << "|cffffff00 modifier)";
+    }
+
+    SendMessage(player, out.str().c_str());
+}
+
+
+void Immersive::PrintSuggestedStats(Player* player)
+{
+    ostringstream out;
+    out << "|cffffff00Suggested Attribute Points: ";
+    PlayerInfo const* info = GetPlayerInfo(player->getRace(), player->getClass());
+    uint8 level = player->GetLevel();
+    PlayerLevelInfo levelCInfo = info->levelInfo[level - 1];
+
+    bool first = true;
+    bool used = false;
+    for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
+    {
+        uint32 value = levelCInfo.stats[i];
+        value = (uint32)floor(value * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_PCT) / 100.0f);
+        if (!value) continue;
+        if (!first) out << ", "; else first = false;
+        out << "|cff00ff00+" << value << "|cffffff00 " << statNames[(Stats)i];
+        used = true;
+    }
+
+    if (used)
+    {
+        SendMessage(player, out.str().c_str());
     }
 }
 
@@ -397,33 +421,13 @@ void Immersive::IncreaseStat(Player *player, uint32 type)
     totalStats = GetTotalStats(player);
     uint32 nextCost = GetStatCost(player);
 
-    {
-        ostringstream out;
-        out << "|cffffff00You have gained |cff00ff00+" << statIncrease << "|cffffff00 " << statNames[(Stats)type].c_str() <<
-            ", |cff00ff00" << (totalStats > usedStats ? totalStats - usedStats : 0) << "|cffffff00 points left (|cffffff00" << formatMoney(nextCost) << "|cffffff00 per use)";
+    ostringstream out;
+    out << "|cffffff00You have gained |cff00ff00+" << statIncrease << "|cffffff00 " << statNames[(Stats)type].c_str() <<
+        ", |cff00ff00" << (totalStats > usedStats ? totalStats - usedStats : 0) << "|cffffff00 points left (|cffffff00" << formatMoney(nextCost) << "|cffffff00 per use)";
 
-        SendMessage(player, out.str());
-    }
+    SendMessage(player, out.str());
 
-    {
-        ostringstream out;
-        out << "|cffffff00Current Attribute Points: ";
-        bool first = true;
-        bool used = false;
-        uint32 modifier = GetModifierValue(owner);
-        for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
-        {
-            uint32 value = GetStatsValue(owner, (Stats)i) * modifier / 100;
-            if (!value) continue;
-            if (!first) out << ", "; else first = false;
-            out << "|cff00ff00+" << value << "|cffffff00 " << statNames[(Stats)i];
-            used = true;
-        }
-
-        if (modifier != 100) out << " (|cff00ff00" << modifier << percent(player) << "|cffffff00 modifier)";
-        if (used)
-            SendMessage(player, out.str().c_str());
-    }
+    PrintUsedStats(player);
 
     player->InitStatsForLevel(true);
     player->UpdateAllStats();
