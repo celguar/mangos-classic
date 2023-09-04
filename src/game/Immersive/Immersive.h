@@ -23,7 +23,7 @@ namespace immersive
 
     public:
         virtual bool Run(Player* player, Player* bot) = 0;
-        virtual string GetMessage() = 0;
+        virtual string GetMessage(Player* player) = 0;
 
     protected:
         virtual bool CheckSharedPercentReqs(Player* player, Player* bot);
@@ -55,6 +55,7 @@ namespace immersive
         void OnGoUse(Player *player, GameObject* obj);
         void OnGossipHello(Player* player, Creature* creature);
         void CheckScaleChange(Player* player);
+        static std::string FormatString(const char* format, ...);
 
     private:
         void PrintHelp(Player *player, bool detailed = false, bool help = false);
@@ -80,7 +81,6 @@ namespace immersive
 
     private:
         static map<Stats, string> statValues;
-        static map<Stats, string> statNames;
         map<uint32, map<string, uint32> > valueCache;
     };
 }
