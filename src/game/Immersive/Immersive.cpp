@@ -1,5 +1,6 @@
 #include "Immersive.h"
 #include "SharedDefines.h"
+#include "Language.h"
 
 #ifdef ENABLE_PLAYERBOTS
 #include "PlayerbotAIConfig.h"
@@ -10,7 +11,6 @@
 using namespace immersive;
 
 map<Stats, string> Immersive::statValues;
-map<Stats, string> Immersive::statNames;
 
 string formatMoney(uint32 copper)
 {
@@ -56,12 +56,6 @@ Immersive::Immersive()
     statValues[STAT_STAMINA] = "Stamina";
     statValues[STAT_INTELLECT] = "Intellect";
     statValues[STAT_SPIRIT] = "Spirit";
-
-    statNames[STAT_STRENGTH] = "STR";
-    statNames[STAT_AGILITY] = "AGI";
-    statNames[STAT_STAMINA] = "STA";
-    statNames[STAT_INTELLECT] = "INT";
-    statNames[STAT_SPIRIT] = "SPI";
 }
 
 PlayerInfo extraPlayerInfo[MAX_RACES][MAX_CLASSES];
@@ -130,7 +124,7 @@ void Immersive::OnGossipSelect(Player *player, WorldObject* source, uint32 gossi
     bool closeGossipWindow = false;
     if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED))
     {
-        SendMessage(player, "|cffffff00Manual attributes are disabled.");
+        SendMessage(player, sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_DISABLED, player->GetSession()->GetSessionDbLocaleIndex()));
         closeGossipWindow = true;
     }
     else
@@ -230,7 +224,9 @@ void Immersive::OnDeath(Player *player)
 #ifdef ENABLE_PLAYERBOTS
             // Don't lose stats on bots
             if(!player->isRealPlayer())
+            {
                 return;
+            }
 #endif
           
             map<Stats, int> loss;
@@ -253,7 +249,7 @@ void Immersive::OnDeath(Player *player)
                 }
             }
 
-            ostringstream out; out << "|cffffff00You have lost these attributes: ";
+            ostringstream out;
             bool first = true;
             for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
             {
@@ -261,11 +257,15 @@ void Immersive::OnDeath(Player *player)
                 if(value > 0)
                 {
                     if (!first) out << ", "; else first = false;
-                    out << "|cffffa0a0-" << value << "|cffffff00 " << statNames[(Stats)i];
+                    const uint32 langStat = LANG_IMMERSIVE_MANUAL_ATTR_STRENGTH + i;
+                    out << "|cffffa0a0-" << value << "|cffffff00 " << sObjectMgr.GetMangosString(langStat, player->GetSession()->GetSessionDbLocaleIndex());
                 }
             }
 
-            SendMessage(player, out.str());
+            SendMessage(player, FormatString(
+                        sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_LOST, player->GetSession()->GetSessionDbLocaleIndex()),
+                        out.str().c_str()));
+
             player->InitStatsForLevel(true);
             player->UpdateAllStats();
         }
@@ -283,23 +283,10 @@ void Immersive::PrintHelp(Player *player, bool detailed, bool help)
     uint32 totalStats = GetTotalStats(player);
     uint32 cost = GetStatCost(player);
 
-    //SendMessage(player, "|cffffff00== Attribute Points ==");
-    ostringstream out;
-    out << "|cffffff00Attribute Points Available: |cff00ff00" << (totalStats > usedStats ? totalStats - usedStats : 0) <<
-            "|cffffff00 (|cffffff00" << formatMoney(cost) << "|cffffff00 per use)";
-
-    SendMessage(player, out.str());
-
-    /*for (int8 level = 1; level <= 80; level++)
-    {
-        uint32 nextLvlTotalStats = GetTotalStats(player, level);
-        uint32 nextLvlCost = GetStatCost(player, level, nextLvlTotalStats);
-        ostringstream out;
-        out << "|cffffff00Level: |cff00ff00" << (uint32)level <<
-                "|cffffff00Available: |cff00ff00" << (uint32)nextLvlTotalStats <<
-                "|cffffff00 (|cffffff00" << formatMoney(nextLvlCost) << "|cffffff00 per use)";
-        SendMessage(player, out.str());
-    }*/
+    SendMessage(player, FormatString(
+                sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_AVAILABLE, player->GetSession()->GetSessionDbLocaleIndex()),
+                (totalStats > usedStats ? totalStats - usedStats : 0),
+                formatMoney(cost).c_str()));
 
     if (detailed)
     {
@@ -318,7 +305,6 @@ void Immersive::PrintUsedStats(Player* player)
     uint32 modifier = GetModifierValue(owner);
 
     ostringstream out;
-    out << "|cffffff00Current Attribute Points: ";
     bool first = true;
     bool used = false;
 
@@ -331,23 +317,25 @@ void Immersive::PrintUsedStats(Player* player)
         value += GetStatsValue(owner, (Stats)i) * modifier / 100;
         if (!value) continue;
         if (!first) out << ", "; else first = false;
-        out << "|cff00ff00+" << value << "|cffffff00 " << statNames[(Stats)i];
+        const uint32 langStat = LANG_IMMERSIVE_MANUAL_ATTR_STRENGTH + i;
+        out << "|cff00ff00+" << value << "|cffffff00 " << sObjectMgr.GetMangosString(langStat, player->GetSession()->GetSessionDbLocaleIndex());
         used = true;
     }
 
     if (modifier != 100)
     {
-        out << " (|cff00ff00" << modifier << percent(player) << "|cffffff00 modifier)";
+        ostringstream modifierStr; modifierStr << modifier << percent(player);
+        out << " " << FormatString(sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_MODIFIER, player->GetSession()->GetSessionDbLocaleIndex()), modifierStr.str().c_str());
     }
 
-    SendMessage(player, out.str().c_str());
+    SendMessage(player, FormatString(
+                sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_ASSIGNED, player->GetSession()->GetSessionDbLocaleIndex()),
+                out.str().c_str()));
 }
-
 
 void Immersive::PrintSuggestedStats(Player* player)
 {
     ostringstream out;
-    out << "|cffffff00Suggested Attribute Points: ";
     PlayerInfo const* info = GetPlayerInfo(player->getRace(), player->getClass());
     uint8 level = player->GetLevel();
     PlayerLevelInfo levelCInfo = info->levelInfo[level - 1];
@@ -360,13 +348,16 @@ void Immersive::PrintSuggestedStats(Player* player)
         value = (uint32)floor(value * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_PCT) / 100.0f);
         if (!value) continue;
         if (!first) out << ", "; else first = false;
-        out << "|cff00ff00+" << value << "|cffffff00 " << statNames[(Stats)i];
+        const uint32 langStat = LANG_IMMERSIVE_MANUAL_ATTR_STRENGTH + i;
+        out << "|cff00ff00+" << value << "|cffffff00 " << sObjectMgr.GetMangosString(langStat, player->GetSession()->GetSessionDbLocaleIndex());
         used = true;
     }
 
     if (used)
     {
-        SendMessage(player, out.str().c_str());
+        SendMessage(player, FormatString(
+                    sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_SUGGESTED, player->GetSession()->GetSessionDbLocaleIndex()),
+                    out.str().c_str()));
     }
 }
 
@@ -378,10 +369,15 @@ void Immersive::ChangeModifier(Player *player, uint32 type)
     uint32 value = type * 10;
     SetValue(owner, "modifier", value);
 
-    ostringstream out;
-    out << "|cffffff00You have changed your attribute modifier to |cff00ff00" << value << percent(player) << "|cffffff00";
-    if (!value || value == 100) out << " (disabled)";
-    SendMessage(player, out.str());
+    ostringstream modifierStr; modifierStr << value << percent(player);
+    if (!value || value == 100)
+    {
+        modifierStr << " " << sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_MOD_DISABLED, player->GetSession()->GetSessionDbLocaleIndex());
+    }
+
+    SendMessage(player, FormatString(
+                sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_MOD_CHANGED, player->GetSession()->GetSessionDbLocaleIndex()),
+                modifierStr.str().c_str()));
 
     player->InitStatsForLevel(true);
     player->UpdateAllStats();
@@ -391,7 +387,7 @@ void Immersive::IncreaseStat(Player *player, uint32 type)
 {
     if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED))
     {
-        SendMessage(player, "|cffffff00Manual attributes are disabled.");
+        SendMessage(player, sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_DISABLED, player->GetSession()->GetSessionDbLocaleIndex()));
         return;
     }
 
@@ -402,13 +398,13 @@ void Immersive::IncreaseStat(Player *player, uint32 type)
 
     if (usedStats >= totalStats)
     {
-        SendMessage(player, "|cffffa0a0You have no attribute points left");
+        SendMessage(player, sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_MISSING, player->GetSession()->GetSessionDbLocaleIndex()));
         return;
     }
 
     if (player->GetMoney() < cost)
     {
-        SendMessage(player, "|cffffa0a0You don't have enough gold");
+        SendMessage(player, sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_MISSING_GOLD, player->GetSession()->GetSessionDbLocaleIndex()));
         return;
     }
 
@@ -421,11 +417,11 @@ void Immersive::IncreaseStat(Player *player, uint32 type)
     totalStats = GetTotalStats(player);
     uint32 nextCost = GetStatCost(player);
 
-    ostringstream out;
-    out << "|cffffff00You have gained |cff00ff00+" << statIncrease << "|cffffff00 " << statNames[(Stats)type].c_str() <<
-        ", |cff00ff00" << (totalStats > usedStats ? totalStats - usedStats : 0) << "|cffffff00 points left (|cffffff00" << formatMoney(nextCost) << "|cffffff00 per use)";
-
-    SendMessage(player, out.str());
+    SendMessage(player, FormatString(
+                sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_GAINED, player->GetSession()->GetSessionDbLocaleIndex()),
+                statIncrease,
+                sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_STRENGTH + type, player->GetSession()->GetSessionDbLocaleIndex()),
+                (totalStats > usedStats ? totalStats - usedStats : 0)));
 
     PrintUsedStats(player);
 
@@ -439,23 +435,25 @@ void Immersive::ResetStats(Player *player)
 {
     if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED))
     {
-        SendMessage(player, "|cffffff00Manual attributes are disabled.");
+        SendMessage(player, sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_DISABLED, player->GetSession()->GetSessionDbLocaleIndex()));
         return;
     }
 
     uint32 owner = player->GetObjectGuid().GetRawValue();
 
     for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
+    {
         SetValue(owner, statValues[(Stats)i], 0);
+    }
 
     uint32 usedStats = GetUsedStats(player);
     uint32 totalStats = GetTotalStats(player);
     uint32 cost = GetStatCost(player);
-    ostringstream out;
-    out << "|cffffff00Your attributes have been reset, |cff00ff00" << (totalStats > usedStats ? totalStats - usedStats : 0) <<
-            "|cffffff00 points available (|cffffff00" << formatMoney(cost) << "|cffffff00 per use)";
 
-    SendMessage(player, out.str());
+    SendMessage(player, FormatString(
+                sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_RESET, player->GetSession()->GetSessionDbLocaleIndex()),
+                (totalStats > usedStats ? totalStats - usedStats : 0)));
+
     player->InitStatsForLevel(true);
     player->UpdateAllStats();
 }
@@ -603,6 +601,16 @@ void Immersive::SendMessage(Player *player, string message)
     ChatHandler(player).PSendSysMessage(message.c_str());
 }
 
+std::string Immersive::FormatString(const char* format, ...)
+{
+    va_list ap;
+    char out[2048];
+    va_start(ap, format);
+    vsnprintf(out, 2048, format, ap);
+    va_end(ap);
+    return std::string(out);
+}
+
 bool ImmersiveAction::CheckSharedPercentReqs(Player* player, Player* bot)
 {
     Group *group = player->GetGroup();
@@ -682,14 +690,13 @@ void Immersive::RunAction(Player* player, ImmersiveAction* action)
 #endif
 
     if (!needMsg) return;
-    out << "|cffffff00: " << action->GetMessage();
+    out << "|cffffff00: " << action->GetMessage(player);
     SendMessage(player, out.str());
 }
 
 uint32 ApplyRandomPercent(uint32 value)
 {
     if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED) || !sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_RANDOM_PCT)) return value;
-
     float percent = (float) urand(0, sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_RANDOM_PCT)) - (float)sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_RANDOM_PCT) / 2;
     return value + (uint32) (value * percent / 100.0f);
 }
@@ -699,27 +706,34 @@ class OnGiveXPAction : public ImmersiveAction
 public:
     OnGiveXPAction(int32 value) : ImmersiveAction(), value(value) {}
 
-    virtual bool Run(Player* player, Player* bot)
+    bool Run(Player* player, Player* bot) override
     {
         if ((int)player->GetLevel() - (int)bot->GetLevel() < (int)sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF))
+        {
             return false;
+        }
 
         if (!CheckSharedPercentReqs(player, bot))
+        {
             return false;
+        }
 
         bot->GiveXP(ApplyRandomPercent(value), NULL);
+
         Pet *pet = bot->GetPet();
         if (pet && pet->getPetType() == HUNTER_PET)
+        {
             pet->GivePetXP(ApplyRandomPercent(value));
+        }
 
         return true;
     }
 
-    virtual string GetMessage()
+    string GetMessage(Player* player) override
     {
-        ostringstream out;
-        out << value << " experience gained";
-        return out.str();
+        return Immersive::FormatString(
+               sObjectMgr.GetMangosString(LANG_IMMERSIVE_EXP_GAINED, player->GetSession()->GetSessionDbLocaleIndex()),
+               value);
     }
 
 private:
@@ -729,12 +743,14 @@ private:
 void Immersive::OnGiveXP(Player *player, uint32 xp, Unit* victim)
 {
     if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED)) return;
-
     if (sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT) < 0.01f || !player->GetPlayerbotMgr()) return;
 
     uint32 bonus_xp = xp + (victim ? player->GetXPRestBonus(xp) : 0);
     uint32 botXp = (uint32) (bonus_xp * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT) / 100.0f);
-    if (botXp < 1) return;
+    if (botXp < 1) 
+    {
+        return;
+    }
 
     OnGiveXPAction action(botXp);
     RunAction(player, &action);
@@ -749,10 +765,9 @@ void Immersive::OnGiveLevel(Player* player)
         const uint32 availablePoints = (totalStats > usedStats) ? totalStats - usedStats : 0;
         if (availablePoints > 0)
         {
-            ostringstream out;
-            out << "|cffffff00You have " << availablePoints << " attribute points available.";
-            SendMessage(player, out.str());
-            SendMessage(player, "|cffffff00Speak with your class trainer to use them.");
+            SendMessage(player, FormatString(
+                        sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_POINTS_ADDED, player->GetSession()->GetSessionDbLocaleIndex()),
+                        availablePoints));
         }
     }
 }
@@ -762,7 +777,7 @@ class OnGiveMoneyAction : public ImmersiveAction
 public:
     OnGiveMoneyAction(int32 value) : ImmersiveAction(), value(value) {}
 
-    virtual bool Run(Player* player, Player* bot)
+    bool Run(Player* player, Player* bot) override
     {
         if ((int)player->GetLevel() - (int)bot->GetLevel() < (int)sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF))
             return false;
@@ -774,7 +789,7 @@ public:
         return true;
     }
 
-    virtual string GetMessage()
+    virtual string GetMessage(Player* player)
     {
         ostringstream out;
         out <<
@@ -784,7 +799,15 @@ public:
             value << "c"
 #endif
             << " gained";
-        return out.str();
+
+            return Immersive::FormatString(
+                sObjectMgr.GetMangosString(LANG_IMMERSIVE_MONEY_GAINED, player->GetSession()->GetSessionDbLocaleIndex()),
+#ifdef ENABLE_PLAYERBOTS
+                ai::ChatHelper::formatMoney(value)
+#else
+                value
+#endif
+            );
     }
 
 private:
@@ -810,20 +833,24 @@ class OnReputationChangeAction : public ImmersiveAction
 public:
     OnReputationChangeAction(FactionEntry const* factionEntry, int32 value) : ImmersiveAction(), factionEntry(factionEntry), value(value) {}
 
-    virtual bool Run(Player* player, Player* bot)
+    bool Run(Player* player, Player* bot) override
     {
         if (!CheckSharedPercentReqs(player, bot))
+        {
             return false;
-
-        bot->GetReputationMgr().ModifyReputation(factionEntry, ApplyRandomPercent(value));
-        return true;
+        }
+        else
+        {
+            bot->GetReputationMgr().ModifyReputation(factionEntry, ApplyRandomPercent(value));
+            return true;
+        }
     }
 
-    virtual string GetMessage()
+    string GetMessage(Player* player) override
     {
-        ostringstream out;
-        out << value << " reputation gained";
-        return out.str();
+        return Immersive::FormatString(
+               sObjectMgr.GetMangosString(LANG_IMMERSIVE_REPUTATION_GAINED, player->GetSession()->GetSessionDbLocaleIndex()),
+               value);
     }
 
 private:
@@ -834,7 +861,6 @@ private:
 void Immersive::OnReputationChange(Player* player, FactionEntry const* factionEntry, int32& standing, bool incremental)
 {
     if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED)) return;
-
     if (sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_REP_PCT) < 0.01f || !player->GetPlayerbotMgr() || !incremental) return;
 
     int32 value = (uint32) (standing * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_REP_PCT) / 100.0f);
@@ -849,31 +875,38 @@ class OnRewardQuestAction : public ImmersiveAction
 public:
     OnRewardQuestAction(Quest const* quest) : ImmersiveAction(), quest(quest) {}
 
-    virtual bool Run(Player* player, Player* bot)
+    bool Run(Player* player, Player* bot) override
     {
         if (quest->GetRequiredClasses())
+        {
             return false;
+        }
 
         if (!CheckSharedPercentReqs(player, bot))
+        {
             return false;
+        }
 
         uint32 questId = quest->GetQuestId();
         if (bot->GetQuestStatus(questId) != QUEST_STATUS_NONE)
+        {
             return false;
+        }
 
         bot->SetQuestStatus(questId, QUEST_STATUS_COMPLETE);
         QuestStatusData& sd = bot->getQuestStatusMap()[questId];
         sd.m_explored = true;
         sd.m_rewarded = true;
         sd.uState = (sd.uState != QUEST_NEW) ? QUEST_CHANGED : QUEST_NEW;
+
         return true;
     }
 
-    virtual string GetMessage()
+    string GetMessage(Player* player) override
     {
-        ostringstream out;
-        out << quest->GetTitle().c_str() << " completed";
-        return out.str();
+        return Immersive::FormatString(
+               sObjectMgr.GetMangosString(LANG_IMMERSIVE_QUEST_COMPLETED, player->GetSession()->GetSessionDbLocaleIndex()),
+               quest->GetTitle().c_str());
     }
 
 private:
