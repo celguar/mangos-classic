@@ -228,6 +228,12 @@ void Immersive::OnDeath(Player *player)
                 return;
             }
 #endif
+
+            // Don't lose stats on battlegrounds or arena
+            if (player->InBattleGround() || player->InArena())
+            {
+                return;
+            }
           
             map<Stats, int> loss;
             for (uint8 j = STAT_STRENGTH; j < MAX_STATS; ++j)
