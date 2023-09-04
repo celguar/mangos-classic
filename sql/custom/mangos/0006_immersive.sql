@@ -156,3 +156,28 @@ SELECT menu_id, id, 'Administrat atributos', '' FROM `gossip_menu_option` WHERE 
 -- add missing gossips to trainers
 update creature_template set GossipMenuId = 4537 where entry in (select entry from creature_template_backup);
 update gossip_menu_option set condition_id = 0 where action_menu_id = 4461;
+
+-- chat messages
+DELETE FROM `mangos_string` where entry in (12100, 12101, 12102, 12103, 12104, 12105, 12106, 12107, 12108, 12109, 12110, 12111, 12112, 12113, 12114, 12115, 12116, 12117, 12118, 12119, 12120, 12121);
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12118, '|cffffff00You have %u attribute points available.|r|cffffff00Speak with your class trainer to use them.', '|cffffff00Tienes %u puntos de atributos disponibles.|r|cffffff00Habla con tu entrenador de clase para usarlos.');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12119, '%s gained', '%s ganado');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12120, '%u reputation gained', '%u reputación ganada');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12121, '%s completed', '%s completado');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12117, '%u experience gained', '%u experiencia ganada');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12116, '|cffffff00Your attributes have been reset. You have |cff00ff00%u|cffffff00 points available', '|cffffff00Se han reiniciado tus atributos. Tienes |cff00ff00%u|cffffff00 puntos disponibles');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12115, '|cffffff00You have gained |cff00ff00+%u %s, |cff00ff00%u|cffffff00 points left.', '|cffffff00Has ganado |cff00ff00+%u %s, |cff00ff00%u|cffffff00 puntos restantes.');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12114, '|cffffa0a0You don\'t have enough gold', '|cffffa0a0No tienes suficiente dinero');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12113, '|cffffa0a0You have no attribute points left', '|cffffa0a0No tienes mas puntos de atributos');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12112, '(disabled)', '(deshabilitado)');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12111, '|cffffff00You have changed your attribute modifier to |cff00ff00%s|cffffff00', '|cffffff00Has cambiado el modificador de atributos a |cff00ff00%s|cffffff00');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12110, '|cffffff00Suggested Attributes: %s', '|cffffff00Atributos Sugeridos: %s');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12109, '(|cff00ff00%s|cffffff00 modifier)', '(|cff00ff00%s|cffffff00 modificador)');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12108, '|cffffff00Current Attributes: %s', '|cffffff00Atributos Actuales: %s');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12107, '|cffffff00Attribute Points Available: |cff00ff00%u|cffffff00 (|cffffff00%s|cffffff00 per use)', '|cffffff00Puntos de Atributos disponibles: |cff00ff00%u|cffffff00 (|cffffff00%s|cffffff00 por uso)');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12106, 'Spirit', 'Espiritu');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12105, 'Intellect', 'Intelecto');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12104, 'Stamina', 'Aguante');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12103, 'Agility', 'Agilidad');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12102, 'Strength', 'Fuerza');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12101, '|cffffff00You have lost these attributes: %s', '|cffffff00Has perdido estos atributos: %s');
+INSERT INTO `mangos_string` (`entry`, `content_default`, `content_loc6`) VALUES (12100, '|cffffff00Manual attributes are disabled.', '|cffffff00Los atributos manuales están deshabilitados.');
