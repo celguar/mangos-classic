@@ -287,12 +287,12 @@ void Immersive::PrintHelp(Player *player, bool detailed, bool help)
 {
     uint32 usedStats = GetUsedStats(player);
     uint32 totalStats = GetTotalStats(player);
-    uint32 cost = GetStatCost(player);
+    uint32 purchaseCost = GetStatCost(player) * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE);
 
     SendMessage(player, FormatString(
                 sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_AVAILABLE, player->GetSession()->GetSessionDbLocaleIndex()),
                 (totalStats > usedStats ? totalStats - usedStats : 0),
-                formatMoney(cost).c_str()));
+                formatMoney(purchaseCost).c_str()));
 
     if (detailed)
     {
@@ -401,6 +401,9 @@ void Immersive::IncreaseStat(Player *player, uint32 type)
     uint32 usedStats = GetUsedStats(player);
     uint32 totalStats = GetTotalStats(player);
     uint32 cost = GetStatCost(player);
+    uint32 attributePointsAvailable = (totalStats > usedStats ? totalStats - usedStats : 0);
+    uint32 statIncrease = std::min(sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE), attributePointsAvailable);
+    uint32 purchaseCost = cost * statIncrease;
 
     if (usedStats >= totalStats)
     {
@@ -408,32 +411,31 @@ void Immersive::IncreaseStat(Player *player, uint32 type)
         return;
     }
 
-    if (player->GetMoney() < cost)
+    if (player->GetMoney() < purchaseCost)
     {
         SendMessage(player, sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_MISSING_GOLD, player->GetSession()->GetSessionDbLocaleIndex()));
         return;
     }
 
     uint32 value = GetStatsValue(owner, (Stats)type);
-    uint32 attributePointsAvailable = (totalStats > usedStats ? totalStats - usedStats : 0);
-    uint32 statIncrease = std::min(sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE), attributePointsAvailable);
     SetStatsValue(owner, (Stats)type, value + statIncrease);
 
     usedStats = GetUsedStats(player);
     totalStats = GetTotalStats(player);
-    uint32 nextCost = GetStatCost(player);
+    attributePointsAvailable = (totalStats > usedStats ? totalStats - usedStats : 0);
 
     SendMessage(player, FormatString(
                 sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_GAINED, player->GetSession()->GetSessionDbLocaleIndex()),
                 statIncrease,
                 sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_STRENGTH + type, player->GetSession()->GetSessionDbLocaleIndex()),
-                (totalStats > usedStats ? totalStats - usedStats : 0)));
+                attributePointsAvailable,
+                formatMoney(purchaseCost).c_str()));
 
     PrintUsedStats(player);
 
     player->InitStatsForLevel(true);
     player->UpdateAllStats();
-    player->ModifyMoney(-(int32)cost);
+    player->ModifyMoney(-(int32)purchaseCost);
     player->SaveGoldToDB();
 }
 
@@ -454,7 +456,6 @@ void Immersive::ResetStats(Player *player)
 
     uint32 usedStats = GetUsedStats(player);
     uint32 totalStats = GetTotalStats(player);
-    uint32 cost = GetStatCost(player);
 
     SendMessage(player, FormatString(
                 sObjectMgr.GetMangosString(LANG_IMMERSIVE_MANUAL_ATTR_RESET, player->GetSession()->GetSessionDbLocaleIndex()),
@@ -537,7 +538,7 @@ uint32 Immersive::GetStatCost(Player *player, uint8 level, uint32 usedStats)
         }
     }
 
-    return sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_COST_MULT) * (usedLevels * usedLevels + 1) * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_INCREASE);
+    return sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_MANUAL_ATTR_COST_MULT) * (usedLevels * usedLevels + 1);
 }
 
 uint32 Immersive::GetValue(uint32 owner, string type)
@@ -797,19 +798,10 @@ public:
 
     virtual string GetMessage(Player* player)
     {
-        ostringstream out;
-        out <<
-#ifdef ENABLE_PLAYERBOTS
-            ai::ChatHelper::formatMoney(value)
-#else
-            value << "c"
-#endif
-            << " gained";
-
             return Immersive::FormatString(
                 sObjectMgr.GetMangosString(LANG_IMMERSIVE_MONEY_GAINED, player->GetSession()->GetSessionDbLocaleIndex()),
 #ifdef ENABLE_PLAYERBOTS
-                ai::ChatHelper::formatMoney(value)
+                ai::ChatHelper::formatMoney(value).c_str()
 #else
                 value
 #endif
