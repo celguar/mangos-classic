@@ -154,19 +154,19 @@ public:
     // Callet by Loot::SendItem
     void OnItemLooted(Loot* loot, Item* item, Player* player);
 
-    void CreateGrave(Player* player);
+    void CreateGrave(Player* player, Unit* killer = nullptr);
     void RemoveAllGraves();
 
-    void LevelDown(Player* player);
+    void LevelDown(Player* player, Unit* killer = nullptr);
 
     bool ShouldDropLoot(Player* player = nullptr, Unit* killer = nullptr);
     bool ShouldDropMoney(Player* player = nullptr);
     bool ShouldDropItems(Player* player = nullptr);
     bool ShouldDropGear(Player* player = nullptr);
-    bool ShouldSpawnGrave(Player* player = nullptr);
+    bool ShouldSpawnGrave(Player* player = nullptr, Unit* killer = nullptr);
     bool CanRevive(Player* player = nullptr);
     bool ShouldReviveOnGraveyard(Player* player = nullptr);
-    bool ShouldLevelDown(Player* player = nullptr);
+    bool ShouldLevelDown(Player* player = nullptr, Unit* killer = nullptr);
 
     uint32 GetMaxPlayerLoot(Player* player = nullptr) const;
     float GetDropMoneyRate(Player* player = nullptr) const;
@@ -182,9 +182,13 @@ private:
     void PreLoadGraves();
     void LoadGraves();
 
+    Unit* GetKiller(Player* player) const;
+    void  SetKiller(Player* player, Unit* killer);
+
 private:
     std::map<uint32, std::map<uint32, HardcorePlayerLoot>> m_playersLoot;
     std::map<uint32, HardcorePlayerGrave> m_playerGraves;
+    std::map<uint32, ObjectGuid> m_lastPlayerDeaths;
 };
 
 #define sHardcoreMgr MaNGOS::Singleton<HardcoreMgr>::Instance()
