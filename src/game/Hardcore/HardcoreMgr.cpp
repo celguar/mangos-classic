@@ -940,13 +940,30 @@ void HardcoreMgr::Load()
 
 void HardcoreMgr::OnPlayerRevived(Player* player)
 {
-    LevelDown(player);
+    // See if we can retrieve the killer
+    Unit* killer = GetKiller(player);
+
+    // Process level down
+    LevelDown(player, killer);
+
+    // Clear the player killer
+    SetKiller(player, nullptr);
 }
 
 void HardcoreMgr::OnPlayerDeath(Player* player, Unit* killer)
 {
+    // Check if the killer is a pet and if so get the owner
+    if (killer->IsCreature() && killer->GetOwner())
+    {
+        killer = killer->GetOwner();
+    }
+
+    // Save the player killer for later use
+    SetKiller(player, killer);
+
+    // Process loot and grave spawning
     CreateLoot(player, killer);
-    CreateGrave(player);
+    CreateGrave(player, killer);
 }
 
 void HardcoreMgr::OnPlayerReleaseSpirit(Player* player, bool teleportedToGraveyard)
@@ -1347,16 +1364,24 @@ bool HardcoreMgr::ShouldReviveOnGraveyard(Player* player /*= nullptr*/)
     return false;
 }
 
-bool HardcoreMgr::ShouldLevelDown(Player* player /*= nullptr*/)
+bool HardcoreMgr::ShouldLevelDown(Player* player /*= nullptr*/, Unit* killer /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
         if (player && sWorld.getConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN) > 0.0f)
         {
+            bool fairKill = true;
+            if (killer && killer->IsPlayer())
+            {
+                const uint32 killerLevel = killer->GetLevel();
+                const uint32 playerLevel = player->GetLevel();
+                fairKill = killerLevel <= playerLevel + 3;
+            }
+
             const bool isBot = !player->isRealPlayer();
             const bool inBG = player->InBattleGround() || player->InArena();
             const bool isMaxLevel = player->GetLevel() >= 60;
-            return !isBot && !inBG && !isMaxLevel;
+            return !isBot && !inBG && !isMaxLevel && fairKill;
         }
     }
 
@@ -1387,16 +1412,24 @@ float HardcoreMgr::GetDropGearRate(Player* player /*= nullptr*/) const
     return isBot ? sWorld.getConfig(CONFIG_FLOAT_HARDCORE_BOT_DROP_GEAR) : sWorld.getConfig(CONFIG_FLOAT_HARDCORE_DROP_GEAR);
 }
 
-bool HardcoreMgr::ShouldSpawnGrave(Player* player /*= nullptr*/)
+bool HardcoreMgr::ShouldSpawnGrave(Player* player /*= nullptr*/, Unit* killer /*= nullptr*/)
 {
     if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
         if (player && sWorld.getConfig(CONFIG_BOOL_HARDCORE_SPAWN_GRAVE))
         {
+            bool fairKill = true;
+            if (killer && killer->IsPlayer())
+            {
+                const uint32 killerLevel = killer->GetLevel();
+                const uint32 playerLevel = player->GetLevel();
+                fairKill = killerLevel <= playerLevel + 3;
+            }
+
             const bool isBot = !player->isRealPlayer();
             const bool inBG = player->InBattleGround() || player->InArena();
             const bool isMaxLevel = player->GetLevel() >= 60;
-            return !isBot && !inBG && !isMaxLevel;
+            return !isBot && !inBG && !isMaxLevel && fairKill;
         }
     }
 
@@ -1483,9 +1516,9 @@ void HardcoreMgr::LoadGraves()
     }
 }
 
-void HardcoreMgr::CreateGrave(Player* player)
+void HardcoreMgr::CreateGrave(Player* player, Unit* killer)
 {
-    if (player && ShouldSpawnGrave(player))
+    if (player && ShouldSpawnGrave(player, killer))
     {
         const uint32 playerId = player->GetObjectGuid().GetCounter();
         const std::string playerName = player->GetName();
@@ -1513,9 +1546,9 @@ void HardcoreMgr::RemoveAllGraves()
     m_playerGraves.clear();
 }
 
-void HardcoreMgr::LevelDown(Player* player)
+void HardcoreMgr::LevelDown(Player* player, Unit* killer)
 {
-    if (player && ShouldLevelDown(player))
+    if (player && ShouldLevelDown(player, killer))
     {
         // Calculate how many levels and XP (%) we have to remove
         const float levelDownRate = sWorld.getConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN);
@@ -1548,5 +1581,31 @@ void HardcoreMgr::LevelDown(Player* player)
             const uint32 levelXP = (uint32)(totalLevelXP * newXPpct);
             player->SetUInt32Value(PLAYER_XP, levelXP);
         }
+    }
+}
+
+Unit* HardcoreMgr::GetKiller(Player* player) const
+{
+    Unit* killer = nullptr;
+    if (player && player->IsInWorld() && !player->IsBeingTeleported())
+    {
+        const uint32 playerGuid = player->GetObjectGuid().GetCounter();
+        if (m_lastPlayerDeaths.find(playerGuid) != m_lastPlayerDeaths.end())
+        {
+            const ObjectGuid& killerGuid = m_lastPlayerDeaths.at(playerGuid);
+            return sObjectAccessor.GetUnit(*player, killerGuid);
+        }
+    }
+
+    return killer;
+}
+
+void HardcoreMgr::SetKiller(Player* player, Unit* killer)
+{
+    if (player)
+    {
+        const uint32 playerGuid = player->GetObjectGuid().GetCounter();
+        const ObjectGuid killerGuid = killer ? killer->GetObjectGuid() : ObjectGuid();
+        m_lastPlayerDeaths[playerGuid] = killerGuid;
     }
 }
