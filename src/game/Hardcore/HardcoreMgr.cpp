@@ -952,18 +952,21 @@ void HardcoreMgr::OnPlayerRevived(Player* player)
 
 void HardcoreMgr::OnPlayerDeath(Player* player, Unit* killer)
 {
-    // Check if the killer is a pet and if so get the owner
-    if (killer && killer->IsCreature() && killer->GetOwner())
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
     {
-        killer = killer->GetOwner();
+        // Check if the killer is a pet and if so get the owner
+        if (killer && killer->IsCreature() && killer->GetOwner())
+        {
+            killer = killer->GetOwner();
+        }
+
+        // Save the player killer for later use
+        SetKiller(player, killer);
+
+        // Process loot and grave spawning
+        CreateLoot(player, killer);
+        CreateGrave(player, killer);
     }
-
-    // Save the player killer for later use
-    SetKiller(player, killer);
-
-    // Process loot and grave spawning
-    CreateLoot(player, killer);
-    CreateGrave(player, killer);
 }
 
 void HardcoreMgr::OnPlayerReleaseSpirit(Player* player, bool teleportedToGraveyard)
