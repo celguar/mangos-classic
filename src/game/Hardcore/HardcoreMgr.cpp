@@ -953,7 +953,7 @@ void HardcoreMgr::OnPlayerRevived(Player* player)
 void HardcoreMgr::OnPlayerDeath(Player* player, Unit* killer)
 {
     // Check if the killer is a pet and if so get the owner
-    if (killer->IsCreature() && killer->GetOwner())
+    if (killer && killer->IsCreature() && killer->GetOwner())
     {
         killer = killer->GetOwner();
     }
