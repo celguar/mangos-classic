@@ -203,10 +203,18 @@ void Immersive::OnGossipSelect(Player *player, WorldObject* source, uint32 gossi
     }
 }
 
-float Immersive::GetFallDamage(float zdist, float defaultVal)
+float Immersive::GetFallDamage(Player* player, float zdist, float defaultVal)
 {
-    if(sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED))
+    if(sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED) && player && !player->InBattleGround())
     {
+#ifdef ENABLE_PLAYERBOTS
+        // Don't apply extra fall damage on bots
+        if (!player->isRealPlayer())
+        {
+            return defaultVal;
+        }
+#endif
+
         return 0.0055f * zdist * zdist * sWorld.getConfig(CONFIG_FLOAT_IMMERSIVE_FALL_DAMAGE_MULT);
     }
 
