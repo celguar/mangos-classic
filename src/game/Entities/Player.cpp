@@ -20320,7 +20320,7 @@ void Player::HandleFall(MovementInfo const& movementInfo)
         int32 safe_fall = GetTotalAuraModifier(SPELL_AURA_SAFE_FALL);
 
         float damageperc = 0.018f * (z_diff - safe_fall) - 0.2426f;
-        damageperc = sImmersive.GetFallDamage(z_diff - safe_fall, damageperc);
+        damageperc = sImmersive.GetFallDamage(this, z_diff - safe_fall, damageperc);
 
 #ifdef USE_ACHIEVEMENTS
         uint32 final_damage = 0;
