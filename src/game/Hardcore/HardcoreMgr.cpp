@@ -385,8 +385,8 @@ bool HardcorePlayerLoot::Create()
         // Generate loot table with the current player's gear
         std::vector<HardcoreLootItem> playerLoot;
 
-        // Hearthstone, Earth Totem, Fire Totem, Water Totem, Air Totem
-        std::set<uint32> ignoreItems = { 6948, 5175, 5176, 5177, 5178 };
+        // Hearthstone, Earth Totem, Fire Totem, Water Totem, Air Totem, Ankh
+        std::set<uint32> ignoreItems = { 6948, 5175, 5176, 5177, 5178, 17030 };
 
         auto AddItem = [&player, &ignoreItems](uint8 bag, uint8 slot, std::vector<HardcoreLootItem>& outItems)
         {
