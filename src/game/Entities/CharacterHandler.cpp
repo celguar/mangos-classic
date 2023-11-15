@@ -251,7 +251,6 @@ class CharacterHandler
 
             ObjectGuid guid = ((LoginQueryHolder*)holder)->GetGuid();
             session->HandlePlayerLogin((LoginQueryHolder*)holder);
-
             Player* player = session->GetPlayer();
             if (player)
             {
