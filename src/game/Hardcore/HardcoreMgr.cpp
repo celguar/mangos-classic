@@ -975,6 +975,36 @@ void HardcoreMgr::OnPlayerReleaseSpirit(Player* player, bool teleportedToGraveya
     {
         player->ResurrectPlayer(1.0f);
         player->SpawnCorpseBones();
+
+        // Apply temporary immune aura
+        const SpellEntry* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(1020);
+        if (spellInfo)
+        {
+            SpellAuraHolder* holder = CreateSpellAuraHolder(spellInfo, player, player);
+            for (uint32 i = 0; i < MAX_EFFECT_INDEX; ++i)
+            {
+                uint8 eff = spellInfo->Effect[i];
+                if (eff >= MAX_SPELL_EFFECTS)
+                {
+                    continue;
+                }
+
+                if (IsAreaAuraEffect(eff) ||
+                    eff == SPELL_EFFECT_APPLY_AURA ||
+                    eff == SPELL_EFFECT_PERSISTENT_AREA_AURA)
+                {
+                    int32 basePoints = spellInfo->CalculateSimpleValue(SpellEffectIndex(i));
+                    int32 damage = basePoints;
+                    Aura* aur = CreateAura(spellInfo, SpellEffectIndex(i), &damage, &basePoints, holder, player);
+                    holder->AddAura(aur, SpellEffectIndex(i));
+                }
+            }
+
+            if (!player->AddSpellAuraHolder(holder))
+            {
+                delete holder;
+            }
+        }
     }
 }
 
