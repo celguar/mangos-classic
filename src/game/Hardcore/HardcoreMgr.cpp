@@ -1366,7 +1366,7 @@ bool HardcoreMgr::CanRevive(Player* player /*= nullptr*/)
         {
             const bool isBot = !player->isRealPlayer();
             const bool inBG = player->InBattleGround() || player->InArena();
-            return !isBot && !inBG;
+            return isBot || inBG;
         }
     }
 
