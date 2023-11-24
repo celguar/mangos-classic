@@ -554,6 +554,9 @@ bool HardcorePlayerLoot::Create()
                 float z = playerZ;
                 float o = atan2(y - playerY, x - playerX);
 
+                // Check if the height coordinate is valid
+                player->UpdateAllowedPositionZ(x, y, z);
+
                 // Increment the angle for the next point
                 angle += angleIncrement;
 
@@ -853,9 +856,12 @@ void HardcorePlayerGrave::Create()
         // Create the game objects
         const float x = player->GetPositionX();
         const float y = player->GetPositionY();
-        const float z = player->GetPositionZ();
+        float z = player->GetPositionZ();
         const float o = player->GetOrientation();
         const uint32 mapId = player->GetMapId();
+
+        // Check if the height coordinate is valid
+        player->UpdateAllowedPositionZ(x, y, z);
 
         HardcoreGraveGameObject& gameObject = m_gameObjects.emplace_back(std::move(HardcoreGraveGameObject::Create(m_playerId, m_gameObjectEntry, x, y, z, o, mapId)));
         gameObject.Spawn();
