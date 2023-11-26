@@ -3791,7 +3791,7 @@ void ObjectMgr::SetCityRanks()
 
     for (uint8 i = 1; i < MAX_RACES; ++i)
     {
-        QueryResult* result = CharacterDatabase.PQuery("SELECT `guid`, `honor_standing` FROM `characters` WHERE `honor_standing` > 0 and `race` = %u ORDER BY `honor_standing` ASC LIMIT 1", i);
+        auto result = CharacterDatabase.PQuery("SELECT `guid`, `honor_standing` FROM `characters` WHERE `honor_standing` > 0 and `race` = %u ORDER BY `honor_standing` ASC LIMIT 1", i);
 
         if (result)
         {
@@ -3803,7 +3803,6 @@ void ObjectMgr::SetCityRanks()
 
                 highestStandingInRace[i] = std::make_pair(guid, honorStanding);
             } while (result->NextRow());
-            delete result;
         }
     }
 
