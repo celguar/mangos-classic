@@ -648,7 +648,7 @@ void Map::MessageBroadcast(WorldObject const* obj, WorldPacket const& msg)
     cell.Visit(p, message, *this, *obj, obj->GetVisibilityData().GetVisibilityDistance());
 }
 
-void Map::ThreatMessageBroadcast(WorldObject const* obj, std::string const& msg)
+void Map::ThreatMessageBroadcast(WorldObject const* obj, std::string const& msg, bool newClient)
 {
     CellPair p = MaNGOS::ComputeCellPair(obj->GetPositionX(), obj->GetPositionY());
 
@@ -666,7 +666,7 @@ void Map::ThreatMessageBroadcast(WorldObject const* obj, std::string const& msg)
 
     // TODO: currently on continents when Visibility.Distance.InFlight > Visibility.Distance.Continents
     // we have alot of blinking mobs because monster move packet send is broken...
-    MaNGOS::ObjectThreatMessageDeliverer post_man(msg);
+    MaNGOS::ObjectThreatMessageDeliverer post_man(msg, newClient);
     TypeContainerVisitor<MaNGOS::ObjectThreatMessageDeliverer, WorldTypeMapContainer > message(post_man);
     cell.Visit(p, message, *this, *obj, obj->GetVisibilityData().GetVisibilityDistance());
 }

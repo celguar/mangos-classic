@@ -91,7 +91,8 @@ namespace MaNGOS
     struct ObjectThreatMessageDeliverer
     {
         std::string const& i_message;
-        explicit ObjectThreatMessageDeliverer(std::string const& msg) : i_message(msg) {}
+        bool const& i_newClient;
+        explicit ObjectThreatMessageDeliverer(std::string const& msg, bool const& newClient) : i_message(msg), i_newClient(newClient) {}
         void Visit(CameraMapType& m);
         template<class SKIP> void Visit(GridRefManager<SKIP>&) {}
     };

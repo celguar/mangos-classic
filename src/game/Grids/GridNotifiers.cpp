@@ -158,7 +158,12 @@ void ObjectThreatMessageDeliverer::Visit(CameraMapType& m)
     for (auto& iter : m)
     {
         if (Player* player = iter.getSource()->GetOwner())
+        {
+            if (player->GetSession()->GetOS() == CLIENT_OS_MAC && !i_newClient)
+                continue;
+
             player->SendThreatMessageToPlayer(i_message);
+        }
     }
 }
 

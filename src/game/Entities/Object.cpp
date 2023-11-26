@@ -1917,11 +1917,11 @@ void WorldObject::SendMessageToSet(WorldPacket const& data, bool /*bToSelf*/) co
         GetMap()->MessageBroadcast(this, data);
 }
 
-void WorldObject::SendMessageToSet(std::string const& data, bool /*bToSelf*/) const
+void WorldObject::SendMessageToSet(std::string const& data, bool newClient) const
 {
     // if object is in world, map for it already created!
     if (IsInWorld())
-        GetMap()->ThreatMessageBroadcast(this, data);
+        GetMap()->ThreatMessageBroadcast(this, data, newClient);
 }
 
 void WorldObject::SendMessageToSetInRange(WorldPacket const& data, float dist, bool /*bToSelf*/) const
