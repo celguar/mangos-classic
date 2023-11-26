@@ -594,13 +594,12 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recv_data)
 
     WorldPacket data(SMSG_CHARACTER_LOGIN_FAILED, 1);
 
-    QueryResult* result = CharacterDatabase.PQuery("SELECT map FROM characters WHERE guid = '%u'", playerGuid.GetCounter());
+    auto result = CharacterDatabase.PQuery("SELECT map FROM characters WHERE guid = '%u'", playerGuid.GetCounter());
     if (result)
     {
         int32 mapId = -1;
         Field* fields = result->Fetch();
         mapId = fields[0].GetUInt32();
-        delete result;
 
         if (mapId != -1 && (mapId == 0 || mapId == 1) && sMapMgr.IsContinentCrashed((uint32)mapId))
         {
@@ -722,13 +721,12 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 {
     ObjectGuid playerGuid = holder->GetGuid();
 
-    QueryResult* result = CharacterDatabase.PQuery("SELECT map FROM characters WHERE guid = %u", playerGuid.GetCounter());
+    auto result = CharacterDatabase.PQuery("SELECT map FROM characters WHERE guid = %u", playerGuid.GetCounter());
     if (result)
     {
         int32 mapId = -1;
         Field* fields = result->Fetch();
         mapId = fields[0].GetUInt32();
-        delete result;
 
         if (mapId != -1 && (mapId == 0 || mapId == 1) && sMapMgr.IsContinentCrashed((uint32)mapId))
         {

@@ -263,7 +263,7 @@ void MapManager::Update(uint32 diff)
                     sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Deactivating...", mapId, mapName.c_str());
                     i_maps.erase(iter);
                     sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Restarting...", mapId, mapName.c_str());
-                    Map* m = new WorldMap(mapId, i_gridCleanUpDelay);
+                    Map* m = new WorldMap(mapId, i_gridCleanUpDelay, 0);
                     i_maps[MapID(mapId)] = m;
                     m->Initialize();
                     SetMapCrashStatus(mapId, instanceId, MAP_CRASH_NOCRASH);
