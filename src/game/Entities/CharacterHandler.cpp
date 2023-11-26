@@ -1096,12 +1096,12 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 
     ObjectGuid playerGUID = _player->GetObjectGuid();
     sTransmogrification->entryMap.erase(playerGUID);
-    QueryResult* xmog = CharacterDatabase.PQuery("SELECT GUID, FakeEntry FROM custom_transmogrification WHERE Owner = %u", _player->GetObjectGuid());
+    auto xmog = CharacterDatabase.PQuery("SELECT GUID, FakeEntry FROM custom_transmogrification WHERE Owner = %u", _player->GetObjectGuid());
     if (xmog)
     {
         do
         {
-            const ObjectGuid itemGUID = ObjectGuid(HIGHGUID_ITEM, (xmog[0][0].GetUInt32()));
+            const ObjectGuid itemGUID = ObjectGuid(HIGHGUID_ITEM, ((*xmog)[0].GetUInt32()));
             uint32 fakeEntry = (*xmog)[1].GetUInt32();
             if (sObjectMgr.GetItemPrototype(fakeEntry))
             {
@@ -1120,8 +1120,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
             if (Item* item = _player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
                 _player->SetVisibleItemSlot(slot, item);
         }
-
-        delete xmog;
     }
 
 #ifdef PRESETS
