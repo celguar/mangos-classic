@@ -31,13 +31,13 @@ std::array<LfgRoles, 3> PotentialRoles =
     PLAYER_ROLE_DAMAGE
 };
 
-void LFGPlayerQueueInfo::CalculateRoles(Classes playerClass)
+void LFGPlayerQueueInfo::CalculateRoles(Classes plrClass)
 {
-    roleMask = LFGMgr::CalculateRoles(playerClass);
+    roleMask = LFGMgr::CalculateRoles(plrClass);
 
     // Determine role priority
     for (LfgRoles role : PotentialRoles)
-        rolePriority.emplace_back(std::pair<LfgRoles, LfgRolePriority>(role, LFGMgr::GetPriority(playerClass, role)));
+        rolePriority.emplace_back(role, LFGMgr::GetPriority(plrClass, role));
 }
 
 void LFGPlayerQueueInfo::CalculateTalentRoles(Player* player)
@@ -46,7 +46,7 @@ void LFGPlayerQueueInfo::CalculateTalentRoles(Player* player)
 
     // Determine role priority
     for (LfgRoles role : PotentialRoles)
-        rolePriority.emplace_back(std::pair<LfgRoles, LfgRolePriority>(role, LFGMgr::GetPriority(Classes(player->getClass()), role)));
+        rolePriority.emplace_back(role, LFGMgr::GetPriority(Classes(player->getClass()), role));
 }
 
 LfgRolePriority LFGPlayerQueueInfo::GetRolePriority(LfgRoles role)
@@ -246,7 +246,12 @@ void LFGQueue::UpdateGroup(LFGGroupQueueInfo const& groupInfo, bool join, Object
     existingGroupInfo = groupInfo;
 
     if (groupInfo.playerCount == 5)
+    {
+        if (sWorld.getConfig(CONFIG_BOOL_LFG_TELEPORT))
+            TeleportGroupToStone(groupId, groupInfo.areaId);
+
         RemoveGroupFromQueue(groupId, GROUP_SYSTEM_LEAVE);
+    }
 }
 
 void LFGQueue::AddGroup(LFGGroupQueueInfo const& groupInfo, uint32 groupId)
@@ -573,15 +578,16 @@ MeetingStoneSet LFGQueue::GetDungeonsForPlayer(Player* player)
     return list;
 }
 
-void LFGQueue::TeleportGroupToStone(Group* grp, uint32 areaId)
+void LFGQueue::TeleportGroupToStone(uint32 groupId, uint32 areaId)
 {
+    Group* grp = sObjectMgr.GetGroupById(groupId);
     if (!grp)
         return;
 
     // custom teleport to dungeon
-    for (MeetingStonesMap::iterator it = m_MeetingStonesMap.begin(); it != m_MeetingStonesMap.end(); ++it)
+    for (auto & it : m_MeetingStonesMap)
     {
-        MeetingStoneInfo data = it->second;
+        MeetingStoneInfo data = it.second;
         if (data.area != areaId)
             continue;
 
@@ -655,11 +661,11 @@ void LFGQueue::TeleportGroupToStone(Group* grp, uint32 areaId)
                 } while (!foundPoint && attempts < 10);
 
                 member->SetSummonPoint(data.mapId, x, y, z, grp->GetLeaderGuid());
-                WorldPacket data(SMSG_SUMMON_REQUEST, 8 + 4 + 4);
-                data << grp->GetLeaderGuid();                               // summoner guid
-                data << uint32(entry->zone != 0 ? entry->zone : entry->ID); // summoner zone
-                data << uint32(MAX_PLAYER_SUMMON_DELAY * IN_MILLISECONDS);  // auto decline after msecs
-                member->GetSession()->SendPacket(data);
+                WorldPacket summon(SMSG_SUMMON_REQUEST, 8 + 4 + 4);
+                summon << grp->GetLeaderGuid();                               // summoner guid
+                summon << uint32(entry->zone != 0 ? entry->zone : entry->ID); // summoner zone
+                summon << uint32(MAX_PLAYER_SUMMON_DELAY * IN_MILLISECONDS);  // auto decline after msecs
+                member->GetSession()->SendPacket(summon);
             }
         }
     }
