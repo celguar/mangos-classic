@@ -75,7 +75,7 @@ HardcoreLootGameObject HardcoreLootGameObject::Load(uint32 id, uint32 playerId)
     float positionX, positionY, positionZ, orientation;
 
     // Load the gameobject info
-    QueryResult* result = CharacterDatabase.PQuery("SELECT loot_id, loot_table, money, position_x, position_y, position_z, orientation, map FROM custom_hardcore_loot_gameobjects WHERE id = '%d'", id);
+    auto result = CharacterDatabase.PQuery("SELECT loot_id, loot_table, money, position_x, position_y, position_z, orientation, map FROM custom_hardcore_loot_gameobjects WHERE id = '%d'", id);
     if (result)
     {
         Field* fields = result->Fetch();
@@ -87,10 +87,9 @@ HardcoreLootGameObject HardcoreLootGameObject::Load(uint32 id, uint32 playerId)
         positionZ = fields[5].GetFloat();
         orientation = fields[6].GetFloat();
         mapId = fields[7].GetUInt32();
-        delete result;
 
         // Load the gameobject items from the custom_hardcore_loot_tables
-        QueryResult* result2 = CharacterDatabase.PQuery("SELECT item, amount, random_property_id, durability, enchantments FROM custom_hardcore_loot_tables WHERE id = '%d'", lootTableId);
+        auto result2 = CharacterDatabase.PQuery("SELECT item, amount, random_property_id, durability, enchantments FROM custom_hardcore_loot_tables WHERE id = '%d'", lootTableId);
         if (result2)
         {
             do
@@ -104,7 +103,6 @@ HardcoreLootGameObject HardcoreLootGameObject::Load(uint32 id, uint32 playerId)
                 items.emplace_back(itemId, amount, randomPropertyId, durability, enchantments);
             } 
             while (result2->NextRow());
-            delete result2;
         }
     }
 
@@ -115,22 +113,20 @@ HardcoreLootGameObject HardcoreLootGameObject::Create(uint32 playerId, uint32 lo
 {
     // Generate valid loot table id
     uint32 newLootTableId = 1;
-    QueryResult* result = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_loot_tables ORDER BY id DESC LIMIT 1");
+    auto result = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_loot_tables ORDER BY id DESC LIMIT 1");
     if (result)
     {
         Field* fields = result->Fetch();
         newLootTableId = fields[0].GetUInt32() + 1;
-        delete result;
     }
 
     // Generate valid game object id
     uint32 newGOId = 1;
-    QueryResult* result3 = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_loot_gameobjects ORDER BY id DESC LIMIT 1");
+    auto result3 = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_loot_gameobjects ORDER BY id DESC LIMIT 1");
     if (result3)
     {
         Field* fields = result3->Fetch();
         newGOId = fields[0].GetUInt32() + 1;
-        delete result3;
     }
 
     // Create loot table in custom_hardcore_loot_tables and gameobject_loot_template
@@ -609,7 +605,7 @@ HardcoreGraveGameObject HardcoreGraveGameObject::Load(uint32 id)
     uint32 gameObjectEntry, playerId, mapId;
     float positionX, positionY, positionZ, orientation;
 
-    QueryResult* result = CharacterDatabase.PQuery("SELECT player, gameobject_template, position_x, position_y, position_z, orientation, map FROM custom_hardcore_grave_gameobjects WHERE id = '%d'", id);
+    auto result = CharacterDatabase.PQuery("SELECT player, gameobject_template, position_x, position_y, position_z, orientation, map FROM custom_hardcore_grave_gameobjects WHERE id = '%d'", id);
     if (result)
     {
         Field* fields = result->Fetch();
@@ -620,7 +616,6 @@ HardcoreGraveGameObject HardcoreGraveGameObject::Load(uint32 id)
         positionZ = fields[4].GetFloat();
         orientation = fields[5].GetFloat();
         mapId = fields[6].GetUInt32();
-        delete result;
     }
 
     return HardcoreGraveGameObject(id, gameObjectEntry, playerId, positionX, positionY, positionZ, orientation, mapId);
@@ -630,12 +625,11 @@ HardcoreGraveGameObject HardcoreGraveGameObject::Create(uint32 playerId, uint32 
 {
     // Generate valid game object id
     uint32 newGameObjectId = 1;
-    QueryResult* result = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_grave_gameobjects ORDER BY id DESC LIMIT 1");
+    auto result = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_grave_gameobjects ORDER BY id DESC LIMIT 1");
     if (result)
     {
         Field* fields = result->Fetch();
         newGameObjectId = fields[0].GetUInt32() + 1;
-        delete result;
     }
 
     CharacterDatabase.DirectPExecute("INSERT INTO custom_hardcore_grave_gameobjects (id, player, gameobject_template, position_x, position_y, position_z, orientation, map) VALUES ('%d', '%d', '%d', '%f', '%f', '%f', '%f', '%d')",
@@ -779,7 +773,7 @@ HardcorePlayerGrave::HardcorePlayerGrave(uint32 playerId, uint32 gameObjectEntry
 HardcorePlayerGrave HardcorePlayerGrave::Load(uint32 playerId, uint32 gameObjectEntry)
 {
     std::vector<HardcoreGraveGameObject> gameObjects;
-    QueryResult* result = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_grave_gameobjects WHERE player = '%d'", playerId);
+    auto result = CharacterDatabase.PQuery("SELECT id FROM custom_hardcore_grave_gameobjects WHERE player = '%d'", playerId);
     if (result)
     {
         do 
@@ -789,7 +783,6 @@ HardcorePlayerGrave HardcorePlayerGrave::Load(uint32 playerId, uint32 gameObject
             gameObjects.push_back(std::move(HardcoreGraveGameObject::Load(gameObjectId)));
         } 
         while (result->NextRow());
-        delete result;
     }
 
     return HardcorePlayerGrave(playerId, gameObjectEntry, gameObjects);
@@ -799,12 +792,11 @@ HardcorePlayerGrave HardcorePlayerGrave::Generate(uint32 playerId, const std::st
 {
     // Generate valid game object entry
     uint32 newGameObjectEntry = 0;
-    QueryResult* result = WorldDatabase.PQuery("SELECT entry FROM gameobject_template ORDER BY entry DESC LIMIT 1");
+    auto result = WorldDatabase.PQuery("SELECT entry FROM gameobject_template ORDER BY entry DESC LIMIT 1");
     if (result)
     {
         Field* fields = result->Fetch();
         newGameObjectEntry = fields[0].GetUInt32() + 1;
-        delete result;
     }
 
     if (newGameObjectEntry)
@@ -1013,7 +1005,7 @@ void HardcoreMgr::PreLoadLoot()
     if (ShouldDropLoot())
     {
         // Load the loot game objects and loot tables
-        QueryResult* result = CharacterDatabase.Query("SELECT id, player, loot_id FROM custom_hardcore_loot_gameobjects");
+        auto result = CharacterDatabase.Query("SELECT id, player, loot_id FROM custom_hardcore_loot_gameobjects");
         if (result)
         {
             do
@@ -1043,7 +1035,6 @@ void HardcoreMgr::PreLoadLoot()
                 playerLoot.LoadGameObject(gameObjectId);
             }
             while (result->NextRow());
-            delete result;
         }
     }
 }
@@ -1126,12 +1117,11 @@ void HardcoreMgr::CreateLoot(Player* player, Unit* killer)
 
         // Generate valid loot id
         uint32 newLootId = 1;
-        QueryResult* result = CharacterDatabase.PQuery("SELECT loot_id FROM custom_hardcore_loot_gameobjects WHERE player = '%d' ORDER BY loot_id DESC LIMIT 1", playerId);
+        auto result = CharacterDatabase.PQuery("SELECT loot_id FROM custom_hardcore_loot_gameobjects WHERE player = '%d' ORDER BY loot_id DESC LIMIT 1", playerId);
         if (result)
         {
             Field* fields = result->Fetch();
             newLootId = fields[0].GetUInt32() + 1;
-            delete result;
         }
 
         // Generate new loot
@@ -1474,7 +1464,7 @@ void HardcoreMgr::PreLoadGraves()
     if (ShouldSpawnGrave())
     {
         // Load player graves from custom_hardcore_grave_gameobjects
-        QueryResult* result = WorldDatabase.PQuery("SELECT entry, data10 FROM gameobject_template WHERE type = '%d' AND CustomData1 = '%d'", 2, 3643);
+        auto result = WorldDatabase.PQuery("SELECT entry, data10 FROM gameobject_template WHERE type = '%d' AND CustomData1 = '%d'", 2, 3643);
         if (result)
         {
             do
@@ -1490,7 +1480,6 @@ void HardcoreMgr::PreLoadGraves()
                 }
             }
             while (result->NextRow());
-            delete result;
         }
 
         // Check for missing gravestones for characters
@@ -1499,7 +1488,7 @@ void HardcoreMgr::PreLoadGraves()
         {
             std::string botPrefix = config.GetStringDefault("AiPlayerbot.RandomBotAccountPrefix", "rndbot");
             std::transform(botPrefix.begin(), botPrefix.end(), botPrefix.begin(), ::toupper);
-            QueryResult* result2 = CharacterDatabase.Query("SELECT guid, account, name FROM characters");
+            auto result2 = CharacterDatabase.Query("SELECT guid, account, name FROM characters");
             if (result2)
             {
                 do
@@ -1514,13 +1503,12 @@ void HardcoreMgr::PreLoadGraves()
                     {
                         // Check if the player is not a bot
                         bool isBot = true;
-                        QueryResult* result3 = LoginDatabase.PQuery("SELECT username FROM account WHERE id = '%d'", playerAccountId);
+                        auto result3 = LoginDatabase.PQuery("SELECT username FROM account WHERE id = '%d'", playerAccountId);
                         if (result3)
                         {
                             Field* fields3 = result3->Fetch();
                             const std::string accountName = fields3[0].GetCppString();
                             isBot = (accountName.find(botPrefix) != std::string::npos);
-                            delete result3;
                         }
 
                         if (!isBot)
@@ -1531,7 +1519,6 @@ void HardcoreMgr::PreLoadGraves()
                     }
                 }
                 while(result2->NextRow());
-                delete result2;
             }
         }
     }
