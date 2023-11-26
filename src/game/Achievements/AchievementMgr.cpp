@@ -695,7 +695,7 @@ void AchievementMgr::SyncAccountAcchievements()
             const bool newCharacterIsAlliance = newCharacterRace == 1 || newCharacterRace == 3 || newCharacterRace == 4 || newCharacterRace == 7 || newCharacterRace == 11;
             
             std::vector<uint32> accountCharacterGuids;
-            QueryResult* result = CharacterDatabase.PQuery("SELECT guid, race FROM `characters` WHERE `account` = '%u' ORDER BY guid", accountId);
+            auto result = CharacterDatabase.PQuery("SELECT guid, race FROM `characters` WHERE `account` = '%u' ORDER BY guid", accountId);
             if (result)
             {
                 do
@@ -709,7 +709,6 @@ void AchievementMgr::SyncAccountAcchievements()
                     }
                 } 
                 while (result->NextRow());
-                delete result;
             }
 
             for (const uint32& characterGuid : accountCharacterGuids)
@@ -745,7 +744,6 @@ void AchievementMgr::SyncAccountAcchievements()
 
                     } 
                     while (result->NextRow());
-                    delete result;
                 }
             }
         }
@@ -755,7 +753,7 @@ void AchievementMgr::SyncAccountAcchievements()
             std::vector<std::pair<uint32, bool>> accountCharacterGuids;
             const uint32 currentCharacterGuid = GetPlayer()->GetGUIDLow();
             const uint32 accountId = GetPlayer()->GetSession()->GetAccountId();
-            QueryResult* result = CharacterDatabase.PQuery("SELECT guid, race FROM `characters` WHERE `account` = '%u'", accountId);
+            auto result = CharacterDatabase.PQuery("SELECT guid, race FROM `characters` WHERE `account` = '%u'", accountId);
             if (result)
             {
                 do
@@ -770,7 +768,6 @@ void AchievementMgr::SyncAccountAcchievements()
                     }
                 } 
                 while (result->NextRow());
-                delete result;
             }
 
             // Sync earned achievements
@@ -895,8 +892,8 @@ void AchievementMgr::SaveToDB()
 
 void AchievementMgr::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder) 
 {
-    QueryResult* achievementResult = holder->GetResult(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS);
-    QueryResult* criteriaResult = holder->GetResult(PLAYER_LOGIN_QUERY_LOAD_CRITERIA_PROGRESS);
+    auto achievementResult = holder->GetResult(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS);
+    auto criteriaResult = holder->GetResult(PLAYER_LOGIN_QUERY_LOAD_CRITERIA_PROGRESS);
 
     if (achievementResult) 
     {
@@ -963,9 +960,6 @@ void AchievementMgr::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
         } 
         while (criteriaResult->NextRow());
     }
-
-    delete achievementResult;
-    delete criteriaResult;
 }
 
 void AchievementMgr::EnableAchiever(uint32 version)
@@ -3834,7 +3828,7 @@ void AchievementGlobalMgr::LoadAchievementCriteriaData()
 
     m_criteriaDataMap.clear();                              // need for reload case
 
-    QueryResult* result = WorldDatabase.Query("SELECT criteria_id, type, value1, value2, ScriptName FROM achievement_criteria_data");
+    auto result = WorldDatabase.Query("SELECT criteria_id, type, value1, value2, ScriptName FROM achievement_criteria_data");
 
     if (!result)
     {
@@ -3886,8 +3880,6 @@ void AchievementGlobalMgr::LoadAchievementCriteriaData()
         ++count;
     } 
     while (result->NextRow());
-
-    delete result;
 
     // post loading checks
     for (uint32 entryId = 0; entryId < sAchievementCriteriaStore.GetMaxEntry(); ++entryId)
@@ -3970,7 +3962,7 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
 {
     uint32 oldMSTime = WorldTimer::getMSTime();
 
-    QueryResult* result = CharacterDatabase.Query("SELECT achievement FROM character_achievement GROUP BY achievement");
+    auto result = CharacterDatabase.Query("SELECT achievement FROM character_achievement GROUP BY achievement");
 
     // Populate _allCompletedAchievements with all realm first achievement ids to make multithreaded access safer
     // while it will not prevent races, it will prevent crashes that happen because std::unordered_map key was added
@@ -4010,8 +4002,6 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
     } 
     while (result->NextRow());
 
-    delete result;
-
     sLog.outBasic(">> Loaded %lu completed achievements in %u ms", (unsigned long)m_allCompletedAchievements.size(), WorldTimer::getMSTimeDiff(oldMSTime, WorldTimer::getMSTime()));
 }
 
@@ -4022,7 +4012,7 @@ void AchievementGlobalMgr::LoadRewards()
     m_achievementRewards.clear();                           // need for reload case
 
     //                                               0      1        2        3     4       5        6     7
-    QueryResult* result = WorldDatabase.Query("SELECT ID, TitleA, TitleH, ItemID, Sender, Subject, Body, MailTemplateID FROM achievement_reward");
+    auto result = WorldDatabase.Query("SELECT ID, TitleA, TitleH, ItemID, Sender, Subject, Body, MailTemplateID FROM achievement_reward");
 
     if (!result)
     {
@@ -4135,8 +4125,6 @@ void AchievementGlobalMgr::LoadRewards()
     } 
     while (result->NextRow());
 
-    delete result;
-
     sLog.outBasic(">> Loaded %u achievement rewards in %u ms", count, WorldTimer::getMSTimeDiff(oldMSTime, WorldTimer::getMSTime()));
 }
 
@@ -4147,7 +4135,7 @@ void AchievementGlobalMgr::LoadRewardLocales()
     m_achievementRewardLocales.clear();                       // need for reload case
 
     //                                               0   1       2        3
-    QueryResult* result = WorldDatabase.Query("SELECT ID, Locale, Subject, Text FROM achievement_reward_locale");
+    auto result = WorldDatabase.Query("SELECT ID, Locale, Subject, Text FROM achievement_reward_locale");
 
     if (!result)
     {
@@ -4176,8 +4164,6 @@ void AchievementGlobalMgr::LoadRewardLocales()
         // ObjectMgr::AddLocaleString(fields[3].GetString(), locale, data.Text);
     } 
     while (result->NextRow());
-
-    delete result;
 
     sLog.outBasic(">> Loaded %lu Achievement Reward Locale strings in %u ms", (unsigned long)m_achievementRewardLocales.size(), WorldTimer::getMSTimeDiff(oldMSTime, WorldTimer::getMSTime()));
 }
