@@ -555,7 +555,7 @@ uint32 Immersive::GetValue(uint32 owner, string type)
 
     if (!value)
     {
-        QueryResult* results = CharacterDatabase.PQuery(
+        auto results = CharacterDatabase.PQuery(
                 "select `value` from immersive_values where owner = '%u' and `type` = '%s'",
                 owner, type.c_str());
 
@@ -565,8 +565,6 @@ uint32 Immersive::GetValue(uint32 owner, string type)
             value = fields[0].GetUInt32();
             valueCache[owner][type] = value;
         }
-
-        delete results;
     }
 
     return value;
