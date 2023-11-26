@@ -38,7 +38,7 @@ struct LFGPlayerQueueInfo
     uint8 playerClass;
     std::list<std::pair<LfgRoles, LfgRolePriority>> rolePriority;
 
-    void CalculateRoles(Classes playerClass);
+    void CalculateRoles(Classes plrClass);
     void CalculateTalentRoles(Player* player);
     LfgRolePriority GetRolePriority(LfgRoles role);
 };
