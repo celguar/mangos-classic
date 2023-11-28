@@ -155,6 +155,35 @@ void ObjectMessageDeliverer::Visit(CameraMapType& m)
 
 void ObjectThreatMessageDeliverer::Visit(CameraMapType& m)
 {
+    // Extract the locale names from the string
+    std::map<int32, std::string> localeNames;
+    size_t localeNamesStartPos = 0;
+    size_t localeNamesEndPos = 0;
+    const bool localizeName = i_message.find("localize_name") != std::string::npos;
+    if (localizeName)
+    {
+        localeNamesStartPos = i_message.find("localize_name["); localeNamesStartPos += 14;
+        localeNamesEndPos = i_message.find("]", localeNamesStartPos);
+        std::string content = i_message.substr(localeNamesStartPos, localeNamesEndPos - localeNamesStartPos);
+        
+        size_t pos = 0;
+        while ((pos = content.find(";")) != std::string::npos) 
+        {
+            std::string substring = content.substr(0, pos);
+            size_t dash_pos = substring.find("_");
+            if (dash_pos != std::string::npos) 
+            {
+                int id = std::stoi(substring.substr(0, dash_pos));
+                std::string value = substring.substr(dash_pos + 1);
+                localeNames[id] = value;
+            }
+
+            content.erase(0, pos + 1);
+        }
+
+        localeNamesStartPos -= 14;
+    }
+
     for (auto& iter : m)
     {
         if (Player* player = iter.getSource()->GetOwner())
@@ -162,7 +191,16 @@ void ObjectThreatMessageDeliverer::Visit(CameraMapType& m)
             if (player->GetSession()->GetOS() == CLIENT_OS_MAC && !i_newClient)
                 continue;
 
-            player->SendThreatMessageToPlayer(i_message);
+            // Replace the unit name with the player locale
+
+            std::string message = i_message;
+            if (localizeName)
+            {
+                const int32 localeIdx = player->GetSession()->GetSessionDbLocaleIndex();
+                message.replace(localeNamesStartPos, localeNamesEndPos - localeNamesStartPos + 1, localeNames[localeIdx]);
+            }
+
+            player->SendThreatMessageToPlayer(message);
         }
     }
 }
