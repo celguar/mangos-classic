@@ -56,6 +56,8 @@ namespace immersive
         void OnGossipHello(Player* player, Creature* creature);
         void CheckScaleChange(Player* player);
         static std::string FormatString(const char* format, ...);
+        void Update(uint32 elapsed);
+        void Init();
 
     private:
         void PrintHelp(Player *player, bool detailed = false, bool help = false);
@@ -67,6 +69,7 @@ namespace immersive
         void CastPortal(Player *player, bool meetingStone = false);
         void SendMessage(Player *player, string message);
         uint32 CalculateEffectiveChanceDelta(const Unit* unit);
+        void DisableOfflineRespawn();
 
     private:
         uint32 GetUsedStats(Player *player);
@@ -82,6 +85,7 @@ namespace immersive
     private:
         static map<Stats, string> statValues;
         map<uint32, map<string, uint32> > valueCache;
+        uint32 updateDelay;
     };
 }
 

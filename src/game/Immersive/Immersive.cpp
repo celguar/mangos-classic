@@ -1112,4 +1112,51 @@ void Immersive::CheckScaleChange(Player* player)
     }
 }
 
+void Immersive::Update(uint32 elapsed)
+{
+    if (updateDelay > elapsed)
+    {
+        updateDelay -= elapsed;
+        return;
+    }
+    
+    updateDelay = sWorld.getConfig(CONFIG_UINT32_INTERVAL_SAVE);
+    
+    if (sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN)) 
+    {
+        SetValue(0, "last_ping", sWorld.GetGameTime());
+    }
+}
+
+void Immersive::Init()
+{
+    updateDelay = sWorld.getConfig(CONFIG_UINT32_INTERVAL_SAVE);
+    
+    if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED)) return;
+    
+    if (sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN)) 
+    {
+        DisableOfflineRespawn();
+    }
+}
+
+void Immersive::DisableOfflineRespawn()
+{
+    uint32 lastPing = GetValue(0, "last_ping");
+    if (!lastPing) return;
+    
+    uint32 offlineTime = sWorld.GetGameTime() - lastPing; 
+    sLog.outString("Prolonging respawn time: +%u sec", offlineTime);
+    
+    CharacterDatabase.BeginTransaction();
+    
+    CharacterDatabase.DirectPExecute("update `creature_respawn` set `respawntime` = `respawntime` + '%u'", offlineTime);
+    CharacterDatabase.DirectPExecute("update `instance_reset` set `resettime` = `resettime` + '%u'", offlineTime);
+    CharacterDatabase.DirectPExecute("update `instance` set `resettime` = `resettime` + '%u'", offlineTime);
+    CharacterDatabase.DirectPExecute("update `gameobject_respawn` set `respawntime` = `respawntime` + '%u'", offlineTime);
+    SetValue(0, "last_ping", sWorld.GetGameTime());
+    
+    CharacterDatabase.CommitTransaction();
+}
+
 INSTANTIATE_SINGLETON_1( immersive::Immersive );

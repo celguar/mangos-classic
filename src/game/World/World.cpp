@@ -85,6 +85,8 @@
 #include "playerbot/RandomPlayerbotMgr.h"
 #endif
 
+#include "Immersive/Immersive.h"
+
 #if USE_ACHIEVEMENTS
 #include "Achievements/AchievementMgr.h"
 #include "Achievements/AchievementScriptMgr.h"
@@ -893,6 +895,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF, "Immersive.SharedXpPercentLevelDiff", 0);
     setConfig(CONFIG_BOOL_IMMERSIVE_SCALE_MOD_WORKAROUND, "Immersive.ScaleModifierWorkaround", false);
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_RANDOM_PCT, "Immersive.SharedRandomPercent", 0);
+    setConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN, "Immersive.DisableOfflineRespawn", 0);
     // End Immersive Config
 
 #ifdef USE_ACHIEVEMENTS
@@ -1045,6 +1048,12 @@ void World::SetInitialWorldSettings()
     {
         sLog.outString("Loading hardcore manager initial config...");
         sHardcoreMgr.PreLoad();
+    }
+
+    if(sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED))
+    {
+        sLog.outString("Initializing Immersive...");
+        sImmersive.Init();
     }
 
     /// load spell_dbc first! dbc's need them
@@ -1832,6 +1841,8 @@ void World::Update(uint32 diff)
     sRandomPlayerbotMgr.UpdateAI(diff);
     sRandomPlayerbotMgr.UpdateSessions(diff);
 #endif
+    
+    sImmersive.Update(diff);
 
     /// <li> Handle session updates
 #ifdef BUILD_METRICS
