@@ -2222,6 +2222,15 @@ Achievements.EffectId = 146
 #   Immersive.SharedRandomPercent
 #       Default: 0
 #
+#   Immersive.DisableOfflineRespawn
+#       Creature/GO respawn and instance reset timers tick only if the server is up. 
+#       Allows the player to take a break in a dungeon, shutdown the server and continue later on from the same point. 
+#       Recommended to set:
+#         Instance.ResetTimeHour to a latter hour (e.g. 23 to work) 
+#         Instance.DisableRelocate = 1 to prevent player to be teleported to the entrance 
+#         PlayerSave.Interval = 60000 to save progress more often
+#       Default: 0
+#
 ###################################################################################################################
 
 Immersive.Enable = 0
@@ -2245,6 +2254,7 @@ Immersive.FallDamageMultiplier = 1.0
 Immersive.SharedXpPercentLevelDiff = 0
 Immersive.ScaleModifierWorkaround = 0
 Immersive.SharedRandomPercent = 0
+Immersive.DisableOfflineRespawn = 0
 
 ###################################################################################################################
 # NETWORK CONFIG
