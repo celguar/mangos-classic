@@ -469,7 +469,7 @@ UPDATE `achievement_dbc` SET `Title_Lang_esES`='Centinela Ala de Plata', `Descri
 UPDATE `achievement_dbc` SET `Title_Lang_esES`='El conquistador', `Description_Lang_esES`='Eleva tu nivel de reputación en la Garganta Grito de Guerra, la Cuenca de Arathi y el Valle de Alterac a Exaltado.' WHERE `ID`=714;
 UPDATE `achievement_dbc` SET `Title_Lang_esES`='Naxxramas', `Description_Lang_esES`='Derrota a Kel\'Thuzad' WHERE `ID`=715;
 UPDATE `achievement_dbc` SET `Title_Lang_esES`='Maestro Cultural de Durotar', `Description_Lang_esES`='Completa 46 misiones en Durotar.' WHERE `ID`=716;
-UPDATE `achievement_dbc` SET `Title_Lang_esES`='Maestro Cultural de Mulgore', `Description_Lang_esES`='Completa 36 misiones en Mulgore.' WHERE `ID`=717;
+UPDATE `achievement_dbc` SET `Title_Lang_esES`='Maestro Cultural de Mulgore', `Description_Lang_esES`='Completa 35 misiones en Mulgore.' WHERE `ID`=717;
 UPDATE `achievement_dbc` SET `Title_Lang_esES`='Maestro Cultural de Los Baldíos', `Description_Lang_esES`='Completa 98 misiones en Los Baldíos.' WHERE `ID`=718;
 UPDATE `achievement_dbc` SET `Title_Lang_esES`='Maestro Cultural de Mil Agujas', `Description_Lang_esES`='Completa 52 misiones en Mil Agujas.' WHERE `ID`=719;
 UPDATE `achievement_dbc` SET `Title_Lang_esES`='Maestro Cultural de Tanaris', `Description_Lang_esES`='Completa 76 misiones en Tanaris.' WHERE `ID`=720;
