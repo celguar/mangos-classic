@@ -142,6 +142,9 @@ void LFGQueue::Update()
 
                 if (qGroup->second.playerCount == 5)
                 {
+                    if (sWorld.getConfig(CONFIG_BOOL_LFG_TELEPORT))
+                        TeleportGroupToStone(qGroup->first, qGroup->second.areaId);
+
                     RemoveGroupFromQueue(qGroup->first, GROUP_SYSTEM_LEAVE);
                     break;
                 }
@@ -247,9 +250,6 @@ void LFGQueue::UpdateGroup(LFGGroupQueueInfo const& groupInfo, bool join, Object
 
     if (groupInfo.playerCount == 5)
     {
-        if (sWorld.getConfig(CONFIG_BOOL_LFG_TELEPORT))
-            TeleportGroupToStone(groupId, groupInfo.areaId);
-
         RemoveGroupFromQueue(groupId, GROUP_SYSTEM_LEAVE);
     }
 }
