@@ -374,6 +374,10 @@ INSERT INTO `achievement_criteria_dbc` (`ID`, `Achievement_Id`, `Type`, `Asset_I
 -- TBC+ achievements
 UPDATE `achievement_dbc` SET `patch`='1' WHERE `ID` IN (255,288,289,291,292,963,965,966,967,968,969,970,971,972,981,1261);
 
+-- Winter Veil
+-- TBC+ achievements
+UPDATE `achievement_dbc` SET `patch`='1' WHERE `ID` IN (277,1295,1687,1688,1690,4436);
+
 -- Custom
 -- Ironman Challenge
 INSERT INTO `achievement_dbc` (`ID`, `Faction`, `Instance_Id`, `Title_Lang_enUS`, `Title_Lang_Mask`, `Description_Lang_enUS`, `Description_Lang_Mask`, `Category`, `Points`, `Ui_Order`, `IconID`, `Reward_Lang_Mask`) VALUES ('704', '-1', '-1', 'I Can\'t Believe You Have Done That!', '16712190', 'Reach max level without dying once.', '16712190', '81', '0', '161', '3582', '16712190');
