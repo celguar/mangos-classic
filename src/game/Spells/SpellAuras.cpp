@@ -5955,10 +5955,14 @@ void SpellAuraHolder::SetAuraFlag(uint32 slot, bool add)
         {
             if (!m_spellProto->HasAttribute(SPELL_ATTR_NO_AURA_CANCEL))
                 flags |= AFLAG_CANCELABLE;
-            flags |= AFLAG_UNK3;
         }
-        else
-            flags |= AFLAG_UNK4;
+
+        if (GetAuraByEffectIndex(EFFECT_INDEX_0))
+            flags |= AFLAG_EFF_INDEX_0;
+        if (GetAuraByEffectIndex(EFFECT_INDEX_1))
+            flags |= AFLAG_EFF_INDEX_1;
+        if (GetAuraByEffectIndex(EFFECT_INDEX_2))
+            flags |= AFLAG_EFF_INDEX_2;
 
         val |= (flags << byte);
     }
