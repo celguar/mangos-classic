@@ -734,6 +734,11 @@ void Creature::Update(const uint32 diff)
                         if (uint16 poolid = sPoolMgr.IsPartOfAPool<Creature>(GetDbGuid()))
                             sPoolMgr.UpdatePool<Creature>(*GetMap()->GetPersistentState(), poolid, GetDbGuid());
                 }
+                else
+                {
+                    // Add extra respawn time to prevent checking constantly
+                    SetRespawnTime(m_respawnDelay);
+                }
             }
             break;
         }
