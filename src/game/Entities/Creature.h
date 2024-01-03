@@ -739,6 +739,7 @@ class Creature : public Unit
 
         time_t const& GetRespawnTime() const { return m_respawnTime; }
         time_t GetRespawnTimeEx() const;
+        bool IsManualRespawnScheduled() const { return m_manualRespawn; }
         void SetRespawnTime(uint32 respawn) { m_respawnTime = respawn ? time(nullptr) + respawn : 0; } // do not use this from scripts
         void Respawn();
         void SaveRespawnTime() override;
@@ -904,6 +905,7 @@ class Creature : public Unit
         uint32 m_respawnDelay;                              // (secs) delay between corpse disappearance and respawning
         bool m_respawnOverriden;
         bool m_respawnOverrideOnce;
+        bool m_manualRespawn;
         uint32 m_corpseDelay;                               // (secs) delay between death and corpse disappearance
         TimePoint m_pickpocketRestockTime;                  // (msecs) time point of pickpocket restock
         bool m_canAggro;                                    // controls response of creature to attacks

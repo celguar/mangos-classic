@@ -47,6 +47,7 @@ namespace immersive
         void OnReputationChange(Player* player, FactionEntry const* factionEntry, int32& standing, bool incremental);
         void OnRewardQuest(Player* player, Quest const* quest);
         bool OnFishing(Player* player, bool success);
+        bool CanCreatureRespawn(Creature* creature) const;
         int32 CalculateEffectiveChance(int32 difference, const Unit* attacker, const Unit* victim, ImmersiveEffectiveChance type);
         uint32 GetModifierValue(uint32 owner);
         uint32 GetStatsValue(uint32 owner, Stats type);

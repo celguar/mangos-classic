@@ -2209,6 +2209,10 @@ Achievements.EffectId = 146
 #         PlayerSave.Interval = 60000 to save progress more often
 #       Default: 0
 #
+#   Immersive.DisableInstanceRespawn
+#		Dungeon and raid creatures won't respawn until reset even if the server is down.
+#       Default: 0
+#
 ###################################################################################################################
 
 Immersive.Enable = 0
@@ -2233,6 +2237,7 @@ Immersive.SharedXpPercentLevelDiff = 0
 Immersive.ScaleModifierWorkaround = 0
 Immersive.SharedRandomPercent = 0
 Immersive.DisableOfflineRespawn = 0
+Immersive.DisableInstanceRespawn = 0
 
 ###################################################################################################################
 # NETWORK CONFIG

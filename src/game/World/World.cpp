@@ -884,6 +884,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_BOOL_IMMERSIVE_SCALE_MOD_WORKAROUND, "Immersive.ScaleModifierWorkaround", false);
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_RANDOM_PCT, "Immersive.SharedRandomPercent", 0);
     setConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN, "Immersive.DisableOfflineRespawn", 0);
+    setConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_INSTANCE_RESPAWN, "Immersive.DisableInstanceRespawn", 0);
     // End Immersive Config
 
 #ifdef USE_ACHIEVEMENTS

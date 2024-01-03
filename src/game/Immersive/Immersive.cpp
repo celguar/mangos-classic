@@ -1122,7 +1122,7 @@ void Immersive::Update(uint32 elapsed)
     
     updateDelay = sWorld.getConfig(CONFIG_UINT32_INTERVAL_SAVE);
     
-    if (sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN)) 
+    if (sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN) || sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_INSTANCE_RESPAWN))
     {
         SetValue(0, "last_ping", sWorld.GetGameTime());
     }
@@ -1134,7 +1134,7 @@ void Immersive::Init()
     
     if (!sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED)) return;
     
-    if (sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN)) 
+    if (sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN) || sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_INSTANCE_RESPAWN))
     {
         DisableOfflineRespawn();
     }
@@ -1157,6 +1157,28 @@ void Immersive::DisableOfflineRespawn()
     SetValue(0, "last_ping", sWorld.GetGameTime());
     
     CharacterDatabase.CommitTransaction();
+}
+
+bool Immersive::CanCreatureRespawn(Creature* creature) const
+{
+    if (sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_ENABLED))
+    {
+        // Disable instance creatures respawn 
+        if (sWorld.getConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_INSTANCE_RESPAWN))
+        {
+            // Don't prevent manual respawns to happen
+            if (!creature->IsManualRespawnScheduled())
+            {
+                Map* map = creature->GetMap();
+                if (map && !map->IsBattleGround() && (map->IsDungeon() || map->IsRaid()))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
 }
 
 INSTANTIATE_SINGLETON_1( immersive::Immersive );

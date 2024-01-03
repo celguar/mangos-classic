@@ -48,6 +48,7 @@
 #include "Movement/MoveSplineInit.h"
 #include "Entities/CreatureLinkingMgr.h"
 #include "Maps/SpawnManager.h"
+#include "Immersive/immersive.h"
 
 // apply implementation of the singletons
 #include "Policies/Singleton.h"
@@ -137,7 +138,7 @@ Creature::Creature(CreatureSubtype subtype) : Unit(),
     m_gossipMenuId(0), m_lootMoney(0), m_lootGroupRecipientId(0),
     m_lootStatus(CREATURE_LOOT_STATUS_NONE),
     m_corpseAccelerationDecayDelay(MINIMUM_LOOTING_TIME),
-    m_respawnTime(0), m_respawnDelay(25), m_respawnOverriden(false), m_respawnOverrideOnce(false), m_corpseDelay(60), m_canAggro(false),
+    m_respawnTime(0), m_respawnDelay(25), m_respawnOverriden(false), m_respawnOverrideOnce(false), m_manualRespawn(false), m_corpseDelay(60), m_canAggro(false),
     m_respawnradius(5.0f), m_interactionPauseTimer(0), m_subtype(subtype), m_defaultMovementType(IDLE_MOTION_TYPE),
     m_equipmentId(0), m_detectionRange(20.f), m_AlreadyCallAssistance(false), m_canCallForAssistance(true),
     m_temporaryFactionFlags(TEMPFACTION_NONE),
@@ -699,36 +700,40 @@ void Creature::Update(const uint32 diff)
         {
             if (m_respawnTime <= time(nullptr) && (!m_isSpawningLinked || GetMap()->GetCreatureLinkingHolder()->CanSpawn(this)))
             {
-                DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Respawning...");
-                m_respawnTime = 0;
-                SetCanAggro(false);
-                delete m_loot;
-                m_loot = nullptr;
+                if (sImmersive.CanCreatureRespawn(this))
+                {
+                    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Respawning...");
+                    m_respawnTime = 0;
+                    m_manualRespawn = false;
+                    SetCanAggro(false);
+                    delete m_loot;
+                    m_loot = nullptr;
 
-                // Clear possible auras having IsDeathPersistent() attribute
-                RemoveAllAuras();
+                    // Clear possible auras having IsDeathPersistent() attribute
+                    RemoveAllAuras();
 
-                SetUInt32Value(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_NONE);
-                SetDeathState(JUST_ALIVED);
+                    SetUInt32Value(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_NONE);
+                    SetDeathState(JUST_ALIVED);
 
-                // Call AI respawn virtual function
-                if (AI())
-                    AI()->JustRespawned();
+                    // Call AI respawn virtual function
+                    if (AI())
+                        AI()->JustRespawned();
 
-                if (InstanceData* mapInstance = GetInstanceData())
-                    mapInstance->OnCreatureRespawn(this);
+                    if (InstanceData* mapInstance = GetInstanceData())
+                        mapInstance->OnCreatureRespawn(this);
 
-                if (m_isCreatureLinkingTrigger)
-                    GetMap()->GetCreatureLinkingHolder()->DoCreatureLinkingEvent(LINKING_EVENT_RESPAWN, this);
+                    if (m_isCreatureLinkingTrigger)
+                        GetMap()->GetCreatureLinkingHolder()->DoCreatureLinkingEvent(LINKING_EVENT_RESPAWN, this);
 
-                if (GetCreatureGroup())
-                    GetCreatureGroup()->TriggerLinkingEvent(CREATURE_GROUP_EVENT_RESPAWN, this);
+                    if (GetCreatureGroup())
+                        GetCreatureGroup()->TriggerLinkingEvent(CREATURE_GROUP_EVENT_RESPAWN, this);
 
-                GetMap()->Add(this);
+                    GetMap()->Add(this);
 
-                if (GetObjectGuid().GetHigh() != HIGHGUID_PET)
-                    if (uint16 poolid = sPoolMgr.IsPartOfAPool<Creature>(GetDbGuid()))
-                        sPoolMgr.UpdatePool<Creature>(*GetMap()->GetPersistentState(), poolid, GetDbGuid());
+                    if (GetObjectGuid().GetHigh() != HIGHGUID_PET)
+                        if (uint16 poolid = sPoolMgr.IsPartOfAPool<Creature>(GetDbGuid()))
+                            sPoolMgr.UpdatePool<Creature>(*GetMap()->GetPersistentState(), poolid, GetDbGuid());
+                }
             }
             break;
         }
@@ -1857,6 +1862,7 @@ void Creature::Respawn()
         if (HasStaticDBSpawnData())
             GetMap()->GetPersistentState()->SaveCreatureRespawnTime(GetDbGuid(), 0);
         m_respawnTime = time(nullptr);                         // respawn at next tick
+        m_manualRespawn = true;
     }
 }
 
