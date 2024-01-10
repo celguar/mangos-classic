@@ -721,7 +721,7 @@ public:
 
     bool Run(Player* player, Player* bot) override
     {
-        if ((int)player->GetLevel() - (int)bot->GetLevel() < (int)sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF))
+        if ((int)player->GetLevel() - (int)bot->GetLevel() < sWorld.getConfig(CONFIG_INT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF))
         {
             return false;
         }
@@ -792,7 +792,7 @@ public:
 
     bool Run(Player* player, Player* bot) override
     {
-        if ((int)player->GetLevel() - (int)bot->GetLevel() < (int)sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF))
+        if ((int)player->GetLevel() - (int)bot->GetLevel() < sWorld.getConfig(CONFIG_INT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF))
             return false;
 
         if (!CheckSharedPercentReqs(player, bot))

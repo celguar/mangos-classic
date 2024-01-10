@@ -880,7 +880,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_PCT_MIN_LVL, "Immersive.SharedPercentMinLevel", 1);
     setConfig(CONFIG_UINT32_IMMERSIVE_ATTR_LOSS_PER_DEATH, "Immersive.AttributeLossPerDeath", 1);
     setConfig(CONFIG_FLOAT_IMMERSIVE_FALL_DAMAGE_MULT, "Immersive.FallDamageMultiplier", 1.0f);
-    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF, "Immersive.SharedXpPercentLevelDiff", 0);
+    setConfig(CONFIG_INT32_IMMERSIVE_SHARED_XP_PCT_LEVEL_DIFF, "Immersive.SharedXpPercentLevelDiff", 0);
     setConfig(CONFIG_BOOL_IMMERSIVE_SCALE_MOD_WORKAROUND, "Immersive.ScaleModifierWorkaround", false);
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_RANDOM_PCT, "Immersive.SharedRandomPercent", 0);
     setConfig(CONFIG_BOOL_IMMERSIVE_DISABLE_OFFLINE_RESPAWN, "Immersive.DisableOfflineRespawn", 0);
