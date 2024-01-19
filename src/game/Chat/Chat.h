@@ -766,14 +766,6 @@ class ChatHandler
         bool HandlePerfMonCommand(char* args);
 #endif
 
-#ifdef ENABLE_PLAYERBOTS
-        bool HandlePlayerbotCommand(char* args);
-        bool HandleRandomPlayerbotCommand(char* args);
-        bool HandleAhBotCommand(char* args);
-        bool HandleGuildTaskCommand(char* args);
-        bool HandlePerfMonCommand(char* args);
-#endif
-
         bool HandleMmapPathCommand(char* args);
         bool HandleMmapLocCommand(char* args);
         bool HandleMmapLoadedTilesCommand(char* args);
