@@ -2149,6 +2149,11 @@ Achievements.EffectId = 146
 #		All your alts get a percent of your money whenever you get it (From 0 to 100) (Must have alt character logged in as a bot)
 #       Default: 0
 #
+#   Immersive.SharedQuestMoneyPercent
+#		All your alts get a percent of max-level quest money rewards (From 0 to 100) (Must have alt character logged in as a bot)
+#       Alternative to Immersive.SharedMoneyPercent but restricted to quest rewards only
+#       Default: 0
+#
 #   Immersive.SharedQuests
 #		All your alts complete quests when you have completed them. Can be used as a compensation for Immersive.sharedXpPercent and Immersive.sharedRepPercent (Must have alt character logged in as a bot)
 #       Default: 0 (Disabled)

@@ -925,6 +925,16 @@ void Immersive::OnRewardQuest(Player* player, Quest const* quest)
 
     OnRewardQuestAction action(quest);
     RunAction(player, &action);
+    
+    if (sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_QUEST_MONEY_PCT))
+    {
+        int32 delta = quest->GetRewOrReqMoney();
+        int32 botMoney = (int32) (delta * sWorld.getConfig(CONFIG_UINT32_IMMERSIVE_SHARED_QUEST_MONEY_PCT) / 100.0f);
+        if (botMoney < 1) return;
+    
+        OnGiveMoneyAction action(botMoney);
+        RunAction(player, &action);
+    }
 }
 
 bool Immersive::OnFishing(Player* player, bool success)

@@ -871,6 +871,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_XP_PCT, "Immersive.SharedXpPercent", 0);
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_REP_PCT, "Immersive.SharedRepPercent", 0);
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_MONEY_PCT, "Immersive.SharedMoneyPercent", 0);
+    setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_QUEST_MONEY_PCT, "Immersive.SharedQuestMoneyPercent", 0);
     setConfig(CONFIG_BOOL_IMMERSIVE_SHARED_QUESTS, "Immersive.SharedQuests", false);
     setConfig(CONFIG_BOOL_IMMERSIVE_FISHING_BAUBLES, "Immersive.FishingBaubles", false);
     setConfig(CONFIG_UINT32_IMMERSIVE_SHARED_PCT_RACE_RESTR, "Immersive.SharedPercentRaceRestriction", 0);
