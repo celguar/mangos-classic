@@ -962,10 +962,6 @@ class Player : public Unit
         void Update(const uint32 diff) override;
         void Heartbeat() override;
 
-#ifdef ENABLE_PLAYERBOTS
-        void UpdateAI(const uint32 diff, bool minimal = false);
-#endif
-
         static bool BuildEnumData(QueryResult* result,  WorldPacket& p_data);
 
         void SendInitialPacketsBeforeAddToMap();
@@ -2281,14 +2277,17 @@ class Player : public Unit
 #endif
 
 #ifdef ENABLE_PLAYERBOTS
-        //EquipmentSets& GetEquipmentSets() { return m_EquipmentSets; }
-        void SetPlayerbotAI(PlayerbotAI* ai) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotAI = ai; }
-        PlayerbotAI* GetPlayerbotAI() { return m_playerbotAI; }
-        void SetPlayerbotMgr(PlayerbotMgr* mgr) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotMgr = mgr; }
-        PlayerbotMgr* GetPlayerbotMgr() { return m_playerbotMgr; }
+        // A Player can either have a playerbotMgr (to manage its bots), or have playerbotAI (if it is a bot), or
+        // neither. Code that enables bots must create the playerbotMgr and set it using SetPlayerbotMgr.
+        void UpdateAI(const uint32 diff, bool minimal = false);
+        void CreatePlayerbotAI();
+        void RemovePlayerbotAI();
+        PlayerbotAI* GetPlayerbotAI() { return m_playerbotAI.get(); }
+        void CreatePlayerbotMgr();
+        void RemovePlayerbotMgr();
+        PlayerbotMgr* GetPlayerbotMgr() { return m_playerbotMgr.get(); }
         void SetBotDeathTimer() { m_deathTimer = 0; }
         bool isRealPlayer() { return m_session && (m_session->GetRemoteAddress() != "disconnected/bot"); }
-        //PlayerTalentMap& GetTalentMap(uint8 spec) { return m_talents[spec]; }
 #endif
 
 #ifdef USE_ACHIEVEMENTS
@@ -2604,8 +2603,8 @@ class Player : public Unit
 #endif
 
 #ifdef ENABLE_PLAYERBOTS
-        PlayerbotAI* m_playerbotAI;
-        PlayerbotMgr* m_playerbotMgr;
+        std::unique_ptr<PlayerbotAI> m_playerbotAI;
+        std::unique_ptr<PlayerbotMgr> m_playerbotMgr;
 #endif
 
 #ifdef USE_ACHIEVEMENTS
