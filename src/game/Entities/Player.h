@@ -954,10 +954,6 @@ class Player : public Unit
         void Update(const uint32 diff) override;
         void Heartbeat() override;
 
-#ifdef ENABLE_PLAYERBOTS
-        void UpdateAI(const uint32 diff, bool minimal = false);
-#endif
-
         static bool BuildEnumData(QueryResult* result,  WorldPacket& p_data);
 
         void SendInitialPacketsBeforeAddToMap();
