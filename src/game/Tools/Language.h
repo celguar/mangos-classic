@@ -1117,6 +1117,7 @@ enum MangosStrings
 
     // NOT RESERVED IDS                   12000-1999999999
 
+#ifdef ENABLE_IMMERSIVE
     // Immersive Mod
     LANG_IMMERSIVE_MANUAL_ATTR_DISABLED     = 12100,
     LANG_IMMERSIVE_MANUAL_ATTR_LOST         = 12101,
@@ -1140,5 +1141,6 @@ enum MangosStrings
     LANG_IMMERSIVE_MONEY_GAINED             = 12119,
     LANG_IMMERSIVE_REPUTATION_GAINED        = 12120,
     LANG_IMMERSIVE_QUEST_COMPLETED          = 12121,
+#endif
 };
 #endif
