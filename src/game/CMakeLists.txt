@@ -62,6 +62,17 @@ if(NOT BUILD_IKE3_BOTS)
   endforeach()
 endif()
 
+if(NOT BUILD_IMMERSIVE)
+  # exclude Mangosbots folder
+  set (EXCLUDE_DIR "Immersive/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
 if(NOT BUILD_ACHIEVEMENTS)
   # exclude achievement files
   set (EXCLUDE_DIR "Achievements/")
@@ -195,6 +206,15 @@ if(BUILD_IKE3_BOTS)
     add_dependencies(${LIBRARY_NAME} Bots)
 endif()
 
+if(BUILD_IMMERSIVE)
+    include_directories(
+        ${CMAKE_SOURCE_DIR}/src/modules/Immersive/src
+	)
+
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Immersive)
+    add_dependencies(${LIBRARY_NAME} Immersive)
+endif()
+
 if(UNIX)
   # Both systems don't have libdl and don't need them
   if (NOT (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "NetBSD"))
@@ -225,6 +245,11 @@ endif()
 # Define Ike3 Bots ENABLE_PLAYERBOTS if need
 if (BUILD_IKE3_BOTS)
   add_definitions(-DENABLE_PLAYERBOTS)
+endif()
+
+# Define ENABLE_IMMERSIVE if need
+if (BUILD_IMMERSIVE)
+  add_definitions(-DENABLE_IMMERSIVE)
 endif()
 
 # Define Achievements USE_ACHIEVEMENTS if need

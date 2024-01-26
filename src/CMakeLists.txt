@@ -33,3 +33,26 @@ endif()
 if(BUILD_IKE3_BOTS)
 add_subdirectory(modules)
 endif()
+
+if(BUILD_IMMERSIVE)
+  include(FetchContent)
+
+  FetchContent_Declare(
+    immersive
+    GIT_REPOSITORY "https://github.com/davidonete/cmangos-immersive.git"
+	GIT_TAG "main"
+  )
+
+    message(STATUS "Fetching Immersive module...")
+
+  FetchContent_Populate(immersive)
+
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+  endif()
+
+  file(COPY ${immersive_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+
+  message(STATUS "Immersive module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive")
+  add_subdirectory(modules/Immersive)
+endif()

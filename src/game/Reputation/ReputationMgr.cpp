@@ -21,7 +21,10 @@
 #include "Entities/Player.h"
 #include "Server/WorldPacket.h"
 #include "Globals/ObjectMgr.h"
-#include "Immersive/Immersive.h"
+
+#ifdef ENABLE_IMMERSIVE
+#include "Immersive.h"
+#endif
 
 const int32 ReputationMgr::PointsInRank[MAX_REPUTATION_RANK] = {36000, 3000, 3000, 3000, 6000, 12000, 21000, 1000};
 
@@ -269,7 +272,9 @@ bool ReputationMgr::SetReputation(FactionEntry const* factionEntry, int32 standi
     if (!factionEntry)
         return false;
 
+#ifdef ENABLE_IMMERSIVE
     sImmersive.OnReputationChange(m_player, factionEntry, standing, incremental);
+#endif
 
     bool res = false;
     // if spillover definition exists in DB

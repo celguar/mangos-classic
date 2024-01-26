@@ -45,7 +45,10 @@
 #include <G3D/CoordinateFrame.h>
 #include <G3D/Quat.h>
 #include "Entities/Transports.h"
-#include "Immersive/Immersive.h"
+
+#ifdef ENABLE_IMMERSIVE
+#include "Immersive.h"
+#endif
 
 bool QuaternionData::isUnit() const
 {
@@ -1725,7 +1728,9 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
 
                     // normal chance
                     bool success = skill >= zone_skill && chance >= roll;
+#ifdef ENABLE_IMMERSIVE
                     success = sImmersive.OnFishing(player, success);
+#endif
 
                     GameObject* fishingHole = nullptr;
 

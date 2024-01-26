@@ -344,6 +344,11 @@ if(BUILD_PLAYERBOT)
   message(STATUS "Ike3 bots DISABLED because CMaNGOS bots enabled")
 endif()
 
+if(NOT BUILD_GAME_SERVER AND BUILD_IMMERSIVE)
+	set(BUILD_IMMERSIVE OFF)
+    message(STATUS "BUILD_IMMERSIVE forced to OFF due to BUILD_GAME_SERVER is not set")
+endif()
+
 if(PCH)
   if(${CMAKE_VERSION} VERSION_LESS "3.16") 
     message("PCH is not supported by your CMake version")
