@@ -1792,6 +1792,7 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
 
                     // normal chance
                     bool success = skill >= zone_skill && chance >= roll;
+
 #ifdef ENABLE_IMMERSIVE
                     success = sImmersive.OnFishing(player, success);
 #endif
