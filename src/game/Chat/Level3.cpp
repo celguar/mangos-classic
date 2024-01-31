@@ -67,6 +67,10 @@
 #include <tchar.h>
 #endif
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 #ifdef BUILD_AHBOT
 #include "AuctionHouseBot/AuctionHouseBot.h"
 
@@ -4537,8 +4541,8 @@ bool ChatHandler::HandleResetLevelCommand(char* args)
     if (Pet* pet = target->GetPet())
         pet->SynchronizeLevelWithOwner();
 
-#ifdef USE_ACHIEVEMENTS
-    target->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL);
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.UpdateAchievementCriteria(target, ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL);
 #endif
 
     return true;

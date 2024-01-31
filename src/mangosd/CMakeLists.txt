@@ -134,11 +134,6 @@ if (BUILD_AHBOT)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ahbot.conf.dist DESTINATION ${CONF_DIR})
 endif()
 
-# Define Achievements USE_ACHIEVEMENTS if need
-if (BUILD_ACHIEVEMENTS)
-  add_definitions(-DUSE_ACHIEVEMENTS)
-endif()
-
 if(MSVC)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/\${BUILD_TYPE}/${EXECUTABLE_NAME}.pdb DESTINATION ${BIN_DIR} CONFIGURATIONS Debug)
 endif()

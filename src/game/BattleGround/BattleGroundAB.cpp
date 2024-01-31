@@ -32,11 +32,6 @@ BattleGroundAB::BattleGroundAB(): m_isInformedNearVictory(false), m_honorTicks(0
     m_startMessageIds[BG_STARTING_EVENT_SECOND] = LANG_BG_AB_START_ONE_MINUTE;
     m_startMessageIds[BG_STARTING_EVENT_THIRD]  = LANG_BG_AB_START_HALF_MINUTE;
     m_startMessageIds[BG_STARTING_EVENT_FOURTH] = LANG_BG_AB_HAS_BEGUN;
-
-#ifdef USE_ACHIEVEMENTS
-    _teamScores500Disadvantage[TEAM_INDEX_ALLIANCE] = false;
-    _teamScores500Disadvantage[TEAM_INDEX_HORDE] = false;
-#endif
 }
 
 void BattleGroundAB::Update(uint32 diff)
@@ -147,18 +142,6 @@ void BattleGroundAB::Update(uint32 diff)
 
             // update resource world state
             GetBgMap()->GetVariableManager().SetVariable(worldstateId, newValue);
-
-#ifdef USE_ACHIEVEMENTS
-            if (teamIndex != TEAM_INDEX_NEUTRAL)
-            {
-                uint32 teamScore = GetTeamScore((PvpTeamIndex)teamIndex);
-                uint32 otherTeamScore = GetTeamScore(GetOtherTeamIndex((PvpTeamIndex)teamIndex));
-                if (teamScore > (otherTeamScore + 500))
-                {
-                    _teamScores500Disadvantage[GetOtherTeamIndex((PvpTeamIndex)teamIndex)] = true;
-                }
-            }
-#endif
         }
     }
 
@@ -168,13 +151,6 @@ void BattleGroundAB::Update(uint32 diff)
     if (GetBgMap()->GetVariableManager().GetVariable(BG_AB_OP_RESOURCES_HORDE) >= BG_AB_MAX_TEAM_SCORE)
         EndBattleGround(HORDE);
 }
-
-#ifdef USE_ACHIEVEMENTS
-bool BattleGroundAB::AllNodesConrolledByTeam(PvpTeamIndex teamId) const
-{
-    return _controlledPoints[teamId] == BG_AB_MAX_NODES;
-}
-#endif
 
 void BattleGroundAB::StartingEventOpenDoors()
 {

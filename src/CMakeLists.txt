@@ -34,6 +34,11 @@ if(BUILD_IKE3_BOTS)
 add_subdirectory(modules)
 endif()
 
+# Immersive mod
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+endif()
+
 if(BUILD_IMMERSIVE)
   include(FetchContent)
 
@@ -47,12 +52,32 @@ if(BUILD_IMMERSIVE)
 
   FetchContent_Populate(immersive)
 
-  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
-    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
-  endif()
-
   file(COPY ${immersive_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
 
   message(STATUS "Immersive module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive")
   add_subdirectory(modules/Immersive)
+endif()
+
+# Achievements mod
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
+  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
+endif()
+
+if(BUILD_ACHIEVEMENTS)
+  include(FetchContent)
+
+  FetchContent_Declare(
+    achievements
+    GIT_REPOSITORY "https://github.com/davidonete/cmangos-achievements.git"
+	GIT_TAG "main"
+  )
+
+    message(STATUS "Fetching Achievements module...")
+
+  FetchContent_Populate(achievements)
+
+  file(COPY ${achievements_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
+
+  message(STATUS "Achievements module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements")
+  add_subdirectory(modules/Achievements)
 endif()

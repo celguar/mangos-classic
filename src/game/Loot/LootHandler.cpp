@@ -28,6 +28,10 @@
 #include "Groups/Group.h"
 #include "Entities/GameObject.h"
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 void WorldSession::HandleAutostoreLootItemOpcode(WorldPacket& recv_data)
 {
     uint8 itemSlot;
@@ -236,11 +240,8 @@ void WorldSession::HandleLootMasterGiveOpcode(WorldPacket& recv_data)
             _player->SendLootError(lootguid, LOOT_ERROR_MASTER_OTHER);
     }
 
-#ifdef USE_ACHIEVEMENTS
-    if (result == EQUIP_ERR_OK)
-    {
-        target->UpdateLootAchievements(lootItem, pLoot);
-    }
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnHandleLootMasterGive(target, lootItem, pLoot, result);
 #endif
 }
 
@@ -287,22 +288,8 @@ void WorldSession::HandleLootRoll(WorldPacket& recv_data)
 
     sLootMgr.PlayerVote(GetPlayer(), lootedTarget, itemSlot, RollVote(rollType));
 
-#ifdef USE_ACHIEVEMENTS
-    switch (rollType) 
-    {
-        case 1: 
-        {
-            GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ROLL_NEED, 1);
-            break;
-        }
-        case 2:
-        {
-            GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ROLL_GREED, 1);
-            break;
-        }
-
-        default: break;
-    }
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnHandleLootRoll(_player, RollVote(rollType));
 #endif
 }
 
