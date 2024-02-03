@@ -52,6 +52,9 @@
 #include "Anticheat/Anticheat.hpp"
 #include <iomanip>
 #include <sstream>
+#include <math.h>
+#include <limits>
+#include <array>
 
 #ifdef BUILD_METRICS
  #include "Metric/Metric.h"
@@ -61,9 +64,9 @@
 #include "ImmersiveMgr.h"
 #endif
 
-#include <math.h>
-#include <limits>
-#include <array>
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
 
 #include "Hardcore/HardcoreMgr.h"
 
@@ -980,58 +983,21 @@ uint32 Unit::DealDamage(Unit* dealer, Unit* victim, uint32 damage, CleanDamage c
                 }
             }
         }
-
- #ifdef USE_ACHIEVEMENTS
-        // TODO(TsAah): decide on config options for optimization or non-player victims
-        if (dealer != victim) 
-        {
-            if (Player* killer = dealer->GetBeneficiaryPlayer()) 
-            {
-                // pussywizard: don't allow GMs to deal damage in normal way (this leaves no evidence in logs!), they have commands to do so
-                //if (!allowGM && killer->GetSession()->GetSecurity() && killer->GetSession()->GetSecurity() <= SEC_ADMINISTRATOR)
-                //  return 0;
-                // if (auto* const bg = ((Player*)killer)->GetBattleGround()) {
-                killer->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DAMAGE_DONE, damage, 0, victim); // pussywizard: InBattleground() optimization
-                killer->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HIT_DEALT, damage); // pussywizard: optimization
-            }
-        }
-
-        if (victim->GetTypeId() == TYPEID_PLAYER)
-        {
-            static_cast<Player*>(victim)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HIT_RECEIVED, damage);
-        }
-#endif
     }
 
     if (victim->IsPreventingDeath() && damagetype != INSTAKILL && health <= damage)
         damage = health - 1;
 
     if (health <= damage)
-    {
         Kill(dealer, victim, damagetype, spellInfo, durabilityLoss, duel_hasEnded);
-    
-#ifdef USE_ACHIEVEMENTS
-        // TODO(TsAah): decide on config options for optimization or non-player victims
-        if (victim->GetTypeId() == TYPEID_PLAYER && victim != dealer)
-        {
-            static_cast<Player*>(victim)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_TOTAL_DAMAGE_RECEIVED, health);
-        }
-#endif
-    }
     else                                                    // if (health <= damage)
-    {
         HandleDamageDealt(dealer, victim, damage, cleanDamage, damagetype, damageSchoolMask, spellInfo, duel_hasEnded);
 
-#ifdef USE_ACHIEVEMENTS
-        // TODO(TsAah): decide on config options for optimization or non-player victims
-        if (victim->GetTypeId() == TYPEID_PLAYER)
-        {
-            static_cast<Player*>(victim)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_TOTAL_DAMAGE_RECEIVED, damage);
-        }
-#endif
-    }
-
     DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "DealDamageEnd returned %d damage", damage);
+
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnUnitDealDamage(dealer, victim, health, damage);
+#endif
 
     return damage;
 }
@@ -1116,12 +1082,8 @@ void Unit::Kill(Unit* killer, Unit* victim, DamageEffectType damagetype, SpellEn
             tapper->RewardSinglePlayerAtKill(victim);
     }
 
-#ifdef USE_ACHIEVEMENTS
-    // update get killing blow achievements, must be done before setDeathState to be able to require auras on target
-    // and before Spirit of Redemption as it also removes auras
-    if (responsiblePlayer)
-        responsiblePlayer->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GET_KILLING_BLOWS, 1, 0, victim);
-
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.UpdateAchievementCriteria(responsiblePlayer, ACHIEVEMENT_CRITERIA_TYPE_GET_KILLING_BLOWS, 1, 0, victim);
 #endif
 
     /*
@@ -1222,11 +1184,8 @@ void Unit::Kill(Unit* killer, Unit* victim, DamageEffectType damagetype, SpellEn
             }
         }
 
-#ifdef USE_ACHIEVEMENTS
-        if (responsiblePlayer && playerVictim != responsiblePlayer)
-            playerVictim->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_KILLED_BY_PLAYER, responsiblePlayer->GetTeamId());
-        else if (killer && killer->IsUnit())
-            playerVictim->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_KILLED_BY_CREATURE, 1, killer->GetEntry());
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.OnUnitKill(killer, responsiblePlayer, playerVictim);
 #endif
     }
     else                                                // Killed creature
@@ -6932,24 +6891,8 @@ int32 Unit::DealHeal(Unit* pVictim, uint32 addhealth, SpellEntry const* spellInf
     if (pVictim->AI())
         pVictim->AI()->HealedBy(this, addhealth);
 
-#ifdef USE_ACHIEVEMENTS
-    // TODO(TsAah): consider config options for optimization and other...
-    if (this->IsPlayer())
-    {
-        // use the actual gain, as the overhealing shall not be counted, skip gain 0 (it ignored anyway in to criteria)
-        if (gain)
-        {
-            ((Player*)this)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HEALING_DONE, gain, 0, pVictim);
-        }
-
-        ((Player*)this)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HEAL_CASTED, addhealth); // pussywizard: optimization
-    }
-
-    if (pVictim->IsPlayer())
-    {
-        ((Player*)pVictim)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_TOTAL_HEALING_RECEIVED, gain); // pussywizard: optimization
-        ((Player*)pVictim)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HEALING_RECEIVED, addhealth); // pussywizard: optimization
-    }
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnUnitDealHeal(unit, pVictim, gain, addhealth);
 #endif
 
     return gain;

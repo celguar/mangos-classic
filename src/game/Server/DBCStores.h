@@ -145,8 +145,13 @@ extern TaxiPathSetBySource                       sTaxiPathSetBySource;
 extern TaxiPathNodesByPath                       sTaxiPathNodesByPath;
 extern DBCStorage <TransportAnimationEntry>      sTransportAnimationStore;
 extern DBCStorage <WMOAreaTableEntry>            sWMOAreaTableStore;
+#ifdef ENABLE_ACHIEVEMENTS
 extern DBCStorage <WorldMapAreaEntry>            sWorldMapAreaStore;
 extern DBCStorage <WorldMapOverlayEntry>         sWorldMapOverlayStore;
+#else
+// extern DBCStorage <WorldMapAreaEntry>         sWorldMapAreaStore; -- use Zone2MapCoordinates and Map2ZoneCoordinates
+// extern DBCStorage <WorldMapOverlayEntry>      sWorldMapOverlayStore;
+#endif
 
 void LoadDBCStores(const std::string& dataPath);
 

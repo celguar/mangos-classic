@@ -35,6 +35,11 @@
 #include "Grids/GridNotifiersImpl.h"
 #include "Chat/Chat.h"
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
+
 #include <cstdarg>
 
 namespace MaNGOS
@@ -824,10 +829,6 @@ void BattleGround::EndBattleGround(Team winner)
         {
             RewardMark(plr, ITEM_WINNER_COUNT);
             RewardQuestComplete(plr);
-
-#ifdef USE_ACHIEVEMENTS
-            plr->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_BG, plr->GetMapId());
-#endif
         }
         else
             RewardMark(plr, ITEM_LOSER_COUNT);
@@ -843,8 +844,8 @@ void BattleGround::EndBattleGround(Team winner)
         sBattleGroundMgr.BuildBattleGroundStatusPacket(data, this, plr->GetBattleGroundQueueIndex(bgQueueTypeId), STATUS_IN_PROGRESS, TIME_TO_AUTOREMOVE, GetStartTime());
         plr->GetSession()->SendPacket(data);
 
-#ifdef USE_ACHIEVEMENTS
-        plr->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_COMPLETE_BATTLEGROUND, plr->GetMapId());
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.OnPlayerEndBattleground(plr, winner);
 #endif
     }
 
@@ -1138,9 +1139,8 @@ void BattleGround::RemovePlayerAtLeave(ObjectGuid playerGuid, bool isOnTransport
         if (isOnTransport)
             player->TeleportToBGEntryPoint();
 
-#ifdef USE_ACHIEVEMENTS
-        // Xinef: remove all criterias on bg leave
-        player->ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_BG_MAP, GetMapId(), true);
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.ResetAchievementCriteria(player, ACHIEVEMENT_CRITERIA_CONDITION_BG_MAP, GetMapId(), true);
 #endif
 
         DETAIL_LOG("BATTLEGROUND: Removed player %s from BattleGround.", player->GetName());
@@ -1148,18 +1148,6 @@ void BattleGround::RemovePlayerAtLeave(ObjectGuid playerGuid, bool isOnTransport
 
     // battleground object will be deleted next BattleGround::Update() call
 }
-
-#ifdef USE_ACHIEVEMENTS
-void BattleGround::StartTimedAchievement(uint32 type, uint32 entry)
-{
-    for (BattleGroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-    {
-        Player* plr = sObjectMgr.GetPlayer(itr->first);
-        if (plr)
-            plr->StartTimedAchievement((AchievementCriteriaTimedTypes)type, entry);
-    }
-}
-#endif
 
 /**
   Method that is called when no players remains in battleground
@@ -1235,9 +1223,8 @@ void BattleGround::AddPlayer(Player* player)
     sBattleGroundMgr.BuildPlayerJoinedBattleGroundPacket(data, player);
     SendPacketToTeam(team, data, player, false);
 
-#ifdef USE_ACHIEVEMENTS
-    // Xinef: reset all map criterias on map enter
-    player->ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_BG_MAP, GetMapId(), true);
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.ResetAchievementCriteria(player, ACHIEVEMENT_CRITERIA_CONDITION_BG_MAP, GetMapId(), true);
 #endif
 
     // setup BG group membership

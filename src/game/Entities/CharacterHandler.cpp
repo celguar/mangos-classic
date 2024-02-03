@@ -52,6 +52,10 @@
 #include "PlayerbotAIConfig.h"
 #endif
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 // config option SkipCinematics supported values
 enum CinematicsSkipMode
 {
@@ -204,11 +208,6 @@ bool LoginQueryHolder::Initialize()
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADMAILS,           "SELECT id,messageType,sender,receiver,subject,itemTextId,expire_time,deliver_time,money,cod,checked,stationery,mailTemplateId,has_items FROM mail WHERE receiver = '%u' ORDER BY id DESC", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADMAILEDITEMS,     "SELECT itemEntry, creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, itemTextId, mail_id, item_guid, item_template FROM mail_items JOIN item_instance ON item_guid = guid WHERE receiver = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_FORGOTTEN_SKILLS,    "SELECT skill, value FROM character_forgotten_skills WHERE guid = '%u'", m_guid.GetCounter());
-
-#ifdef USE_ACHIEVEMENTS
-    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS,    "SELECT `achievement`, `date` FROM `character_achievement` WHERE `guid` = '%u'", m_guid.GetCounter());
-    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOAD_CRITERIA_PROGRESS, "SELECT `criteria`, `counter`, `date` FROM `character_achievement_progress` WHERE `guid` = '%u'", m_guid.GetCounter());
-#endif
 
     return res;
 }
@@ -736,6 +735,10 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 
     SetOnline();
 
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnPlayerLogin(pCurrChar, playerGuid.GetCounter());
+#endif
+
     // "GetAccountId()==db stored account id" checked in LoadFromDB (prevent login not own character using cheating tools)
     if (!pCurrChar->LoadFromDB(playerGuid, holder))
     {
@@ -1115,11 +1118,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
         sTransmogrification->LoadPlayerSets(playerGUID);
 #endif
 
-#ifdef USE_ACHIEVEMENTS
-    //_player->CheckAllAchievementCriteria();
-    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ON_LOGIN, 1);
-#endif
-
     m_playerLoading = false;
     delete holder;
 }
@@ -1250,11 +1248,6 @@ void WorldSession::HandlePlayerReconnect()
 
     // Undo flags and states set by logout if present:
     _player->SetStunnedByLogout(false);
-
-#ifdef USE_ACHIEVEMENTS
-    // _player->CheckAllAchievementCriteria();
-    // _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ON_LOGIN, 1);
-#endif
 
     m_playerLoading = false;
 }

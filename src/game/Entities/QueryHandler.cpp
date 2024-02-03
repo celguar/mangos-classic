@@ -33,6 +33,10 @@
 #include "Server/SQLStorages.h"
 #include "Maps/GridDefines.h"
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 void WorldSession::SendNameQueryResponse(CharacterNameQueryResponse& response) const
 {
 
@@ -376,15 +380,10 @@ void WorldSession::HandlePageTextQueryOpcode(WorldPacket& recv_data)
     DETAIL_LOG("WORLD: Received opcode CMSG_PAGE_TEXT_QUERY");
 
     uint32 pageID;
-    ObjectGuid bookGuid;
-    recv_data >> pageID >> bookGuid;
+    recv_data >> pageID;
 
-#ifdef USE_ACHIEVEMENTS
-    // reading books
-    if (bookGuid.IsGameObject())
-    {
-        GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_USE_GAMEOBJECT, bookGuid.GetEntry());
-    }
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnPlayerHandlePageTextQuery(GetPlayer(), recv_data);
 #endif
 
     while (pageID)

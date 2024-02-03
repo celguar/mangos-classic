@@ -26,6 +26,10 @@
 #include "ImmersiveMgr.h"
 #endif
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 const int32 ReputationMgr::PointsInRank[MAX_REPUTATION_RANK] = {36000, 3000, 3000, 3000, 6000, 12000, 21000, 1000};
 
 ReputationRank ReputationMgr::ReputationToRank(int32 standing)
@@ -345,12 +349,8 @@ bool ReputationMgr::SetOneFactionReputation(FactionEntry const* factionEntry, in
 
         m_player->ReputationChanged(factionEntry);
 
-#ifdef USE_ACHIEVEMENTS
-        m_player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_KNOWN_FACTIONS, factionEntry->ID);
-        m_player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_REPUTATION, factionEntry->ID);
-        m_player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_EXALTED_REPUTATION, factionEntry->ID);
-        m_player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_REVERED_REPUTATION, factionEntry->ID);
-        m_player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_HONORED_REPUTATION, factionEntry->ID);
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.OnSetOneFactionReputation(m_player, factionEntry->ID);
 #endif
 
         if (rankNew > rankOld)

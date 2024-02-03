@@ -51,6 +51,10 @@
 #include "PlayerbotAI.h"
 #endif
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 extern pEffect SpellEffects[MAX_SPELL_EFFECTS];
 
 class PrioritizeManaUnitWraper
@@ -1387,19 +1391,8 @@ void Spell::DoSpellHitOnUnit(Unit* unit, uint32 effectMask, TargetInfo* target, 
         }
     }
 
-#ifdef USE_ACHIEVEMENTS
-    if (m_caster && unit && unit->GetTypeId() == TYPEID_PLAYER) 
-    {
-        ((Player*)unit)->StartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_SPELL_TARGET, m_spellInfo->Id);
-        ((Player*)unit)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET, m_spellInfo->Id, 0, m_caster);
-        ((Player*)unit)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET2, m_spellInfo->Id, 0, m_caster);
-    }
-
-    if (m_caster && unit && m_caster->GetTypeId() == TYPEID_PLAYER) 
-    {
-        ((Player*)m_caster)->StartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_SPELL_CASTER, m_spellInfo->Id);
-        ((Player*)m_caster)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_CAST_SPELL2, m_spellInfo->Id, 0, unit);
-    }
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnDoSpellHitOnUnit(m_caster, unit, m_spellInfo->Id);
 #endif
 
     if (traveling && m_trueCaster != unit)
@@ -3171,17 +3164,8 @@ SpellCastResult Spell::cast(bool skipCheck)
 
     m_duration = CalculateSpellDuration(m_spellInfo, m_caster, nullptr, m_auraScript);
 
-#ifdef USE_ACHIEVEMENTS
-    if (m_caster && m_caster->GetTypeId() == TYPEID_PLAYER) 
-    {
-        if (m_CastItem) 
-        {
-            ((Player*)m_caster)->StartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_ITEM, m_CastItem->GetEntry());
-            ((Player*)m_caster)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_USE_ITEM, m_CastItem->GetEntry());
-        }
-
-        ((Player*)m_caster)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_CAST_SPELL, m_spellInfo->Id, 0, (m_targets.getUnitTarget() ? m_targets.getUnitTarget() : m_caster));
-    }
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnSpellCast(m_caster, m_targets.getUnitTarget(), m_CastItem, m_spellInfo->Id);
 #endif
 
     FillTargetMap();
