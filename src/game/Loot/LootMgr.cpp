@@ -32,6 +32,11 @@
 #include "BattleGround/BattleGroundMgr.h"
 #include <sstream>
 #include <iomanip>
+
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 #include "Hardcore/HardcoreMgr.h"
 
 INSTANTIATE_SINGLETON_1(LootMgr);
@@ -904,15 +909,11 @@ void GroupLootRoll::Finish(RollVoteMap::const_iterator& winnerItr)
         Player* plr = sObjectMgr.GetPlayer(winnerItr->first);
         if (plr && plr->GetSession())
         {
+#ifdef ENABLE_ACHIEVEMENTS
             InventoryResult msg = m_loot->SendItem(plr, m_itemSlot);
-
-#ifdef USE_ACHIEVEMENTS
-            LootItem* lootItem = m_loot->GetLootItemInSlot(m_itemSlot);
-            plr->UpdateAchievementCriteria(winnerItr->second.vote == ROLL_NEED ? ACHIEVEMENT_CRITERIA_TYPE_ROLL_NEED_ON_LOOT : ACHIEVEMENT_CRITERIA_TYPE_ROLL_GREED_ON_LOOT, lootItem->itemId, winnerItr->second.number);
-            if (msg == EQUIP_ERR_OK)
-            {
-                plr->UpdateLootAchievements(lootItem, m_loot);
-            }
+            sAchievementsMgr.OnGroupLootRollFinish(plr, m_loot, winnerItr->second.vote, winnerItr->second.number, m_itemSlot, msg);
+#else
+            m_loot->SendItem(plr, m_itemSlot);
 #endif
         }
         else
@@ -2283,8 +2284,8 @@ void Loot::SendGold(Player* player)
 
             plr->ModifyMoney(money_per_player);
 
-#ifdef USE_ACHIEVEMENTS
-            plr->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, money_per_player);
+#ifdef ENABLE_ACHIEVEMENTS
+            sAchievementsMgr.UpdateAchievementCriteria(plr, ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, money_per_player);
 #endif
 
             WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4);
