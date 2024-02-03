@@ -802,15 +802,8 @@ class ChatHandler
 
         bool HandlePetLevelLoyaltyCommand(char* args);
 
-#ifdef USE_ACHIEVEMENTS
-        bool HandleEnableAchiever(char* args);
-        bool HandleGetCategories(char* args);
-        bool HandleGetAchievements(char* args);
-        bool HandleGetCriteria(char* args);
-        bool HandleGetCharacterCriteria(char* args);
-        bool HandleGetCharacterAchievements(char* args);
-        bool HandleAddAchievement(char* args);
-        bool HandleRemoveAchievement(char* args);
+#ifdef ENABLE_ACHIEVEMENTS
+        bool HandleAchievementsCommand(char* args);
 #endif
 
         Player*   getSelectedPlayer() const;

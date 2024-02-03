@@ -42,6 +42,10 @@
 #include "playerbot/RandomPlayerbotMgr.h"
 #endif
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 bool WorldSession::CheckChatMessage(std::string& msg, bool addon/* = false*/)
 {
 #ifdef BUILD_DEPRECATED_PLAYERBOT
@@ -802,9 +806,8 @@ void WorldSession::HandleTextEmoteOpcode(WorldPacket& recv_data)
     if (unit && unit->AI())
         unit->AI()->ReceiveEmote(GetPlayer(), textEmote);
 
-#ifdef USE_ACHIEVEMENTS
-    // TODO(TsAah): check if we can handle emote achievements
-    GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DO_EMOTE, textEmote, 0, unit);
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.UpdateAchievementCriteria(GetPlayer(), ACHIEVEMENT_CRITERIA_TYPE_DO_EMOTE, textEmote, 0, unit);
 #endif
 }
 

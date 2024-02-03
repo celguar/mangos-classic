@@ -153,12 +153,15 @@ if(BUILD_PLAYERBOTS)
 endif()
 
 if(BUILD_IMMERSIVE)
-    include_directories(
-        ${CMAKE_SOURCE_DIR}/src/modules/Immersive/src
-	)
-
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Immersive/src)
 	target_link_libraries(${LIBRARY_NAME} PUBLIC Immersive)
     add_dependencies(${LIBRARY_NAME} Immersive)
+endif()
+
+if(BUILD_ACHIEVEMENTS)
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Achievements/src)
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Achievements)
+    add_dependencies(${LIBRARY_NAME} Achievements)
 endif()
 
 if(UNIX)
@@ -203,9 +206,9 @@ if (BUILD_IMMERSIVE)
   add_definitions(-DENABLE_IMMERSIVE)
 endif()
 
-# Define Achievements USE_ACHIEVEMENTS if need
+# Define Achievements ENABLE_ACHIEVEMENTS if need
 if (BUILD_ACHIEVEMENTS)
-  add_definitions(-DUSE_ACHIEVEMENTS)
+  add_definitions(-DENABLE_ACHIEVEMENTS)
 endif()
 
 if (MSVC)

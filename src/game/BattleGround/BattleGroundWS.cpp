@@ -25,6 +25,10 @@
 #include "BattleGroundMgr.h"
 #include "Server/WorldPacket.h"
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 BattleGroundWS::BattleGroundWS() : m_reputationCapture(0), m_honorWinKills(0), m_honorEndKills(0)
 {
     // set battleground start message ids
@@ -87,8 +91,8 @@ void BattleGroundWS::StartingEventOpenDoors()
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(WS_GRAVEYARD_FLAGROOM_ALLIANCE, BG_WS_ZONE_ID_MAIN, TEAM_INVALID);
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(WS_GRAVEYARD_FLAGROOM_HORDE,    BG_WS_ZONE_ID_MAIN, TEAM_INVALID);
 
-#ifdef USE_ACHIEVEMENTS
-    StartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, BG_WS_EVENT_START_BATTLE);
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.StartTimedAchievement(this, ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEVEMENT_CRITERIA_TIMED_ASSET_ID_BG_WS_EVENT_START_BATTLE);
 #endif
 }
 
@@ -275,8 +279,8 @@ void BattleGroundWS::ProcessFlagPickUpFromBase(Player* player, Team attackerTeam
     SendMessageToAll(wsgFlagData[otherTeamIdx][BG_WS_FLAG_ACTION_PICKEDUP].messageId, wsgFlagData[teamIdx][BG_WS_FLAG_ACTION_PICKEDUP].chatType, player);
     player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_PVP_ACTIVE_CANCELS);
 
-#ifdef USE_ACHIEVEMENTS
-    player->StartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_SPELL_TARGET, teamIdx == TEAM_INDEX_HORDE ? BG_WS_SPELL_SILVERWING_FLAG_PICKED : BG_WS_SPELL_WARSONG_FLAG_PICKED);
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.StartTimedAchievement(player, ACHIEVEMENT_TIMED_TYPE_SPELL_TARGET, teamIdx == TEAM_INDEX_HORDE ? ACHIEVEMENT_CRITERIA_TIMED_ASSET_ID_BG_WS_SPELL_SILVERWING_FLAG_PICKED : ACHIEVEMENT_CRITERIA_TIMED_ASSET_ID_BG_WS_SPELL_WARSONG_FLAG_PICKED);
 #endif
 }
 
@@ -575,20 +579,18 @@ void BattleGroundWS::UpdatePlayerScore(Player* player, uint32 type, uint32 value
     {
         case SCORE_FLAG_CAPTURES:                           // flags captured
             ((BattleGroundWGScore*)itr->second)->flagCaptures += value;
-#ifdef USE_ACHIEVEMENTS
-            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE, BG_WS_OBJECTIVE_CAPTURE_FLAG);
-#endif
             break;
         case SCORE_FLAG_RETURNS:                            // flags returned
             ((BattleGroundWGScore*)itr->second)->flagReturns += value;
-#ifdef USE_ACHIEVEMENTS
-            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE, BG_WS_OBJECTIVE_RETURN_FLAG);
-#endif
             break;
         default:
             BattleGround::UpdatePlayerScore(player, type, value);
             break;
     }
+
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnBGUpdatePlayerScore(this, player, (ScoreType)type);
+#endif
 }
 
 Team BattleGroundWS::GetPrematureWinner()

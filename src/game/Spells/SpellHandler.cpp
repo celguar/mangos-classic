@@ -30,6 +30,10 @@
 #include "Spells/SpellAuras.h"
 #include "Loot/LootMgr.h"
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 {
     uint8 bagIndex, slot;
@@ -322,8 +326,8 @@ void WorldSession::HandleGameObjectUseOpcode(WorldPacket& recv_data)
 
     obj->Use(_player);
 
-#ifdef USE_ACHIEVEMENTS
-    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_USE_GAMEOBJECT, obj->GetEntry());
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.UpdateAchievementCriteria(_player, ACHIEVEMENT_CRITERIA_TYPE_USE_GAMEOBJECT, obj->GetEntry());
 #endif
 }
 

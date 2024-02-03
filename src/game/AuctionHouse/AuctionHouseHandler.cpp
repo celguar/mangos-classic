@@ -29,6 +29,10 @@
 #include "Util/Util.h"
 #include "Chat/Chat.h"
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 // please DO NOT use iterator++, because it is slower than ++iterator!!!
 // post-incrementation is always slower than pre-incrementation !
 
@@ -323,8 +327,8 @@ void WorldSession::HandleAuctionSellItem(WorldPacket& recv_data)
 
     SendAuctionCommandResult(AH, AUCTION_STARTED, AUCTION_OK);
 
-#ifdef USE_ACHIEVEMENTS
-    GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_CREATE_AUCTION, 1);
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.UpdateAchievementCriteria(GetPlayer(), ACHIEVEMENT_CRITERIA_TYPE_CREATE_AUCTION, 1);
 #endif
 }
 

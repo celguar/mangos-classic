@@ -41,6 +41,10 @@
 #include "playerbot/PlayerbotAIConfig.h"
 #endif
 
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
 #include <cstdarg>
 #include "Hardcore/HardcoreMgr.h"
 
@@ -907,21 +911,6 @@ ChatCommand* ChatHandler::getCommandTable()
         { nullptr,         0,                  false,  nullptr,                                        "", nullptr }
     };
 
-#ifdef USE_ACHIEVEMENTS
-    static ChatCommand achievementsCommandTable[] = 
-    {
-        { "enableAchiever",             SEC_PLAYER,             false, &ChatHandler::HandleEnableAchiever,            "", nullptr },
-        { "getCategoties",              SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCategories,             "", nullptr },
-        { "getAchievements",            SEC_GAMEMASTER,         false, &ChatHandler::HandleGetAchievements,           "", nullptr },
-        { "getCriteria",                SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCriteria,               "", nullptr },
-        { "getCharacterCriteria",       SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCharacterCriteria,      "", nullptr },
-        { "getCharacterAchievements",   SEC_GAMEMASTER,         false, &ChatHandler::HandleGetCharacterAchievements,  "", nullptr },
-        { "add",                        SEC_GAMEMASTER,         false, &ChatHandler::HandleAddAchievement,            "", nullptr },
-        { "remove",                     SEC_GAMEMASTER,         false, &ChatHandler::HandleRemoveAchievement,         "", nullptr },
-        { nullptr,                      0,                      false, nullptr,                                       "", nullptr }
-    };
-#endif
-
     static ChatCommand commandTable[] =
     {
         { "anticheat",      SEC_GAMEMASTER,     true,  nullptr,                                           "", anticheatCommandTable},
@@ -1044,8 +1033,8 @@ ChatCommand* ChatHandler::getCommandTable()
         { "bot",            SEC_PLAYER,         false, &ChatHandler::HandlePlayerbotCommand,           "", nullptr },
 #endif
         { "hardcore",       SEC_GAMEMASTER,     false, &ChatHandler::HandleHardcoreCommand,            "", nullptr },
-#ifdef USE_ACHIEVEMENTS
-        { "achievements",   SEC_PLAYER,         false, nullptr,                                        "", achievementsCommandTable },
+#ifdef ENABLE_ACHIEVEMENTS
+        { "achievements",   SEC_PLAYER,         false, &ChatHandler::HandleAchievementsCommand,        "", nullptr },
 #endif
         { nullptr,          0,                  false, nullptr,                                        "", nullptr }
     };

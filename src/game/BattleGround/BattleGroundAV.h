@@ -659,15 +659,6 @@ class BattleGroundAV : public BattleGround
         uint32 m_repOwnedMine;
         uint32 m_repSurviveCaptain;
         uint32 m_repSurviveTower;
-
-#ifdef USE_ACHIEVEMENTS
-    public:
-        bool IsBothMinesControlledByTeam(PvpTeamIndex teamId) const;
-        bool IsAllTowersControlledAndCaptainAlive(PvpTeamIndex teamId) const;
-
-    private:
-        bool m_CaptainAlive[2]{};
-#endif
 };
 
 #endif
