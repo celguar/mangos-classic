@@ -37,7 +37,9 @@
 #include "AchievementsMgr.h"
 #endif
 
-#include "Hardcore/HardcoreMgr.h"
+#ifdef ENABLE_HARDCORE
+#include "HardcoreMgr.h"
+#endif
 
 INSTANTIATE_SINGLETON_1(LootMgr);
 
@@ -959,6 +961,10 @@ void Loot::AddItem(uint32 itemid, uint32 count, uint32 randomSuffix, int32 rando
             for (auto allowedGuid : m_ownerSet)
                 lootItem->allowedGuid.emplace(allowedGuid);
         }
+
+#ifdef ENABLE_HARDCORE
+        sHardcoreMgr.OnLootAddItem(this, lootItem);
+#endif
     }
 }
 
@@ -969,7 +975,9 @@ bool Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* lootOwner, b
     if (!lootOwner)
         return false;
 
-    if (!sHardcoreMgr.FillLoot(*this))
+#ifdef ENABLE_HARDCORE
+    if (!sHardcoreMgr.OnLootFill(this))
+#endif
     {
         LootTemplate const* tab = store.GetLootFor(loot_id);
 
@@ -1178,6 +1186,11 @@ void Loot::NotifyMoneyRemoved()
 
 void Loot::GenerateMoneyLoot(uint32 minAmount, uint32 maxAmount)
 {
+#ifdef ENABLE_HARDCORE
+    if (sHardcoreMgr.OnLootGenerateMoney(this, m_gold))
+        return;
+#endif
+
     if (maxAmount > 0)
     {
         if (maxAmount <= minAmount)
@@ -2030,6 +2043,10 @@ InventoryResult Loot::SendItem(Player* target, LootItem* lootItem, bool sendErro
         {
             Item* newItem = target->StoreNewItem(dest, lootItem->itemId, true, lootItem->randomPropertyId, this);
 
+#ifdef ENABLE_HARDCORE
+            sHardcoreMgr.OnPlayerStoreNewItem(target, this, newItem);
+#endif
+
             if (lootItem->freeForAll)
             {
                 NotifyItemRemoved(target, lootItem->lootSlot);
@@ -2300,6 +2317,11 @@ void Loot::SendGold(Player* player)
                 item->SetLootState(ITEM_LOOT_CHANGED);
         }
     }
+
+#ifdef ENABLE_HARDCORE
+    sHardcoreMgr.OnLootSendGold(this, m_gold);
+#endif
+
     m_gold = 0;
 
     // animation update is done in Release if needed.

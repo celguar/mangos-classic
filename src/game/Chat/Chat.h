@@ -757,7 +757,6 @@ class ChatHandler
 #ifdef BUILD_DEPRECATED_PLAYERBOT
         bool HandlePlayerbotCommand(char* args);
 #endif
-        bool HandleHardcoreCommand(char* args);
 
 #ifdef ENABLE_PLAYERBOTS
         bool HandlePlayerbotCommand(char* args);
@@ -804,6 +803,10 @@ class ChatHandler
 
 #ifdef ENABLE_ACHIEVEMENTS
         bool HandleAchievementsCommand(char* args);
+#endif
+
+#ifdef ENABLE_HARDCORE
+        bool HandleHardcoreCommand(char* args);
 #endif
 
         Player*   getSelectedPlayer() const;
