@@ -81,3 +81,27 @@ if(BUILD_ACHIEVEMENTS)
   message(STATUS "Achievements module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements")
   add_subdirectory(modules/Achievements)
 endif()
+
+# Hardcore mod
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
+  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
+endif()
+
+if(BUILD_HARDCORE)
+  include(FetchContent)
+
+  FetchContent_Declare(
+    hardcore
+    GIT_REPOSITORY "https://github.com/davidonete/cmangos-hardcore.git"
+	GIT_TAG "main"
+  )
+
+    message(STATUS "Fetching Hardcore module...")
+
+  FetchContent_Populate(hardcore)
+
+  file(COPY ${hardcore_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
+
+  message(STATUS "Hardcore module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore")
+  add_subdirectory(modules/Hardcore)
+endif()

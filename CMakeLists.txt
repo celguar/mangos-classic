@@ -354,6 +354,11 @@ if(NOT BUILD_GAME_SERVER AND BUILD_ACHIEVEMENTS)
   message(STATUS "BUILD_ACHIEVEMENTS forced to OFF due to BUILD_GAME_SERVER is not set")
 endif()
 
+if(NOT BUILD_GAME_SERVER AND BUILD_HARDCORE)
+  set(BUILD_HARDCORE OFF)
+  message(STATUS "BUILD_HARDCORE forced to OFF due to BUILD_GAME_SERVER is not set")
+endif()
+
 if(PCH)
   if(${CMAKE_VERSION} VERSION_LESS "3.16") 
     message("PCH is not supported by your CMake version")

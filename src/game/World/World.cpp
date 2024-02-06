@@ -52,7 +52,6 @@
 #include "VMapFactory.h"
 #include "MotionGenerators/MoveMap.h"
 #include "GameEvents/GameEventMgr.h"
-#include "Hardcore/HardcoreMgr.h"
 #include "Pools/PoolManager.h"
 #include "Database/DatabaseImpl.h"
 #include "Grids/GridNotifiersImpl.h"
@@ -91,6 +90,10 @@
 
 #ifdef ENABLE_ACHIEVEMENTS
 #include "AchievementsMgr.h"
+#endif
+
+#ifdef ENABLE_HARDCORE
+#include "HardcoreMgr.h"
 #endif
 
 #include <algorithm>
@@ -845,23 +848,6 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_BOOL_PATH_FIND_OPTIMIZE, "PathFinder.OptimizePath", true);
     setConfig(CONFIG_BOOL_PATH_FIND_NORMALIZE_Z, "PathFinder.NormalizeZ", false);
 
-    // Start Hardcore Config
-    setConfig(CONFIG_BOOL_HARDCORE_ENABLED, "Hardcore.Enable", false);
-    setConfig(CONFIG_BOOL_HARDCORE_SPAWN_GRAVE, "Hardcore.SpawnGrave", false);
-    setConfig(CONFIG_UINT32_HARDCORE_GRAVE_GAMEOBJECT_ID, "Hardcore.GraveGameObjectID", 61);
-    setConfig(CONFIG_FLOAT_HARDCORE_DROP_GEAR, "Hardcore.DropGear", 0.0f);
-    setConfig(CONFIG_FLOAT_HARDCORE_DROP_ITEMS, "Hardcore.DropItems", 0.0f);
-    setConfig(CONFIG_FLOAT_HARDCORE_DROP_MONEY, "Hardcore.DropMoney", 0.0f);
-    setConfig(CONFIG_FLOAT_HARDCORE_BOT_DROP_GEAR, "Hardcore.BotDropGear", 0.0f);
-    setConfig(CONFIG_FLOAT_HARDCORE_BOT_DROP_ITEMS, "Hardcore.BotDropItems", 0.0f);
-    setConfig(CONFIG_FLOAT_HARDCORE_BOT_DROP_MONEY, "Hardcore.BotDropMoney", 0.0f);
-    setConfig(CONFIG_UINT32_HARDCORE_LOOT_GAMEOBJECT_ID, "Hardcore.LootGameObjectID", 2850);
-    setConfig(CONFIG_UINT32_HARDCORE_MAX_PLAYER_LOOT, "Hardcore.MaxPlayerLoot", 1);
-    setConfig(CONFIG_BOOL_HARDCORE_REVIVE_DISABLED, "Hardcore.ReviveDisabled", false);
-    setConfig(CONFIG_BOOL_HARDCORE_REVIVE_ON_GRAVEYARD, "Hardcore.ReviveOnGraveyard", false);
-    setConfig(CONFIG_FLOAT_HARDCORE_LEVEL_DOWN, "Hardcore.LevelDown", 0.0f);
-    // End Hardcore Config
-
     // Start Solocraft Config
     setConfig(CONFIG_BOOL_SOLOCRAFT_ENABLED, "Solocraft.Enable", true);
     setConfig(CONFIG_BOOL_SOLOCRAFT_ANNOUNCE, "Solocraft.Announce", true);
@@ -992,15 +978,12 @@ void World::SetInitialWorldSettings()
     ///- Remove the bones (they should not exist in DB though) and old corpses after a restart
     CharacterDatabase.PExecute("DELETE FROM corpse WHERE corpse_type = '0' OR time < (" _UNIXTIME_ "-'%u')", 3 * DAY);
 
-    // Load Hardcore manager
-    if(sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
-    {
-        sLog.outString("Loading hardcore manager initial config...");
-        sHardcoreMgr.PreLoad();
-    }
-
 #ifdef ENABLE_IMMERSIVE
     sImmersiveMgr.Init();
+#endif
+
+#ifdef ENABLE_HARDCORE
+    sHardcoreMgr.PreLoad();
 #endif
 
     /// load spell_dbc first! dbc's need them
@@ -1426,10 +1409,6 @@ void World::SetInitialWorldSettings()
     sScriptDevAIMgr.Initialize();
     sLog.outString();
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.Init();
-#endif
-
     // after SD2
     sLog.outString("Loading spell scripts...");
     SpellScriptMgr::LoadScripts();
@@ -1544,12 +1523,13 @@ void World::SetInitialWorldSettings()
     sPlayerbotAIConfig.Initialize();
 #endif
 
-    // Load Hardcore manager
-    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
-    {
-        sLog.outString("Loading hardcore manager...");
-        sHardcoreMgr.Load();
-    }
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.Init();
+#endif
+
+#ifdef ENABLE_HARDCORE
+    sHardcoreMgr.Init();
+#endif
 
     sTransmogrification->LoadConfig(false);
     CharacterDatabase.Execute("DELETE FROM custom_transmogrification WHERE NOT EXISTS (SELECT 1 FROM item_instance WHERE item_instance.guid = custom_transmogrification.GUID)");
