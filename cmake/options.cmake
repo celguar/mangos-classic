@@ -10,6 +10,7 @@ option(BUILD_PLAYERBOT      "Build Playerbot mod"                   OFF)
 option(BUILD_IKE3_BOTS      "Build ike3 Playerbots"                 OFF)
 option(BUILD_IMMERSIVE      "Build Immersive mod"             		OFF)
 option(BUILD_ACHIEVEMENTS   "Build Achievements"              		OFF)
+option(BUILD_HARDCORE     	"Build Hardcore mod"             		OFF)
 option(BUILD_AHBOT          "Build Auction House Bot mod"           OFF)
 option(BUILD_METRICS        "Build Metrics, generate data for Grafana" OFF)
 option(BUILD_RECASTDEMOMOD  "Build map/vmap/mmap viewer"            OFF)
@@ -41,6 +42,7 @@ message(STATUS
     BUILD_IKE3_BOTS         Build Ike3 Playerbot mod
 	BUILD_IMMERSIVE			Build Immersive mod
     BUILD_ACHIEVEMENTS      Build Achievements System
+	BUILD_HARDCORE	        Build Hardcore mod
     BUILD_AHBOT             Build Auction House Bot mod
     BUILD_METRICS           Build Metrics, generate data for Grafana
     BUILD_RECASTDEMOMOD     Build map/vmap/mmap viewer

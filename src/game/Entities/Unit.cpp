@@ -68,7 +68,9 @@
 #include "AchievementsMgr.h"
 #endif
 
-#include "Hardcore/HardcoreMgr.h"
+#ifdef ENABLE_HARDCORE
+#include "HardcoreMgr.h"
+#endif
 
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
@@ -1157,7 +1159,9 @@ void Unit::Kill(Unit* killer, Unit* victim, DamageEffectType damagetype, SpellEn
             DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "SET JUST_DIED");
             victim->SetDeathState(JUST_DIED);
 
-            sHardcoreMgr.OnPlayerDeath((Player*)victim, killer);
+#ifdef ENABLE_HARDCORE
+            sHardcoreMgr.OnPlayerDeath(playerVictim, killer);
+#endif
         }
 
         // playerVictim was in duel, duel must be interrupted
