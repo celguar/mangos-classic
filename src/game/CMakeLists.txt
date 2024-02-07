@@ -95,6 +95,17 @@ if(NOT BUILD_HARDCORE)
   endforeach()
 endif()
 
+if(NOT BUILD_TRANSMOG)
+  # exclude Transmog folder
+  set (EXCLUDE_DIR "Transmog/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
 set(PCH_BASE_FILENAME "pchdef")
 # exclude pchdef files
 set (EXCLUDE_FILE "${PCH_BASE_FILENAME}")
@@ -235,6 +246,12 @@ if(BUILD_HARDCORE)
     add_dependencies(${LIBRARY_NAME} Hardcore)
 endif()
 
+if(BUILD_TRANSMOG)
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Transmog/src)
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Transmog)
+    add_dependencies(${LIBRARY_NAME} Transmog)
+endif()
+
 if(UNIX)
   # Both systems don't have libdl and don't need them
   if (NOT (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "NetBSD"))
@@ -282,6 +299,10 @@ if (BUILD_HARDCORE)
   add_definitions(-DENABLE_HARDCORE)
 endif()
 
+# Define ENABLE_TRANSMOG if need
+if (BUILD_TRANSMOG)
+  add_definitions(-DENABLE_TRANSMOG)
+endif()
 
 if (MSVC)
   set_target_properties(${LIBRARY_NAME} PROPERTIES PROJECT_LABEL "Game")

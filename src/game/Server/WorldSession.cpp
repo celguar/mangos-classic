@@ -40,7 +40,6 @@
 #include "GMTickets/GMTicketMgr.h"
 #include "Loot/LootMgr.h"
 #include "Anticheat/Anticheat.hpp"
-#include "AI/ScriptDevAI/scripts/custom/Transmogrification.h"
 
 #include <mutex>
 #include <deque>
@@ -55,6 +54,14 @@
 
 #ifdef ENABLE_PLAYERBOTS
 #include "playerbot.h"
+#endif
+
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
+#ifdef ENABLE_TRANSMOG
+#include "TransmogMgr.h"
 #endif
 
 // select opcodes appropriate for processing in Map::Update context for current session state
@@ -768,16 +775,6 @@ void WorldSession::LogoutPlayer()
         // GM ticket notification
         sTicketMgr.OnPlayerOnlineState(*_player, false);
 
-        ObjectGuid pGUID = _player->GetObjectGuid();
-        for (Transmogrification::transmog2Data::const_iterator it = sTransmogrification->entryMap[pGUID].begin(); it != sTransmogrification->entryMap[pGUID].end(); ++it)
-            sTransmogrification->dataMap.erase(it->first);
-        sTransmogrification->entryMap.erase(pGUID);
-
-#ifdef PRESETS
-        if (sTransmogrification->GetEnableSets())
-            sTransmogrification->UnloadPlayerSets(pGUID);
-#endif
-
 #ifdef BUILD_PLAYERBOT
         // Remember player GUID for update SQL below
         uint32 guid = _player->GetGUIDLow();
@@ -807,6 +804,14 @@ void WorldSession::LogoutPlayer()
             _player->CleanupsBeforeDelete();
             Map::DeleteFromWorld(_player);
         }
+
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.OnPlayerLogout(_player);
+#endif
+
+#ifdef ENABLE_TRANSMOG
+        sTransmogMgr.OnPlayerLogout(_player);
+#endif
 
         SetPlayer(nullptr, ObjectGuid());                                    // deleted in Remove/DeleteFromWorld call
 
