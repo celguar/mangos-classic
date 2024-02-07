@@ -789,6 +789,14 @@ void WorldSession::LogoutPlayer()
         CharacterDatabase.PExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
         //End Solocraft Function
 
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.OnPlayerLogout(_player);
+#endif
+
+#ifdef ENABLE_TRANSMOG
+        sTransmogMgr.OnPlayerLogout(_player);
+#endif
+
         ///- Remove the player from the world
         // the player may not be in the world when logging out
         // e.g if he got disconnected during a transfer to another map
@@ -804,14 +812,6 @@ void WorldSession::LogoutPlayer()
             _player->CleanupsBeforeDelete();
             Map::DeleteFromWorld(_player);
         }
-
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.OnPlayerLogout(_player);
-#endif
-
-#ifdef ENABLE_TRANSMOG
-        sTransmogMgr.OnPlayerLogout(_player);
-#endif
 
         SetPlayer(nullptr, ObjectGuid());                                    // deleted in Remove/DeleteFromWorld call
 
