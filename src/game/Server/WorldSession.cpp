@@ -40,7 +40,6 @@
 #include "GMTickets/GMTicketMgr.h"
 #include "Loot/LootMgr.h"
 #include "Anticheat/Anticheat.hpp"
-#include "AI/ScriptDevAI/scripts/custom/Transmogrification.h"
 
 #include <mutex>
 #include <deque>
@@ -55,6 +54,14 @@
 
 #ifdef ENABLE_PLAYERBOTS
 #include "playerbot/playerbot.h"
+#endif
+
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
+#ifdef ENABLE_TRANSMOG
+#include "TransmogMgr.h"
 #endif
 
 // select opcodes appropriate for processing in Map::Update context for current session state
@@ -786,6 +793,14 @@ void WorldSession::LogoutPlayer()
         //Start Solocraft Function
         CharacterDatabase.PExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
         //End Solocraft Function
+
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.OnPlayerLogout(_player);
+#endif
+
+#ifdef ENABLE_TRANSMOG
+        sTransmogMgr.OnPlayerLogout(_player);
+#endif
 
         ///- Remove the player from the world
         // the player may not be in the world when logging out

@@ -61,11 +61,6 @@
 #include "Loot/LootMgr.h"
 #include "World/WorldState.h"
 #include "Anticheat/Anticheat.hpp"
-#ifdef _WIN32
-#include "AI/ScriptDevAI/scripts/custom/Transmogrification.h"
-#else
-#include "AI/ScriptDevAI/scripts/custom/Transmogrification.cpp"
-#endif
 
 #ifdef BUILD_DEPRECATED_PLAYERBOT
 #include "PlayerBot/Base/PlayerbotAI.h"
@@ -88,6 +83,10 @@
 
 #ifdef ENABLE_HARDCORE
 #include "HardcoreMgr.h"
+#endif
+
+#ifdef ENABLE_TRANSMOG
+#include "TransmogMgr.h"
 #endif
 
 #include <cmath>
@@ -724,10 +723,6 @@ Player::~Player()
 #ifdef ENABLE_PLAYERBOTS
     RemovePlayerbotAI();
     RemovePlayerbotMgr();
-#endif
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerLogout(this);
 #endif
 }
 
@@ -4352,6 +4347,11 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
 #ifdef ENABLE_HARDCORE
             sHardcoreMgr.OnPlayerCharacterDeletedFromDB(lowguid);
 #endif
+
+#ifdef ENABLE_TRANSMOG
+            sTransmogMgr.OnPlayerCharacterDeletedFromDB(lowguid);
+#endif
+
             break;
         }
         // The character gets unlinked from the account, the name gets freed up and appears as deleted ingame
@@ -10394,9 +10394,6 @@ void Player::SetVisibleItemSlot(uint8 slot, Item* pItem)
         // Use SetInt16Value to prevent set high part to FFFF for negative value
         SetInt16Value(PLAYER_VISIBLE_ITEM_1_PROPERTIES + (slot * MAX_VISIBLE_ITEM_OFFSET), 0, pItem->GetItemRandomPropertyId());
         SetUInt32Value(PLAYER_VISIBLE_ITEM_1_PROPERTIES + 1 + (slot * MAX_VISIBLE_ITEM_OFFSET), pItem->GetItemSuffixFactor());
-
-        if (uint32 entry = sTransmogrification->GetFakeEntry(pItem->GetObjectGuid()))
-            SetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + pItem->GetSlot() * MAX_VISIBLE_ITEM_OFFSET, entry);
     }
     else
     {
@@ -10411,6 +10408,10 @@ void Player::SetVisibleItemSlot(uint8 slot, Item* pItem)
         SetUInt32Value(PLAYER_VISIBLE_ITEM_1_PROPERTIES + 0 + (slot * MAX_VISIBLE_ITEM_OFFSET), 0);
         SetUInt32Value(PLAYER_VISIBLE_ITEM_1_PROPERTIES + 1 + (slot * MAX_VISIBLE_ITEM_OFFSET), 0);
     }
+
+#ifdef ENABLE_TRANSMOG
+    sTransmogMgr.OnPlayerSetVisibleItemSlot(this, slot, pItem);
+#endif
 }
 
 void Player::VisualizeItem(uint8 slot, Item* pItem)
@@ -10520,7 +10521,9 @@ void Player::MoveItemFromInventory(uint8 bag, uint8 slot, bool update)
             it->DestroyForPlayer(this);
         }
 
-        sTransmogrification->DeleteFakeFromDB(it->GetObjectGuid());
+#ifdef ENABLE_TRANSMOG
+        sTransmogMgr.OnPlayerMoveItemFromInventory(this, it);
+#endif
     }
 }
 
