@@ -8,13 +8,9 @@
 extern void AddSC_battleground();
 
 // custom
-extern void AddSC_Transmog();
 extern void AddSC_TargetDummy();
 extern void AddSC_npc_custom_dualspec();
 extern void AddSC_item_custom_dualspec();
-#ifdef ENABLE_ACHIEVEMENTS
-extern void AddSC_achievement_scripts();
-#endif
 
 // examples
 extern void AddSC_example_creature();
@@ -220,13 +216,9 @@ void AddScripts()
     AddSC_battleground();
 
     // custom
-    AddSC_Transmog();
     AddSC_TargetDummy();
     AddSC_npc_custom_dualspec();
     AddSC_item_custom_dualspec();
-#ifdef ENABLE_ACHIEVEMENTS
-    AddSC_achievement_scripts();
-#endif
 
     // examples
     AddSC_example_creature();
