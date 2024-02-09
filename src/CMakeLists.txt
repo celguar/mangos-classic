@@ -105,3 +105,27 @@ if(BUILD_HARDCORE)
   message(STATUS "Hardcore module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore")
   add_subdirectory(modules/Hardcore)
 endif()
+
+# Transmog mod
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
+  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
+endif()
+
+if(BUILD_TRANSMOG)
+  include(FetchContent)
+
+  FetchContent_Declare(
+    transmog
+    GIT_REPOSITORY "https://github.com/davidonete/cmangos-transmog.git"
+	GIT_TAG "main"
+  )
+
+  message(STATUS "Fetching Transmog module...")
+
+  FetchContent_Populate(transmog)
+
+  file(COPY ${transmog_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
+
+  message(STATUS "Transmog module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog")
+  add_subdirectory(modules/Transmog)
+endif()
