@@ -727,6 +727,10 @@ Player::~Player()
     RemovePlayerbotAI();
     RemovePlayerbotMgr();
 #endif
+
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnPlayerLogout(this);
+#endif
 }
 
 void Player::CleanupsBeforeDelete()
