@@ -794,10 +794,6 @@ void WorldSession::LogoutPlayer()
         CharacterDatabase.PExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
         //End Solocraft Function
 
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.OnPlayerLogout(_player);
-#endif
-
 #ifdef ENABLE_TRANSMOG
         sTransmogMgr.OnPlayerLogout(_player);
 #endif
