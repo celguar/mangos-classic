@@ -106,6 +106,17 @@ if(NOT BUILD_TRANSMOG)
   endforeach()
 endif()
 
+if(NOT BUILD_DUALSPEC)
+  # exclude Dualspec folder
+  set (EXCLUDE_DIR "Dualspec/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
 set(PCH_BASE_FILENAME "pchdef")
 # exclude pchdef files
 set (EXCLUDE_FILE "${PCH_BASE_FILENAME}")
@@ -252,6 +263,12 @@ if(BUILD_TRANSMOG)
     add_dependencies(${LIBRARY_NAME} Transmog)
 endif()
 
+if(BUILD_DUALSPEC)
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Dualspec/src)
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Dualspec)
+    add_dependencies(${LIBRARY_NAME} Dualspec)
+endif()
+
 if(UNIX)
   # Both systems don't have libdl and don't need them
   if (NOT (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "NetBSD"))
@@ -302,6 +319,11 @@ endif()
 # Define ENABLE_TRANSMOG if need
 if (BUILD_TRANSMOG)
   add_definitions(-DENABLE_TRANSMOG)
+endif()
+
+# Define ENABLE_DUALSPEC if need
+if (BUILD_DUALSPEC)
+  add_definitions(-DENABLE_DUALSPEC)
 endif()
 
 if (MSVC)

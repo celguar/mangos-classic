@@ -35,10 +35,6 @@ add_subdirectory(modules)
 endif()
 
 # Immersive mod
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
-  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
-endif()
-
 if(BUILD_IMMERSIVE)
   include(FetchContent)
 
@@ -48,21 +44,28 @@ if(BUILD_IMMERSIVE)
 	GIT_TAG "main"
   )
 
+  if(NOT immersive_POPULATED)
     message(STATUS "Fetching Immersive module...")
 
-  FetchContent_Populate(immersive)
+    FetchContent_Populate(immersive)
+	
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+      file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+    endif()
 
-  file(COPY ${immersive_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+    file(COPY ${immersive_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
 
-  message(STATUS "Immersive module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive")
+    message(STATUS "Immersive module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive")
+  endif()
+
   add_subdirectory(modules/Immersive)
+else()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Immersive)
+  endif()
 endif()
 
 # Achievements mod
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
-  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
-endif()
-
 if(BUILD_ACHIEVEMENTS)
   include(FetchContent)
 
@@ -72,21 +75,28 @@ if(BUILD_ACHIEVEMENTS)
 	GIT_TAG "main"
   )
 
+  if(NOT achievements_POPULATED)
     message(STATUS "Fetching Achievements module...")
 
-  FetchContent_Populate(achievements)
+    FetchContent_Populate(achievements)
+	
+	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
+      file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
+    endif()
 
-  file(COPY ${achievements_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
+    file(COPY ${achievements_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
 
-  message(STATUS "Achievements module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements")
+    message(STATUS "Achievements module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements")
+  endif()
+  
   add_subdirectory(modules/Achievements)
+else()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Achievements)
+  endif()
 endif()
 
 # Hardcore mod
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
-  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
-endif()
-
 if(BUILD_HARDCORE)
   include(FetchContent)
 
@@ -96,21 +106,28 @@ if(BUILD_HARDCORE)
 	GIT_TAG "main"
   )
 
+  if(NOT hardcore_POPULATED)
     message(STATUS "Fetching Hardcore module...")
 
-  FetchContent_Populate(hardcore)
+    FetchContent_Populate(hardcore)
+  
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
+      file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
+    endif()
 
-  file(COPY ${hardcore_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
+    file(COPY ${hardcore_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
 
-  message(STATUS "Hardcore module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore")
+    message(STATUS "Hardcore module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore")
+  endif()
+  
   add_subdirectory(modules/Hardcore)
+else()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Hardcore)
+  endif()
 endif()
 
 # Transmog mod
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
-  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
-endif()
-
 if(BUILD_TRANSMOG)
   include(FetchContent)
 
@@ -120,12 +137,53 @@ if(BUILD_TRANSMOG)
 	GIT_TAG "main"
   )
 
-  message(STATUS "Fetching Transmog module...")
+  if(NOT transmog_POPULATED)
+    message(STATUS "Fetching Transmog module...")
 
-  FetchContent_Populate(transmog)
+    FetchContent_Populate(transmog)
+  
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
+      file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
+    endif()
 
-  file(COPY ${transmog_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
+    file(COPY ${transmog_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
 
-  message(STATUS "Transmog module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog")
+    message(STATUS "Transmog module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog")
+  endif()
+  
   add_subdirectory(modules/Transmog)
+else()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Transmog)
+  endif()
+endif()
+
+# Dual spec module
+if(BUILD_DUALSPEC)
+  include(FetchContent)
+
+  FetchContent_Declare(
+    dualspec
+    GIT_REPOSITORY "https://github.com/davidonete/cmangos-dual-spec.git"
+	GIT_TAG "main"
+  )
+
+  if(NOT dualspec_POPULATED)
+	message(STATUS "Fetching Dual spec module...")
+
+    FetchContent_Populate(dualspec)
+
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Dualspec)
+      file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Dualspec)
+    endif()
+
+	file(COPY ${dualspec_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/Dualspec)
+    message(STATUS "Dual spec module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/Dualspec")
+  endif()
+
+  add_subdirectory(modules/Dualspec)
+else()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/Dualspec)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/Dualspec)
+  endif()
 endif()
