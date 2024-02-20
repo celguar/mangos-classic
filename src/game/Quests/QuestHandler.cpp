@@ -43,6 +43,10 @@
 #include "TransmogMgr.h"
 #endif
 
+#ifdef ENABLE_DUALSPEC
+#include "DualSpecMgr.h"
+#endif
+
 void WorldSession::HandleQuestgiverStatusQueryOpcode(WorldPacket& recv_data)
 {
     ObjectGuid guid;
@@ -115,6 +119,11 @@ void WorldSession::HandleQuestgiverHelloOpcode(WorldPacket& recv_data)
 
 #ifdef ENABLE_TRANSMOG
     if (sTransmogMgr.OnPlayerGossipHello(_player, pCreature))
+        return;
+#endif
+
+#ifdef ENABLE_DUALSPEC
+    if (sDualSpecMgr.OnPlayerGossipHello(_player, pCreature))
         return;
 #endif
 

@@ -39,6 +39,11 @@
 #include "TransmogMgr.h"
 #endif
 
+#ifdef ENABLE_DUALSPEC
+#include "DualSpecMgr.h"
+#endif
+
+
 enum StableResultCode
 {
     STABLE_ERR_MONEY        = 0x01,                         // "you don't have enough money"
@@ -376,6 +381,11 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket& recv_data)
         return;
 #endif
 
+#ifdef ENABLE_DUALSPEC
+    if (sDualSpecMgr.OnPlayerGossipHello(_player, pCreature))
+        return;
+#endif
+
     if (!sScriptDevAIMgr.OnGossipHello(_player, pCreature))
     {
         _player->PrepareGossipMenu(pCreature, pCreature->GetDefaultGossipMenuId());
@@ -401,6 +411,11 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recv_data)
 
     uint32 sender = _player->GetPlayerMenu()->GossipOptionSender(gossipListId);
     uint32 action = _player->GetPlayerMenu()->GossipOptionAction(gossipListId);
+
+#ifdef ENABLE_DUALSPEC
+    if (sDualSpecMgr.OnPlayerGossipSelect(_player, guid, sender, action, code))
+        return;
+#endif
 
     if (guid.IsAnyTypeCreature())
     {
@@ -432,18 +447,6 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recv_data)
 
         if (!sScriptDevAIMgr.OnGossipSelect(_player, pGo, sender, action, code.empty() ? nullptr : code.c_str()))
             _player->OnGossipSelect(pGo, gossipListId);
-    }
-    else if (guid.IsItem())
-    {
-        Item* pItem = GetPlayer()->GetItemByGuid(guid);
-
-        if (!pItem)
-        {
-            DEBUG_LOG("WORLD: HandleGossipSelectOptionOpcode - %s not found or you can't interact with it.", guid.GetString().c_str());
-            return;
-        }
-
-        sScriptDevAIMgr.OnGossipSelect(_player, pItem, sender, action, code.empty() ? nullptr : code.c_str());
     }
 }
 
