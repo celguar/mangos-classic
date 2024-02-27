@@ -52,8 +52,8 @@
 // apply implementation of the singletons
 #include "Policies/Singleton.h"
 
-#ifdef ENABLE_IMMERSIVE
-#include "ImmersiveMgr.h"
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
 #endif
 
 TrainerSpell const* TrainerSpellData::Find(uint32 spell_id) const
@@ -142,9 +142,6 @@ Creature::Creature(CreatureSubtype subtype) : Unit(),
     m_lootStatus(CREATURE_LOOT_STATUS_NONE),
     m_corpseAccelerationDecayDelay(MINIMUM_LOOTING_TIME),
     m_respawnTime(0), m_respawnDelay(25), m_respawnOverriden(false), m_respawnOverrideOnce(false), m_corpseDelay(60), m_canAggro(false),
-#ifdef ENABLE_IMMERSIVE
-    m_manualRespawn(false),
-#endif
     m_respawnradius(5.0f), m_interactionPauseTimer(0), m_subtype(subtype), m_defaultMovementType(IDLE_MOTION_TYPE),
     m_equipmentId(0), m_detectionRange(20.f), m_AlreadyCallAssistance(false), m_canCallForAssistance(true),
     m_temporaryFactionFlags(TEMPFACTION_NONE),
@@ -706,11 +703,9 @@ void Creature::Update(const uint32 diff)
         {
             if (m_respawnTime <= time(nullptr) && (!m_isSpawningLinked || GetMap()->GetCreatureLinkingHolder()->CanSpawn(this)))
             {
-#ifdef ENABLE_IMMERSIVE
-                if (!sImmersiveMgr.CanCreatureRespawn(this))
+#ifdef ENABLE_MODULES
+                if (sModuleMgr.OnRespawn(this, m_respawnTime))
                     return;
-
-                m_manualRespawn = false;
 #endif
 
                 DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Respawning...");
@@ -1872,8 +1867,8 @@ void Creature::Respawn()
             GetMap()->GetPersistentState()->SaveCreatureRespawnTime(GetDbGuid(), 0);
         m_respawnTime = time(nullptr);                         // respawn at next tick
 
-#ifdef ENABLE_IMMERSIVE
-        m_manualRespawn = true;
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnRespawnRequest(this);
 #endif
     }
 }
