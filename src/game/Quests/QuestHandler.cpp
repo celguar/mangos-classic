@@ -35,16 +35,8 @@
 #include "PlayerBot/Base/PlayerbotAI.h"
 #endif
 
-#ifdef ENABLE_ACHIEVEMENTS
-#include "AchievementsMgr.h"
-#endif
-
-#ifdef ENABLE_TRANSMOG
-#include "TransmogMgr.h"
-#endif
-
-#ifdef ENABLE_DUALSPEC
-#include "DualSpecMgr.h"
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
 #endif
 
 void WorldSession::HandleQuestgiverStatusQueryOpcode(WorldPacket& recv_data)
@@ -117,13 +109,8 @@ void WorldSession::HandleQuestgiverHelloOpcode(WorldPacket& recv_data)
     if (uint32 pauseTimer = pCreature->GetInteractionPauseTimer())
         pCreature->GetMotionMaster()->PauseWaypoints(pauseTimer);
 
-#ifdef ENABLE_TRANSMOG
-    if (sTransmogMgr.OnPlayerGossipHello(_player, pCreature))
-        return;
-#endif
-
-#ifdef ENABLE_DUALSPEC
-    if (sDualSpecMgr.OnPlayerGossipHello(_player, pCreature))
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnPreGossipHello(_player, pCreature->GetObjectGuid()))
         return;
 #endif
 
@@ -131,6 +118,9 @@ void WorldSession::HandleQuestgiverHelloOpcode(WorldPacket& recv_data)
         return;
 
     _player->PrepareGossipMenu(pCreature, pCreature->GetDefaultGossipMenuId());
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnGossipHello(_player, pCreature->GetObjectGuid());
+#endif
     _player->SendPreparedGossip(pCreature);
 }
 
@@ -472,8 +462,8 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPacket& recv_data)
             _player->SetQuestStatus(quest, QUEST_STATUS_NONE);
 
 
-#ifdef ENABLE_ACHIEVEMENTS
-            sAchievementsMgr.UpdateAchievementCriteria(_player, ACHIEVEMENT_CRITERIA_TYPE_QUEST_ABANDONED, 1);
+#ifdef ENABLE_MODULES
+            sModuleMgr.OnAbandonQuest(_player, quest);
 #endif
         }
 
