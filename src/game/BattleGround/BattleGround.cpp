@@ -35,9 +35,10 @@
 #include "Grids/GridNotifiersImpl.h"
 #include "Chat/Chat.h"
 
-#ifdef ENABLE_MODULES
-#include "ModuleMgr.h"
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
 #endif
+
 
 #include <cstdarg>
 
@@ -842,15 +843,15 @@ void BattleGround::EndBattleGround(Team winner)
         BattleGroundQueueTypeId bgQueueTypeId = BattleGroundMgr::BgQueueTypeId(GetTypeId());
         sBattleGroundMgr.BuildBattleGroundStatusPacket(data, this, plr->GetBattleGroundQueueIndex(bgQueueTypeId), STATUS_IN_PROGRESS, TIME_TO_AUTOREMOVE, GetStartTime());
         plr->GetSession()->SendPacket(data);
+
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.OnPlayerEndBattleground(plr, winner);
+#endif
     }
 
     // AV message is different - TODO: check if others are also wrong
     if (winmsg_id && GetTypeId() != BATTLEGROUND_AV)
         SendMessageToAll(winmsg_id, CHAT_MSG_BG_SYSTEM_NEUTRAL);
-
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnEndBattleGround(this, winner);
-#endif
 }
 
 /**
@@ -1138,8 +1139,8 @@ void BattleGround::RemovePlayerAtLeave(ObjectGuid playerGuid, bool isOnTransport
         if (isOnTransport)
             player->TeleportToBGEntryPoint();
 
-#ifdef ENABLE_MODULES
-        sModuleMgr.OnLeaveBattleGround(this, player);
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.ResetAchievementCriteria(player, ACHIEVEMENT_CRITERIA_CONDITION_BG_MAP, GetMapId(), true);
 #endif
 
         DETAIL_LOG("BATTLEGROUND: Removed player %s from BattleGround.", player->GetName());
@@ -1222,16 +1223,16 @@ void BattleGround::AddPlayer(Player* player)
     sBattleGroundMgr.BuildPlayerJoinedBattleGroundPacket(data, player);
     SendPacketToTeam(team, data, player, false);
 
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.ResetAchievementCriteria(player, ACHIEVEMENT_CRITERIA_CONDITION_BG_MAP, GetMapId(), true);
+#endif
+
     // setup BG group membership
     PlayerAddedToBgCheckIfBgIsRunning(player);
     AddOrSetPlayerToCorrectBgGroup(player, guid, team);
 
     // Log
     DETAIL_LOG("BATTLEGROUND: Player %s joined the battle.", player->GetName());
-
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnJoinBattleGround(this, player);
-#endif
 }
 
 /* this method adds player to his team's bg group, or sets his correct group if player is already in bg group */
@@ -1394,10 +1395,6 @@ void BattleGround::UpdatePlayerScore(Player* player, uint32 type, uint32 value)
             sLog.outError("BattleGround: Unknown player score type %u", type);
             break;
     }
-
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnUpdatePlayerScore(this, player, type, value);
-#endif
 }
 
 /**

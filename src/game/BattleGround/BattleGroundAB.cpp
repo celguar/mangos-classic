@@ -26,10 +26,6 @@
 #include "Server/WorldPacket.h"
 #include "Globals/ObjectMgr.h"
 
-#ifdef ENABLE_MODULES
-#include "ModuleMgr.h"
-#endif
-
 BattleGroundAB::BattleGroundAB(): m_isInformedNearVictory(false), m_honorTicks(0), m_reputationTics(0)
 {
     m_startMessageIds[BG_STARTING_EVENT_FIRST]  = 0;
@@ -477,11 +473,6 @@ void BattleGroundAB::UpdatePlayerScore(Player* source, uint32 type, uint32 value
             BattleGround::UpdatePlayerScore(source, type, value);
             break;
     }
-
-#ifdef ENABLE_MODULES
-    if (type >= 7)
-        sModuleMgr.OnUpdatePlayerScore(this, source, type, value);
-#endif
 }
 
 Team BattleGroundAB::GetPrematureWinner()

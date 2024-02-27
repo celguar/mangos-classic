@@ -22,8 +22,8 @@
 #include "Globals/ObjectMgr.h"
 #include "Accounts/AccountMgr.h"
 
-#ifdef ENABLE_MODULES
-#include "ModuleMgr.h"
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
 #endif
 
 // Character Dump tables
@@ -394,8 +394,8 @@ DumpReturn PlayerDumpWriter::WriteDump(const std::string& file, uint32 guid)
 
     std::string dump = GetDump(guid);
 
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnWriteDump(guid, dump);
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnPlayerWriteDump(guid, dump);
 #endif
 
     fprintf(fout, "%s\n", dump.c_str());
@@ -515,17 +515,19 @@ DumpReturn PlayerDumpReader::LoadDump(const std::string& file, uint32 account, s
 
         if (!dTable->isValid())
         {
-#ifdef ENABLE_MODULES
+            // Check for modules databases
             type = DTT_CHAR_TABLE;
-            if (!sModuleMgr.IsModuleDumpTable(tn))
+            bool valid = false;
+
+#ifdef ENABLE_ACHIEVEMENTS
+            valid = sAchievementsMgr.IsAchievementsDBTable(tn);
+#endif
+
+            if (!valid)
             {
                 sLog.outError("LoadPlayerDump: Unknown table: '%s'!", tn.c_str());
                 ROLLBACK(DUMP_FILE_BROKEN);
             }
-#else
-            sLog.outError("LoadPlayerDump: Unknown table: '%s'!", tn.c_str());
-            ROLLBACK(DUMP_FILE_BROKEN);
-#endif
         }
 
         // change the data to server values

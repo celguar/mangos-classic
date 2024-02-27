@@ -33,8 +33,12 @@
 #include <sstream>
 #include <iomanip>
 
-#ifdef ENABLE_MODULES
-#include "ModuleMgr.h"
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
+#ifdef ENABLE_HARDCORE
+#include "HardcoreMgr.h"
 #endif
 
 INSTANTIATE_SINGLETON_1(LootMgr);
@@ -932,9 +936,9 @@ void GroupLootRoll::Finish(RollVoteMap::const_iterator& winnerItr)
         Player* plr = sObjectMgr.GetPlayer(winnerItr->first);
         if (plr && plr->GetSession())
         {
-#ifdef ENABLE_MODULES
+#ifdef ENABLE_ACHIEVEMENTS
             InventoryResult msg = m_loot->SendItem(plr, m_itemSlot);
-            sModuleMgr.OnPlayerWinRoll(m_loot, plr, winnerItr->second.vote, winnerItr->second.number, m_itemSlot, msg);
+            sAchievementsMgr.OnGroupLootRollFinish(plr, m_loot, winnerItr->second.vote, winnerItr->second.number, m_itemSlot, msg);
 #else
             m_loot->SendItem(plr, m_itemSlot);
 #endif
@@ -971,10 +975,6 @@ void Loot::AddItem(LootStoreItem const& item)
             m_haveItemOverThreshold = true;
 
         m_lootItems.push_back(lootItem);
-
-#ifdef ENABLE_MODULES
-        sModuleMgr.OnAddItem(this, lootItem);
-#endif
     }
 }
 
@@ -994,8 +994,8 @@ void Loot::AddItem(uint32 itemid, uint32 count, uint32 randomSuffix, int32 rando
                 lootItem->allowedGuid.emplace(allowedGuid);
         }
 
-#ifdef ENABLE_MODULES
-        sModuleMgr.OnAddItem(this, lootItem);
+#ifdef ENABLE_HARDCORE
+        sHardcoreMgr.OnLootAddItem(this, lootItem);
 #endif
     }
 }
@@ -1007,25 +1007,23 @@ bool Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* lootOwner, b
     if (!lootOwner)
         return false;
 
-#ifdef ENABLE_MODULES
-    if (!sModuleMgr.OnFillLoot(this, lootOwner))
-    {
+#ifdef ENABLE_HARDCORE
+    if (!sHardcoreMgr.OnLootFill(this))
 #endif
-    LootTemplate const* tab = store.GetLootFor(loot_id);
-
-    if (!tab)
     {
-        if (!noEmptyError)
-            sLog.outErrorDb("Table '%s' loot id #%u used but it doesn't have records.", store.GetName(), loot_id);
-        return false;
-    }
+        LootTemplate const* tab = store.GetLootFor(loot_id);
 
-    m_lootItems.reserve(MAX_NR_LOOT_ITEMS);
+        if (!tab)
+        {
+            if (!noEmptyError)
+                sLog.outErrorDb("Table '%s' loot id #%u used but it doesn't have records.", store.GetName(), loot_id);
+            return false;
+        }
 
-    tab->Process(*this, lootOwner, store, store.IsRatesAllowed()); // Processing is done there, callback via Loot::AddItem()
-#ifdef ENABLE_MODULES
+        m_lootItems.reserve(MAX_NR_LOOT_ITEMS);
+
+        tab->Process(*this, lootOwner, store, store.IsRatesAllowed()); // Processing is done there, callback via Loot::AddItem()
     }
-#endif
 
     // fill the loot owners right here so its impossible from this point to change loot result
     Player* masterLooter = nullptr;
@@ -1223,8 +1221,8 @@ void Loot::NotifyMoneyRemoved()
 
 void Loot::GenerateMoneyLoot(uint32 minAmount, uint32 maxAmount)
 {
-#ifdef ENABLE_MODULES
-    if (sModuleMgr.OnGenerateMoneyLoot(this, m_gold))
+#ifdef ENABLE_HARDCORE
+    if (sHardcoreMgr.OnLootGenerateMoney(this, m_gold))
         return;
 #endif
 
@@ -2087,8 +2085,8 @@ InventoryResult Loot::SendItem(Player* target, LootItem* lootItem, bool sendErro
         {
             Item* newItem = target->StoreNewItem(dest, lootItem->itemId, true, lootItem->randomPropertyId, this);
 
-#ifdef ENABLE_MODULES
-            sModuleMgr.OnStoreNewItem(target, this, newItem);
+#ifdef ENABLE_HARDCORE
+            sHardcoreMgr.OnPlayerStoreNewItem(target, this, newItem);
 #endif
 
             if (lootItem->freeForAll)
@@ -2295,6 +2293,10 @@ void Loot::SendGold(Player* player)
 
             plr->ModifyMoney(money_per_player);
 
+#ifdef ENABLE_ACHIEVEMENTS
+            sAchievementsMgr.UpdateAchievementCriteria(plr, ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, money_per_player);
+#endif
+
             WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4);
             data << uint32(money_per_player);
 
@@ -2305,6 +2307,10 @@ void Loot::SendGold(Player* player)
     {
         player->ModifyMoney(m_gold);
 
+#ifdef ENABLE_ACHIEVEMENTS
+        sAchievementsMgr.UpdateAchievementCriteria(player, ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, m_gold);
+#endif
+
         if (m_guidTarget.IsItem())
         {
             if (Item* item = player->GetItemByGuid(m_guidTarget))
@@ -2312,8 +2318,8 @@ void Loot::SendGold(Player* player)
         }
     }
 
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnSendGold(this, player, m_gold, m_lootMethod);
+#ifdef ENABLE_HARDCORE
+    sHardcoreMgr.OnLootSendGold(this, m_gold);
 #endif
 
     m_gold = 0;
@@ -3008,10 +3014,6 @@ void LootMgr::PlayerVote(Player* player, ObjectGuid const& lootTargetGuid, uint3
     }
 
     roll->PlayerVote(player, vote);
-
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnPlayerRoll(loot, player, itemSlot, vote);
-#endif
 }
 
 // Get loot by object guid

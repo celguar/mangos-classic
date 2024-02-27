@@ -51,8 +51,8 @@
 #include "PlayerbotAI.h"
 #endif
 
-#ifdef ENABLE_MODULES
-#include "ModuleMgr.h"
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
 #endif
 
 extern pEffect SpellEffects[MAX_SPELL_EFFECTS];
@@ -1336,10 +1336,6 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
             Unit::ProcDamageAndSpell(ProcSystemArguments(affectiveCaster, procAttacker & PROC_FLAG_ON_TRAP_ACTIVATION ? m_targets.getUnitTarget() : unit, affectiveCaster ? procAttacker : uint32(PROC_FLAG_NONE), procVictim, procEx, 0, 0, m_attackType, m_spellInfo, this));
     }
 
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnHit(this, (Unit*)caster, unitTarget);
-#endif
-
     OnAfterHit();
 
     if (unit->IsCreature())
@@ -1394,6 +1390,10 @@ void Spell::DoSpellHitOnUnit(Unit* unit, uint32 effectMask, TargetInfo* target, 
             return;
         }
     }
+
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnDoSpellHitOnUnit(m_caster, unit, m_spellInfo->Id);
+#endif
 
     if (traveling && m_trueCaster != unit)
     {
@@ -3164,6 +3164,10 @@ SpellCastResult Spell::cast(bool skipCheck)
 
     m_duration = CalculateSpellDuration(m_spellInfo, m_caster, nullptr, m_auraScript);
 
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.OnSpellCast(m_caster, m_targets.getUnitTarget(), m_CastItem, m_spellInfo->Id);
+#endif
+
     FillTargetMap();
 
     if (m_spellState == SPELL_STATE_FINISHED)               // stop cast if spell marked as finish somewhere in FillTargetMap
@@ -3190,10 +3194,6 @@ SpellCastResult Spell::cast(bool skipCheck)
     InitializeDamageMultipliers();
 
     OnCast();
-
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnCast(this, m_caster, m_targets.getUnitTarget());
-#endif
 
     if (!m_IsTriggeredSpell && !m_trueCaster->IsGameObject() && !m_spellInfo->HasAttribute(SPELL_ATTR_EX2_NOT_AN_ACTION))
         m_caster->RemoveAurasOnCast(AURA_INTERRUPT_FLAG_ACTION_LATE, m_spellInfo);

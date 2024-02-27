@@ -62,6 +62,61 @@ if(NOT BUILD_IKE3_BOTS)
   endforeach()
 endif()
 
+if(NOT BUILD_IMMERSIVE)
+  # exclude Immersive folder
+  set (EXCLUDE_DIR "Immersive/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
+if(NOT BUILD_ACHIEVEMENTS)
+  # exclude Achievement folder
+  set (EXCLUDE_DIR "Achievements/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
+if(NOT BUILD_HARDCORE)
+  # exclude Hardcore folder
+  set (EXCLUDE_DIR "Hardcore/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
+if(NOT BUILD_TRANSMOG)
+  # exclude Transmog folder
+  set (EXCLUDE_DIR "Transmog/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
+if(NOT BUILD_DUALSPEC)
+  # exclude Dualspec folder
+  set (EXCLUDE_DIR "Dualspec/")
+  foreach (TMP_PATH ${LIBRARY_SRCS})
+      string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+      if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+          list(REMOVE_ITEM LIBRARY_SRCS ${TMP_PATH})
+      endif ()
+  endforeach()
+endif()
+
 set(PCH_BASE_FILENAME "pchdef")
 # exclude pchdef files
 set (EXCLUDE_FILE "${PCH_BASE_FILENAME}")
@@ -184,27 +239,34 @@ if(BUILD_IKE3_BOTS)
     add_dependencies(${LIBRARY_NAME} Bots)
 endif()
 
-# Add modules to project
-if(BUILD_MODULES)
-  set(SKIP_FOLDERS "Bots modules")
-  file(GLOB SUBDIRECTORIES LIST_DIRECTORIES true ${CMAKE_SOURCE_DIR}/src/modules/*)
-  foreach(SUBDIR ${SUBDIRECTORIES})
-    get_filename_component(FOLDER_NAME ${SUBDIR} NAME)
-    list(FIND SKIP_FOLDERS ${FOLDER_NAME} SKIP_INDEX)
-    if (SKIP_INDEX EQUAL -1)
-	  string(TOUPPER ${FOLDER_NAME} UPPER_FOLDER_NAME)
-      if(BUILD_MODULE_${UPPER_FOLDER_NAME} OR BUILD_${UPPER_FOLDER_NAME})
-        include_directories(${CMAKE_SOURCE_DIR}/src/modules/${FOLDER_NAME}/src)
-        target_link_libraries(${LIBRARY_NAME} PUBLIC ${FOLDER_NAME})
-        add_dependencies(${LIBRARY_NAME} ${FOLDER_NAME})
-      endif()
-	endif()
-  endforeach()
+if(BUILD_IMMERSIVE)
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Immersive/src)
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Immersive)
+    add_dependencies(${LIBRARY_NAME} Immersive)
+endif()
 
-  include_directories(${CMAKE_SOURCE_DIR}/src/modules/modules/src)
-  target_link_libraries(${LIBRARY_NAME} PUBLIC modules)
-  add_dependencies(${LIBRARY_NAME} modules)
-  add_definitions(-DENABLE_MODULES)
+if(BUILD_ACHIEVEMENTS)
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Achievements/src)
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Achievements)
+    add_dependencies(${LIBRARY_NAME} Achievements)
+endif()
+
+if(BUILD_HARDCORE)
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Hardcore/src)
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Hardcore)
+    add_dependencies(${LIBRARY_NAME} Hardcore)
+endif()
+
+if(BUILD_TRANSMOG)
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Transmog/src)
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Transmog)
+    add_dependencies(${LIBRARY_NAME} Transmog)
+endif()
+
+if(BUILD_DUALSPEC)
+    include_directories(${CMAKE_SOURCE_DIR}/src/modules/Dualspec/src)
+	target_link_libraries(${LIBRARY_NAME} PUBLIC Dualspec)
+    add_dependencies(${LIBRARY_NAME} Dualspec)
 endif()
 
 if(UNIX)
@@ -237,6 +299,31 @@ endif()
 # Define Ike3 Bots ENABLE_PLAYERBOTS if need
 if (BUILD_IKE3_BOTS)
   add_definitions(-DENABLE_PLAYERBOTS)
+endif()
+
+# Define ENABLE_IMMERSIVE if need
+if (BUILD_IMMERSIVE)
+  add_definitions(-DENABLE_IMMERSIVE)
+endif()
+
+# Define ENABLE_ACHIEVEMENTS if need
+if (BUILD_ACHIEVEMENTS)
+  add_definitions(-DENABLE_ACHIEVEMENTS)
+endif()
+
+# Define ENABLE_HARDCORE if need
+if (BUILD_HARDCORE)
+  add_definitions(-DENABLE_HARDCORE)
+endif()
+
+# Define ENABLE_TRANSMOG if need
+if (BUILD_TRANSMOG)
+  add_definitions(-DENABLE_TRANSMOG)
+endif()
+
+# Define ENABLE_DUALSPEC if need
+if (BUILD_DUALSPEC)
+  add_definitions(-DENABLE_DUALSPEC)
 endif()
 
 if (MSVC)

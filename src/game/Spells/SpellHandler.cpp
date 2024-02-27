@@ -30,8 +30,12 @@
 #include "Spells/SpellAuras.h"
 #include "Loot/LootMgr.h"
 
-#ifdef ENABLE_MODULES
-#include "ModuleMgr.h"
+#ifdef ENABLE_ACHIEVEMENTS
+#include "AchievementsMgr.h"
+#endif
+
+#ifdef ENABLE_DUALSPEC
+#include "DualSpecMgr.h"
 #endif
 
 void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
@@ -149,8 +153,8 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 
     _player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_ITEM_USE);
 
-#ifdef ENABLE_MODULES
-    if (sModuleMgr.OnUseItem(pUser, pItem))
+#ifdef ENABLE_DUALSPEC
+    if (sDualSpecMgr.OnPlayerItemUse(pUser, pItem))
         return;
 #endif
 
@@ -318,6 +322,10 @@ void WorldSession::HandleGameObjectUseOpcode(WorldPacket& recv_data)
     }
 
     obj->Use(_player);
+
+#ifdef ENABLE_ACHIEVEMENTS
+    sAchievementsMgr.UpdateAchievementCriteria(_player, ACHIEVEMENT_CRITERIA_TYPE_USE_GAMEOBJECT, obj->GetEntry());
+#endif
 }
 
 void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)

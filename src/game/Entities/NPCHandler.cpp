@@ -35,9 +35,14 @@
 #include "Guilds/GuildMgr.h"
 #include "Chat/Chat.h"
 
-#ifdef ENABLE_MODULES
-#include "ModuleMgr.h"
+#ifdef ENABLE_TRANSMOG
+#include "TransmogMgr.h"
 #endif
+
+#ifdef ENABLE_DUALSPEC
+#include "DualSpecMgr.h"
+#endif
+
 
 enum StableResultCode
 {
@@ -371,17 +376,19 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket& recv_data)
     if (pCreature->isSpiritGuide())
         pCreature->SendAreaSpiritHealerQueryOpcode(_player);
 
-#ifdef ENABLE_MODULES
-    if (sModuleMgr.OnPreGossipHello(_player, pCreature->GetObjectGuid()))
+#ifdef ENABLE_TRANSMOG
+    if (sTransmogMgr.OnPlayerGossipHello(_player, pCreature))
+        return;
+#endif
+
+#ifdef ENABLE_DUALSPEC
+    if (sDualSpecMgr.OnPlayerGossipHello(_player, pCreature))
         return;
 #endif
 
     if (!sScriptDevAIMgr.OnGossipHello(_player, pCreature))
     {
         _player->PrepareGossipMenu(pCreature, pCreature->GetDefaultGossipMenuId());
-#ifdef ENABLE_MODULES
-        sModuleMgr.OnGossipHello(_player, pCreature->GetObjectGuid());
-#endif
         _player->SendPreparedGossip(pCreature);
     }
 }
@@ -405,8 +412,8 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recv_data)
     uint32 sender = _player->GetPlayerMenu()->GossipOptionSender(gossipListId);
     uint32 action = _player->GetPlayerMenu()->GossipOptionAction(gossipListId);
 
-#ifdef ENABLE_MODULES
-    if (sModuleMgr.OnGossipSelect(_player, guid, sender, action, code, gossipListId))
+#ifdef ENABLE_DUALSPEC
+    if (sDualSpecMgr.OnPlayerGossipSelect(_player, guid, sender, action, code))
         return;
 #endif
 
@@ -419,6 +426,11 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recv_data)
             DEBUG_LOG("WORLD: HandleGossipSelectOptionOpcode - %s not found or you can't interact with it.", guid.GetString().c_str());
             return;
         }
+
+#ifdef ENABLE_TRANSMOG
+        if (sTransmogMgr.OnPlayerGossipSelect(_player, pCreature, sender, action))
+            return;
+#endif
 
         if (!sScriptDevAIMgr.OnGossipSelect(_player, pCreature, sender, action, code.empty() ? nullptr : code.c_str()))
             _player->OnGossipSelect(pCreature, gossipListId);
