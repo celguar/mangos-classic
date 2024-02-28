@@ -94,4 +94,3 @@ cmake_install.cmake
 
 # Modules
 src/modules/*
-modules.conf
