@@ -10,13 +10,12 @@ option(BUILD_PLAYERBOT      "Build Playerbot mod"                   OFF)
 option(BUILD_IKE3_BOTS      "Build ike3 Playerbots"                 OFF)
 option(BUILD_AHBOT          "Build Auction House Bot mod"           OFF)
 
-#Modules
-set(MODULES_LIST IMMERSIVE ACHIEVEMENTS HARDCORE TRANSMOG DUALSPEC MODULES)
+# Modules
 option(BUILD_MODULES        "Build module system"                   OFF)
-foreach(MODULE ${MODULES_LIST})
-  if(NOT ${MODULE} STREQUAL "MODULES")
-    string(TOLOWER ${MODULE} LOWER_MODULE_NAME)
-	option(BUILD_MODULE_${MODULE} "Build ${LOWER_MODULE_NAME} module" OFF)
+foreach(MODULE_NAME ${MODULE_NAMES})
+  if(NOT ${MODULE_NAME} STREQUAL "MODULES")
+    string(TOLOWER ${MODULE_NAME} LOWER_MODULE_NAME)
+	option(BUILD_MODULE_${MODULE_NAME} "Build ${LOWER_MODULE_NAME} module" OFF)
   endif()
 endforeach()
 

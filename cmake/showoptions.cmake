@@ -76,18 +76,18 @@ endif()
 # Modules
 if(BUILD_MODULES)
   message(STATUS "Build Modules         : Yes")
-
-  foreach(MODULE ${MODULES_LIST})
-    if(NOT ${MODULE} STREQUAL "MODULES")
-      string(TOLOWER ${MODULE} LOWER_MODULE_NAME)
-      if(BUILD_MODULE_${MODULE})
+  
+  foreach(MODULE_NAME ${MODULE_NAMES})
+    if(NOT ${MODULE_NAME} STREQUAL "MODULES")
+      string(TOLOWER ${MODULE_NAME} LOWER_MODULE_NAME)
+      if(BUILD_MODULE_${MODULE_NAME})
         message(STATUS "Build ${LOWER_MODULE_NAME} Module : Yes")
       else()
         message(STATUS "Build ${LOWER_MODULE_NAME} Module : No (default)")
       endif()
 	endif()
   endforeach()
-
+  
 else()
   message(STATUS "Build Modules         : No  (default)")
 endif()

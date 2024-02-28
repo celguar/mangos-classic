@@ -87,6 +87,35 @@ if(MSVC)
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
 
+# Modules setup
+# Download module config file
+include(FetchContent)
+FetchContent_Declare(
+  modules
+  GIT_REPOSITORY "https://github.com/davidonete/cmangos-modules.git"
+  GIT_TAG "main"
+)
+FetchContent_Populate(modules)
+if(EXISTS ${CMAKE_SOURCE_DIR}/modules.conf)
+  file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/modules.conf)
+endif()
+file(COPY ${modules_SOURCE_DIR}/modules.conf DESTINATION ${CMAKE_SOURCE_DIR})
+
+# Read module config file
+file(READ "modules.conf" MODULE_CONF)
+string(REGEX REPLACE "\n" ";" MODULE_CONF_LINES "${MODULE_CONF}")
+set(MODULE_NAMES)
+set(MODULE_URLS)
+foreach(MODULE_CONF_LINE ${MODULE_CONF_LINES})
+  string(REGEX MATCH "([^=]+)=(.*)" _ ${MODULE_CONF_LINE})
+  set(KEY ${CMAKE_MATCH_1})
+  set(VALUE ${CMAKE_MATCH_2})
+  if(NOT KEY STREQUAL "" OR NOT VALUE STREQUAL "")
+    list(APPEND MODULE_NAMES ${KEY})
+    list(APPEND MODULE_URLS ${VALUE})
+  endif()
+endforeach()
+
 # set default buildoptions and print them
 include(cmake/options.cmake)
 
@@ -344,10 +373,9 @@ if(BUILD_PLAYERBOT)
   message(STATUS "Ike3 bots DISABLED because CMaNGOS bots enabled")
 endif()
 
-# Modules setup
-set(MODULES_LIST IMMERSIVE ACHIEVEMENTS HARDCORE TRANSMOG DUALSPEC MODULES)
-foreach(MODULE ${MODULES_LIST})
-  if(BUILD_MODULE_${MODULE})
+# Enable build modules flag if needed
+foreach(MODULE_NAME ${MODULE_NAMES})
+  if(BUILD_MODULE_${MODULE_NAME})
     set(BUILD_MODULES ON)
 	break()
   endif()

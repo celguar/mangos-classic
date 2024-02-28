@@ -36,14 +36,19 @@ endif()
 
 # Install modules
 if(BUILD_MODULES)
-  foreach(MODULE ${MODULES_LIST})
-    string(TOLOWER ${MODULE} LOWER_MODULE_NAME)
-    if(BUILD_MODULE_${MODULE} OR BUILD_${MODULE})
+  list(LENGTH MODULE_NAMES MODULE_COUNT)
+  math(EXPR MODULE_COUNT "${MODULE_COUNT}-1")
+  foreach(INDEX RANGE ${MODULE_COUNT})
+    list(GET MODULE_NAMES ${INDEX} MODULE_NAME)
+    list(GET MODULE_URLS ${INDEX} MODULE_URL)
+  
+    string(TOLOWER ${MODULE_NAME} LOWER_MODULE_NAME)
+    if(BUILD_MODULE_${MODULE_NAME} OR BUILD_${MODULE_NAME})
       include(FetchContent)
 
       FetchContent_Declare(
         ${LOWER_MODULE_NAME}
-        GIT_REPOSITORY "https://github.com/davidonete/cmangos-${LOWER_MODULE_NAME}.git"
+        GIT_REPOSITORY "${MODULE_URL}"
         GIT_TAG "main"
       )
 
@@ -51,7 +56,7 @@ if(BUILD_MODULES)
         message(STATUS "Fetching ${LOWER_MODULE_NAME} module...")
 
         FetchContent_Populate(${LOWER_MODULE_NAME})
-
+            
         if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME})
           file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME})
         endif()
@@ -60,8 +65,8 @@ if(BUILD_MODULES)
 
         message(STATUS "${LOWER_MODULE_NAME} module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME}")
       endif()
-
-      add_subdirectory(modules/${LOWER_MODULE_NAME})
+	
+      add_subdirectory(${CMAKE_SOURCE_DIR}/src/modules/${LOWER_MODULE_NAME})
     else()
       if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME})
         file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME})
