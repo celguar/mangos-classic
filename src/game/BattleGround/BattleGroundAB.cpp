@@ -167,6 +167,10 @@ void BattleGroundAB::StartingEventOpenDoors()
     // disable gy inside base after bg start
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(AB_GRAVEYARD_ALLIANCE_BASE, BG_AB_ZONE_MAIN, TEAM_INVALID);
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(AB_GRAVEYARD_HORDE_BASE, BG_AB_ZONE_MAIN, TEAM_INVALID);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnStartBattleGround(this);
+#endif
 }
 
 void BattleGroundAB::AddPlayer(Player* player)
@@ -479,8 +483,7 @@ void BattleGroundAB::UpdatePlayerScore(Player* source, uint32 type, uint32 value
     }
 
 #ifdef ENABLE_MODULES
-    if (type >= 7)
-        sModuleMgr.OnUpdatePlayerScore(this, source, type, value);
+    sModuleMgr.OnUpdatePlayerScore(this, source, type, value);
 #endif
 }
 

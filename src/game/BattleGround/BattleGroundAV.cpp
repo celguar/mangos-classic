@@ -358,6 +358,10 @@ void BattleGroundAV::StartingEventOpenDoors()
     GetBgMap()->GetVariableManager().SetVariable(BG_AV_STATE_SCORE_SHOW_A, WORLD_STATE_ADD);
 
     OpenDoorEvent(BG_EVENT_DOOR);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnStartBattleGround(this);
+#endif
 }
 
 void BattleGroundAV::AddPlayer(Player* player)
@@ -491,8 +495,7 @@ void BattleGroundAV::UpdatePlayerScore(Player* source, uint32 type, uint32 value
     }
 
 #ifdef ENABLE_MODULES
-    if (type >= 7)
-        sModuleMgr.OnUpdatePlayerScore(this, source, type, value);
+    sModuleMgr.OnUpdatePlayerScore(this, source, type, value);
 #endif
 }
 

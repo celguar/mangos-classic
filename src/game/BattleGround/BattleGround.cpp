@@ -1394,10 +1394,6 @@ void BattleGround::UpdatePlayerScore(Player* player, uint32 type, uint32 value)
             sLog.outError("BattleGround: Unknown player score type %u", type);
             break;
     }
-
-#ifdef ENABLE_MODULES
-    sModuleMgr.OnUpdatePlayerScore(this, player, type, value);
-#endif
 }
 
 /**

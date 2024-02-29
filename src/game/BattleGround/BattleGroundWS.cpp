@@ -589,8 +589,7 @@ void BattleGroundWS::UpdatePlayerScore(Player* player, uint32 type, uint32 value
     }
 
 #ifdef ENABLE_MODULES
-    if (type >= 7)
-        sModuleMgr.OnUpdatePlayerScore(this, player, type, value);
+    sModuleMgr.OnUpdatePlayerScore(this, player, type, value);
 #endif
 }
 
