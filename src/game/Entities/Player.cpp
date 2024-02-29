@@ -10008,10 +10008,6 @@ Item* Player::StoreNewItem(ItemPosCountVec const& dest, uint32 item, bool update
     {
         ItemAddedQuestCheck(item, count);
         pItem = StoreItem(dest, pItem, update);
-
-#ifdef ENABLE_MODULES
-        sModuleMgr.OnStoreNewItem(this, pItem);
-#endif
     }
     return pItem;
 }
@@ -10050,6 +10046,10 @@ Item* Player::StoreItem(ItemPosCountVec const& dest, Item* pItem, bool update)
         }
     }
     /* World of Warcraft Armory */
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnStoreItem(this, pItem);
+#endif
 
     return lastItem;
 }
