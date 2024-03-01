@@ -20092,8 +20092,9 @@ InventoryResult Player::CanEquipUniqueItem(ItemPrototype const* itemProto, uint8
 void Player::HandleFall(MovementInfo const& movementInfo)
 {
 #ifdef ENABLE_MODULES
-    if (sModuleMgr.OnHandleFall(this, movementInfo, m_lastFallZ))
-        return;
+    uint32 damageReceived = 0;
+    if (!sModuleMgr.OnPreHandleFall(this, movementInfo, m_lastFallZ, damageReceived))
+    {
 #endif
 
     // calculate total z distance of the fall
@@ -20129,13 +20130,22 @@ void Player::HandleFall(MovementInfo const& movementInfo)
                 if (GetDummyAura(43621))
                     damage = GetMaxHealth() / 2;
 
+#ifdef ENABLE_MODULES
+                damageReceived = EnvironmentalDamage(DAMAGE_FALL, damage);
+#else
                 EnvironmentalDamage(DAMAGE_FALL, damage);
+#endif
             }
 
             // Z given by moveinfo, LastZ, FallTime, WaterZ, MapZ, Damage, Safefall reduction
             DEBUG_LOG("FALLDAMAGE z=%f sz=%f pZ=%f FallTime=%d mZ=%f damage=%d SF=%d", position.z, height, GetPositionZ(), movementInfo.GetFallTime(), height, damage, safe_fall);
         }
     }
+
+#ifdef ENABLE_MODULES
+    }
+    sModuleMgr.OnHandleFall(this, movementInfo, m_lastFallZ, damageReceived);
+#endif
 }
 
 void Player::LearnTalent(uint32 talentId, uint32 talentRank)
