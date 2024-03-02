@@ -30,12 +30,8 @@
 #include "Spells/SpellAuras.h"
 #include "Loot/LootMgr.h"
 
-#ifdef ENABLE_ACHIEVEMENTS
-#include "AchievementsMgr.h"
-#endif
-
-#ifdef ENABLE_DUALSPEC
-#include "DualSpecMgr.h"
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
 #endif
 
 void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
@@ -314,10 +310,6 @@ void WorldSession::HandleGameObjectUseOpcode(WorldPacket& recv_data)
         return;
 
     obj->Use(_player);
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.UpdateAchievementCriteria(_player, ACHIEVEMENT_CRITERIA_TYPE_USE_GAMEOBJECT, obj->GetEntry());
-#endif
 }
 
 void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
