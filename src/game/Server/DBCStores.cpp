@@ -160,7 +160,7 @@ DBCStorage <TransportAnimationEntry> sTransportAnimationStore(TransportAnimation
 
 DBCStorage <WMOAreaTableEntry>  sWMOAreaTableStore(WMOAreaTableEntryfmt);
 DBCStorage <WorldMapAreaEntry>  sWorldMapAreaStore(WorldMapAreaEntryfmt);
-#ifdef ENABLE_ACHIEVEMENTS
+#ifdef ENABLE_MODULES
 DBCStorage <WorldMapOverlayEntry> sWorldMapOverlayStore(WorldMapOverlayEntryfmt);
 #else
 // DBCStorage <WorldMapOverlayEntry> sWorldMapOverlayStore(WorldMapOverlayEntryfmt);
@@ -562,10 +562,10 @@ void LoadDBCStores(const std::string& dataPath)
             sWMOAreaInfoByTripple[WMOAreaTableTripple(entry->rootId, entry->adtId, entry->groupId)].push_back(entry);
         }
     }
-#ifdef ENABLE_ACHIEVEMENTS
+#ifdef ENABLE_MODULES
     LoadDBC(availableDbcLocales, bar, bad_dbc_files, sWorldMapOverlayStore, dbcPath, "WorldMapOverlay.dbc");
 #else
-    // LoadDBC(availableDbcLocales, bar, bad_dbc_files, sWorldMapOverlayStore, dbcPath, "WorldMapOverlay.dbc");
+    // LoadDBC(availableDbcLocales,bar,bad_dbc_files,sWorldMapOverlayStore,     dbcPath,"WorldMapOverlay.dbc");
 #endif
     // LoadDBC(availableDbcLocales, bar, bad_dbc_files, sWorldSafeLocsStore,       dbcPath, "WorldSafeLocs.dbc");
 

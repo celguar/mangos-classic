@@ -73,24 +73,8 @@
 #include "playerbot/PlayerbotAIConfig.h"
 #endif
 
-#ifdef ENABLE_IMMERSIVE
-#include "ImmersiveMgr.h"
-#endif
-
-#ifdef ENABLE_ACHIEVEMENTS
-#include "AchievementsMgr.h"
-#endif
-
-#ifdef ENABLE_HARDCORE
-#include "HardcoreMgr.h"
-#endif
-
-#ifdef ENABLE_TRANSMOG
-#include "TransmogMgr.h"
-#endif
-
-#ifdef ENABLE_DUALSPEC
-#include "DualSpecMgr.h"
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
 #endif
 
 #include <cmath>
@@ -460,10 +444,6 @@ void TradeData::SetMoney(uint32 money)
     GetTraderData()->SetAccepted(false);
 
     Update();
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.UpdateAchievementCriteria(m_player, ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_GOLD_VALUE_OWNED);
-#endif
 }
 
 void TradeData::Update(bool for_trader /*= true*/) const
@@ -726,12 +706,8 @@ Player::~Player()
     RemovePlayerbotMgr();
 #endif
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerLogout(this);
-#endif
-
-#ifdef ENABLE_DUALSPEC
-    sDualSpecMgr.OnPlayerLogOut(this);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnLogOut(this);
 #endif
 }
 
@@ -789,6 +765,10 @@ bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 c
     Object::_Create(guidlow, guidlow, 0, HIGHGUID_PLAYER);
 
     m_name = name;
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnPreCharacterCreated(this);
+#endif
 
     PlayerInfo const* info = sObjectMgr.GetPlayerInfo(race, class_);
     if (!info)
@@ -884,14 +864,6 @@ bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 c
         UpdateMaxPower(POWER_MANA);                         // Update max Mana (for add bonus from intellect)
         SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
     }
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerCharacterCreated(this);
-#endif
-
-#ifdef ENABLE_HARDCORE
-    sHardcoreMgr.OnPlayerCharacterCreated(this);
-#endif
 
     LearnDefaultSkills();
     learnDefaultSpells();
@@ -991,12 +963,8 @@ bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 c
     }
     // all item positions resolved
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.CheckAllAchievementCriteria(this);
-#endif
-
-#ifdef ENABLE_DUALSPEC
-    sDualSpecMgr.OnPlayerCharacterCreated(this);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnCharacterCreated(this);
 #endif
 
     return true;
@@ -1094,11 +1062,12 @@ uint32 Player::EnvironmentalDamage(EnvironmentalDamageType type, uint32 damage)
         // durability lost message
         WorldPacket data2(SMSG_DURABILITY_DAMAGE_DEATH, 0);
         GetSession()->SendPacket(data2);
-
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.UpdateAchievementCriteria(this, ACHIEVEMENT_CRITERIA_TYPE_DEATHS_FROM, 1, type);
-#endif
     }
+
+#ifdef ENABLE_MODULES
+    if (!IsAlive())
+        sModuleMgr.OnDeath(this, type);
+#endif
 
     return final_damage;
 }
@@ -1508,10 +1477,6 @@ void Player::Update(const uint32 diff)
         }
     }
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.UpdateTimedAchievements(this, diff);
-#endif
-
     if (hasUnitState(UNIT_STAT_MELEE_ATTACKING))
     {
         UpdateMeleeAttackingState();
@@ -1794,10 +1759,6 @@ void Player::SetDeathState(DeathState s)
 
         if (InstanceData* mapInstance = GetInstanceData())
             mapInstance->OnPlayerDeath(this);
-
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.OnPlayerSetDeathState(this);
-#endif
     }
 
     Unit::SetDeathState(s);
@@ -2791,10 +2752,6 @@ void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
 
     uint32 level = GetLevel();
 
-#ifdef ENABLE_IMMERSIVE
-    sImmersiveMgr.OnPlayerGiveXP(this, xp, victim);
-#endif
-
     // XP to money conversion processed in Player::RewardQuest
     if (level >= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
         return;
@@ -2820,6 +2777,10 @@ void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
     }
 
     SetUInt32Value(PLAYER_XP, newXP);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnGiveXP(this, xp, victim);
+#endif
 }
 
 // Update player to next level
@@ -2834,8 +2795,8 @@ void Player::GiveLevel(uint32 level)
     PlayerLevelInfo info;
     sObjectMgr.GetPlayerLevelInfo(getRace(), plClass, level, &info);
 
-#ifdef ENABLE_IMMERSIVE
-    sImmersiveMgr.GetPlayerLevelInfo(this, &info);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnGetPlayerLevelInfo(this, info);
 #endif
 
     PlayerClassLevelInfo classInfo;
@@ -2943,8 +2904,8 @@ void Player::InitStatsForLevel(bool reapplyMods)
     PlayerLevelInfo info;
     sObjectMgr.GetPlayerLevelInfo(getRace(), plClass, level, &info);
 
-#ifdef ENABLE_IMMERSIVE
-    sImmersiveMgr.GetPlayerLevelInfo(this, &info);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnGetPlayerLevelInfo(this, info);
 #endif
 
     SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr.GetXPForLevel(level));
@@ -3551,8 +3512,8 @@ bool Player::addSpell(uint32 spell_id, bool active, bool learning, bool dependen
         }
     }
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerSpellAdded(this, spell_id);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnAddSpell(this, spell_id);
 #endif
 
     // return true (for send learn packet) only if spell active (in case ranked spells) and not replace old spell
@@ -3925,14 +3886,9 @@ bool Player::resetTalents(bool no_cost)
         m_resetTalentsTime = time(nullptr);
     }
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerResetTalents(this, cost);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnResetTalents(this, cost);
 #endif
-
-#ifdef ENABLE_DUALSPEC
-    sDualSpecMgr.OnPlayerResetTalents(this, cost);
-#endif
-
 
     // FIXME: remove pet before or after unlearn spells? for now after unlearn to allow removing of talent related, pet affecting auras
     RemovePet(PET_SAVE_REAGENTS);
@@ -4344,20 +4300,8 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             CharacterDatabase.PExecute("DELETE FROM character_armory_feed WHERE guid = '%u'", lowguid);
             CharacterDatabase.CommitTransaction();
 
-#ifdef ENABLE_ACHIEVEMENTS
-            sAchievementsMgr.OnPlayerDeletedFromDB(lowguid);
-#endif
-
-#ifdef ENABLE_HARDCORE
-            sHardcoreMgr.OnPlayerCharacterDeletedFromDB(lowguid);
-#endif
-
-#ifdef ENABLE_TRANSMOG
-            sTransmogMgr.OnPlayerCharacterDeletedFromDB(lowguid);
-#endif
-
-#ifdef ENABLE_DUALSPEC
-            sDualSpecMgr.OnPlayerCharacterDeleted(lowguid);
+#ifdef ENABLE_MODULES
+            sModuleMgr.OnDeleteFromDB(lowguid);
 #endif
 
             break;
@@ -4461,8 +4405,8 @@ void Player::BuildPlayerRepop()
 
 void Player::ResurrectPlayer(float restore_percent, bool applySickness)
 {
-#ifdef ENABLE_HARDCORE
-    if (!sHardcoreMgr.OnPlayerPreResurrect(this))
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnPreResurrect(this))
         return;
 #endif
 
@@ -4499,12 +4443,8 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
         if (InstanceData* instanceData = GetMap()->GetInstanceData())
             instanceData->OnPlayerResurrect(this);
 
-#ifdef ENABLE_HARDCORE
-    sHardcoreMgr.OnPlayerResurrect(this);
-#endif
-
-#ifdef ENABLE_IMMERSIVE
-    sImmersiveMgr.OnPlayerResurrect(this);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnResurrect(this);
 #endif
 
     if (!applySickness)
@@ -4891,8 +4831,8 @@ void Player::RepopAtGraveyard()
             UpdateVisibilityAndView();
     }
 
-#ifdef ENABLE_HARDCORE
-    sHardcoreMgr.OnPlayerReleaseSpirit(this, ClosestGrave);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnReleaseSpirit(this, ClosestGrave);
 #endif
 }
 
@@ -5232,8 +5172,8 @@ bool Player::UpdateSkill(uint16 id, uint16 diff)
         if (skillStatus.uState != SKILL_NEW)
             skillStatus.uState = SKILL_CHANGED;
 
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.UpdateAchievementCriteria(this, ACHIEVEMENT_CRITERIA_TYPE_REACH_SKILL_LEVEL, id);
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnUpdateSkill(this, id);
 #endif
 
         return true;
@@ -5386,8 +5326,8 @@ bool Player::UpdateSkillPro(uint16 SkillId, int32 Chance, uint16 diff)
         if (skillStatus.uState != SKILL_NEW)
             skillStatus.uState = SKILL_CHANGED;
 
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.UpdateAchievementCriteria(this, ACHIEVEMENT_CRITERIA_TYPE_REACH_SKILL_LEVEL, SkillId);
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnUpdateSkill(this, SkillId);
 #endif
 
         DEBUG_LOG("Player::UpdateSkillPro Chance=%3.1f%% taken", Chance / 10.0);
@@ -5523,10 +5463,9 @@ void Player::SetSkill(SkillStatusMap::iterator itr, uint16 value, uint16 max, ui
         if (status.uState != SKILL_NEW)
             status.uState = SKILL_CHANGED;
 
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.OnPlayerSetSkill(this, id);
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnUpdateSkill(this, id);
 #endif
-
     }
     else        // Remove
     {
@@ -5591,10 +5530,6 @@ void Player::SetSkill(uint16 id, uint16 value, uint16 max, uint16 step/* = 0*/)
 
                 itr = result.first;
             }
-
-#ifdef ENABLE_ACHIEVEMENTS
-            sAchievementsMgr.OnPlayerSetSkill(this, id);
-#endif
 
             SetUInt32Value(PLAYER_SKILL_INDEX(pos), MAKE_PAIR32(id, step));         // Set/reset skill id and step
             SetSkill(itr, value, max);                                              // Set current and max values
@@ -6375,10 +6310,6 @@ void Player::CheckAreaExploreAndOutdoor()
     uint32 val = (uint32)(1 << (areaFlag % 32));
     uint32 currFields = GetUInt32Value(PLAYER_EXPLORED_ZONES_1 + offset);
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.UpdateAchievementCriteria(this, ACHIEVEMENT_CRITERIA_TYPE_EXPLORE_AREA, sTerrainMgr.GetAreaIdByAreaFlag(areaFlag, GetMapId()));
-#endif
-
     if (!(currFields & val))
     {
         SetUInt32Value(PLAYER_EXPLORED_ZONES_1 + offset, (uint32)(currFields | val));
@@ -6424,6 +6355,10 @@ void Player::CheckAreaExploreAndOutdoor()
                 SendExplorationExperience(area, XP);
             }
             DETAIL_LOG("PLAYER: Player %u discovered a new area: %u", GetGUIDLow(), area);
+
+#ifdef ENABLE_MODULES
+            sModuleMgr.OnAreaExplored(this, area);
+#endif
         }
     }
 }
@@ -6742,8 +6677,8 @@ void Player::UpdateHonor()
     // ITEM FIELD RANK REQUIRED
     SetByteValue(PLAYER_FIELD_BYTES, 3, GetHonorHighestRankInfo().rank);
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.UpdateAchievementCriteria(this, ACHIEVEMENT_CRITERIA_TYPE_OWN_RANK, uint32(GetHonorHighestRankInfo().rank));
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnUpdateHonor(this);
 #endif
 }
 
@@ -6812,6 +6747,10 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize)
     if (uVictim->GetAura(2479, EFFECT_INDEX_0))             // Honorless Target
         return false;
 
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnRewardHonor(this, uVictim);
+#endif
+
     if (uVictim->GetTypeId() == TYPEID_UNIT)
     {
         Creature* cVictim = (Creature*)uVictim;
@@ -6838,11 +6777,6 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize)
         if (!MaNGOS::XP::IsTrivialLevelDifference(GetLevel(), pVictim->GetLevel()))
         {
             AddHonorCP(MaNGOS::Honor::HonorableKillPoints(this, pVictim, groupsize), HONORABLE, pVictim);
-
-#ifdef ENABLE_ACHIEVEMENTS
-            sAchievementsMgr.OnPlayerRewardHonor(this, pVictim);
-#endif
-
             return true;
         }
     }
@@ -6903,6 +6837,11 @@ bool Player::AddHonorCP(float honor, uint8 type, Unit* victim)
     SendDirectMessage(data);
 
     UpdateHonor();
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnRewardHonor(this, victim);
+#endif
+
     return true;
 }
 
@@ -7189,8 +7128,8 @@ void Player::DuelComplete(DuelCompleteType type)
     ForceHealthAndPowerUpdate();
     duel->opponent->ForceHealthAndPowerUpdate();
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerDuelCompleted(this, duel->opponent, type);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnDuelComplete(this, duel->opponent, type);
 #endif
 
     delete duel->opponent->duel;
@@ -10092,10 +10031,6 @@ Item* Player::StoreNewItem(ItemPosCountVec const& dest, uint32 item, bool update
     {
         ItemAddedQuestCheck(item, count);
         pItem = StoreItem(dest, pItem, update);
-
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.OnPlayerStoreNewItem(this, item, count);
-#endif
     }
     return pItem;
 }
@@ -10134,6 +10069,10 @@ Item* Player::StoreItem(ItemPosCountVec const& dest, Item* pItem, bool update)
         }
     }
     /* World of Warcraft Armory */
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnStoreItem(this, pItem);
+#endif
 
     return lastItem;
 }
@@ -10243,10 +10182,6 @@ Item* Player::EquipNewItem(uint16 pos, uint32 item, bool update)
     {
         ItemAddedQuestCheck(item, 1);
 
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.UpdateAchievementCriteria(this, ACHIEVEMENT_CRITERIA_TYPE_RECEIVE_EPIC_ITEM, item, 1);
-#endif
-
         /* World of Warcraft Armory */
         ItemPrototype const* pProto = pItem->GetProto();
         if (pProto && pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR))
@@ -10322,6 +10257,10 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
             UpdateWeaponDependantStats(OFF_ATTACK);
         else if (slot == EQUIPMENT_SLOT_RANGED)
             UpdateWeaponDependantStats(RANGED_ATTACK);
+
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnEquipItem(this, pItem);
+#endif
     }
     else
     {
@@ -10346,12 +10285,12 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
 
         ApplyEquipCooldown(pItem2);
 
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnEquipItem(this, pItem);
+#endif
+
         return pItem2;
     }
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerEquipItem(this, pItem->GetEntry(), slot);
-#endif
 
     return pItem;
 }
@@ -10372,8 +10311,8 @@ void Player::QuickEquipItem(uint16 pos, Item* pItem)
             pItem->SendCreateUpdateToPlayer(this);
         }
 
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.OnPlayerEquipItem(this, pItem->GetEntry(), slot);
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnEquipItem(this, pItem);
 #endif
     }
 }
@@ -10408,8 +10347,8 @@ void Player::SetVisibleItemSlot(uint8 slot, Item* pItem)
         SetUInt32Value(PLAYER_VISIBLE_ITEM_1_PROPERTIES + 1 + (slot * MAX_VISIBLE_ITEM_OFFSET), 0);
     }
 
-#ifdef ENABLE_TRANSMOG
-    sTransmogMgr.OnPlayerSetVisibleItemSlot(this, slot, pItem);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnSetVisibleItemSlot(this, slot, pItem);
 #endif
 }
 
@@ -10520,8 +10459,8 @@ void Player::MoveItemFromInventory(uint8 bag, uint8 slot, bool update)
             it->DestroyForPlayer(this);
         }
 
-#ifdef ENABLE_TRANSMOG
-        sTransmogMgr.OnPlayerMoveItemFromInventory(this, it);
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnMoveItemFromInventory(this, it);
 #endif
     }
 }
@@ -10531,10 +10470,6 @@ void Player::MoveItemToInventory(ItemPosCountVec const& dest, Item* pItem, bool 
 {
     // update quest counters
     ItemAddedQuestCheck(pItem->GetEntry(), pItem->GetCount());
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerMoveItemToInventory(this, pItem->GetEntry(), pItem->GetCount());
-#endif
 
     // store item
     Item* pLastItem = StoreItem(dest, pItem, update);
@@ -10550,6 +10485,10 @@ void Player::MoveItemToInventory(ItemPosCountVec const& dest, Item* pItem, bool 
         // in case trade we already have item in other player inventory
         pLastItem->SetState(in_characterInventoryDB ? ITEM_CHANGED : ITEM_NEW, this);
     }
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnMoveItemToInventory(this, pItem);
+#endif
 }
 
 void Player::DestroyItem(uint8 bag, uint8 slot, bool update)
@@ -11841,10 +11780,6 @@ void Player::PrepareGossipMenu(WorldObject* pSource, uint32 menuId, bool forceQu
                 case GOSSIP_OPTION_SD2_5:
                     break;
                 default:
-
-#ifdef ENABLE_IMMERSIVE
-                    if (sImmersiveMgr.OnPlayerPrepareUnitGossipMenu(gossipMenu.option_id)) break;
-#endif
                     sLog.outErrorDb("Creature entry %u have unknown gossip option %u for menu %u", pCreature->GetEntry(), gossipMenu.option_id, gossipMenu.menu_id);
                     hasMenuItem = false;
                     break;
@@ -12152,10 +12087,6 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
         }
 #endif
     }
-
-#ifdef ENABLE_IMMERSIVE
-    sImmersiveMgr.OnPlayerGossipSelect(this, pSource, gossipOptionId, gossipListId, &menuData);
-#endif
 
     if (pMenuData && menuData.m_gAction_script)
     {
@@ -12951,10 +12882,6 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
             caster->CastSpell(this, spellProto, TRIGGERED_OLD_TRIGGERED);
         }
     }
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerRewardQuest(this, pQuest);
-#endif
 
     // remove auras from spells with quest reward state limitations
     // Some spells applied at quest reward
@@ -13756,10 +13683,6 @@ void Player::KilledMonsterCredit(uint32 entry, ObjectGuid guid)
 {
     uint32 addkillcount = 1;
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerKilledMonsterCredit(this, entry, guid);
-#endif
-
     for (int i = 0; i < MAX_QUEST_LOG_SIZE; ++i)
     {
         uint32 questid = GetQuestSlotQuestId(i);
@@ -13807,6 +13730,10 @@ void Player::KilledMonsterCredit(uint32 entry, ObjectGuid guid)
             }
         }
     }
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnKilledMonsterCredit(this, entry, guid);
+#endif
 }
 
 void Player::CastedCreatureOrGO(uint32 entry, ObjectGuid guid, uint32 spell_id, bool original_caster)
@@ -14327,8 +14254,8 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     // Cleanup old Wowarmory feeds
     InitWowarmoryFeeds();
 
-#ifdef ENABLE_DUALSPEC
-    sDualSpecMgr.OnPlayerPreLoadFromDB(guid.GetCounter());
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnPreLoadFromDB(this);
 #endif
 
     // overwrite possible wrong/corrupted guid
@@ -14852,12 +14779,8 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
         }
     }
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.CheckAllAchievementCriteria(this);
-#endif
-
-#ifdef ENABLE_DUALSPEC
-    sDualSpecMgr.OnPlayerPostLoadFromDB(this);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnLoadFromDB(this);
 #endif
 
     return true;
@@ -14865,8 +14788,8 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
 
 void Player::_LoadActions(std::unique_ptr<QueryResult> queryResult)
 {
-#ifdef ENABLE_DUALSPEC
-    if (sDualSpecMgr.OnPlayerLoadActionButtons(this, m_actionButtons))
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnLoadActionButtons(this, m_actionButtons))
         return;
 #endif
 
@@ -16005,14 +15928,6 @@ void Player::SaveToDB()
     _SaveHonorCP();
     GetSession()->SaveTutorialsData();                      // changed only while character in game
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerSavedToDB(this);
-#endif
-
-#ifdef ENABLE_DUALSPEC
-    sDualSpecMgr.OnPlayerSaveToDB(this);
-#endif
-
     CharacterDatabase.CommitTransaction();
 
     // check if stats should only be saved on logout
@@ -16071,6 +15986,10 @@ void Player::SaveToDB()
     // save pet (hunter pet level and experience and all type pets health/mana).
     if (Pet* pet = GetPet())
         pet->SavePetToDB(PET_SAVE_AS_CURRENT, this);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnSaveToDB(this);
+#endif
 }
 
 void Player::InitWowarmoryFeeds()
@@ -16134,8 +16053,8 @@ void Player::SaveGoldToDB() const
 
 void Player::_SaveActions()
 {
-#ifdef ENABLE_DUALSPEC
-    if (sDualSpecMgr.OnPlayerSaveActionButtons(this, m_actionButtons))
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnSaveActionButtons(this, m_actionButtons))
         return;
 #endif
 
@@ -17863,8 +17782,8 @@ void Player::OnTaxiFlightRouteStart(uint32 pathID, bool initial)
             OnTaxiFlightStart(path);
     }
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerTaxiFlightRouteStart(this, m_taxiTracker, initial);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnTaxiFlightRouteStart(this, m_taxiTracker, initial);
 #endif
 }
 
@@ -17878,8 +17797,8 @@ void Player::OnTaxiFlightRouteEnd(uint32 pathID, bool final)
     else
         ModifyMoney(-int32(m_taxiTracker.GetCost()));
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnPlayerTaxiFlightRouteEnd(this, m_taxiTracker, final);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnTaxiFlightRouteEnd(this, m_taxiTracker, final);
 #endif
 }
 
@@ -19036,12 +18955,12 @@ void Player::SummonIfPossible(bool agree, ObjectGuid guid)
     if (BattleGround* bg = GetBattleGround())
         bg->HandlePlayerDroppedFlag(this);
 
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnSummoned(this, m_summoner);
+#endif
+
     m_summon_expire = 0;
     m_summoner.Clear();
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.UpdateAchievementCriteria(this, ACHIEVEMENT_CRITERIA_TYPE_ACCEPTED_SUMMONINGS, 1);
-#endif
 
     TeleportTo(m_summon_mapid, m_summon_x, m_summon_y, m_summon_z, GetOrientation());
 }
@@ -19287,14 +19206,14 @@ void Player::RewardSinglePlayerAtKill(Unit* pVictim)
         if (Pet* pet = GetPet())
             pet->GivePetXP(MaNGOS::XP::Gain(pet, creatureVictim));
 
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.OnPlayerRewardSinglePlayerAtKill(this, pVictim);
-#endif
-
         // normal creature (not pet/etc) can be only in !PvP case
         if (CreatureInfo const* normalInfo = creatureVictim->GetCreatureInfo())
             KilledMonster(normalInfo, creatureVictim);
     }
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnRewardSinglePlayerAtKill(this, pVictim);
+#endif
 }
 
 void Player::RewardPlayerAndGroupAtEventCredit(uint32 creature_id, WorldObject* pRewardSource)
@@ -20083,6 +20002,12 @@ InventoryResult Player::CanEquipUniqueItem(ItemPrototype const* itemProto, uint8
 
 void Player::HandleFall(MovementInfo const& movementInfo)
 {
+#ifdef ENABLE_MODULES
+    uint32 damageReceived = 0;
+    if (!sModuleMgr.OnPreHandleFall(this, movementInfo, m_lastFallZ, damageReceived))
+    {
+#endif
+
     // calculate total z distance of the fall
     Position const& position = movementInfo.GetPos();
     float z_diff = m_lastFallZ - position.z;
@@ -20090,23 +20015,15 @@ void Player::HandleFall(MovementInfo const& movementInfo)
 
     // Players with low fall distance, Feather Fall or physical immunity (charges used) are ignored
     // 14.57 can be calculated by resolving damageperc formula below to 0
-    float fallThresshold = 14.57f;
-
-#ifdef ENABLE_IMMERSIVE
-    fallThresshold = sImmersiveMgr.GetFallThreshold(fallThresshold);
-#endif
-
-    if (z_diff >= fallThresshold && !IsDead() && !IsGameMaster() && !HasMovementFlag(MOVEFLAG_ONTRANSPORT) &&
-            !HasAuraType(SPELL_AURA_HOVER) && !HasAuraType(SPELL_AURA_FEATHER_FALL) &&
-            !IsImmuneToDamage(SPELL_SCHOOL_MASK_NORMAL))
+    if (z_diff >= 14.57f && !IsDead() && !IsGameMaster() && !HasMovementFlag(MOVEFLAG_ONTRANSPORT) &&
+        !HasAuraType(SPELL_AURA_HOVER) && !HasAuraType(SPELL_AURA_FEATHER_FALL) &&
+        !IsImmuneToDamage(SPELL_SCHOOL_MASK_NORMAL))
     {
         // Safe fall, fall height reduction
         int32 safe_fall = GetTotalAuraModifier(SPELL_AURA_SAFE_FALL);
 
         float damageperc = 0.018f * (z_diff - safe_fall) - 0.2426f;
-#ifdef ENABLE_IMMERSIVE
-        damageperc = sImmersiveMgr.GetFallDamage(this, z_diff - safe_fall, damageperc);
-#endif
+
         if (damageperc > 0)
         {
             uint32 damage = (uint32)(damageperc * GetMaxHealth() * sWorld.getConfig(CONFIG_FLOAT_RATE_DAMAGE_FALL));
@@ -20124,17 +20041,22 @@ void Player::HandleFall(MovementInfo const& movementInfo)
                 if (GetDummyAura(43621))
                     damage = GetMaxHealth() / 2;
 
+#ifdef ENABLE_MODULES
+                damageReceived = EnvironmentalDamage(DAMAGE_FALL, damage);
+#else
                 EnvironmentalDamage(DAMAGE_FALL, damage);
+#endif
             }
 
             // Z given by moveinfo, LastZ, FallTime, WaterZ, MapZ, Damage, Safefall reduction
             DEBUG_LOG("FALLDAMAGE z=%f sz=%f pZ=%f FallTime=%d mZ=%f damage=%d SF=%d", position.z, height, GetPositionZ(), movementInfo.GetFallTime(), height, damage, safe_fall);
         }
-
-#ifdef ENABLE_ACHIEVEMENTS
-        sAchievementsMgr.OnPlayerHandleFall(this, z_diff);
-#endif
     }
+
+#ifdef ENABLE_MODULES
+    }
+    sModuleMgr.OnHandleFall(this, movementInfo, m_lastFallZ, damageReceived);
+#endif
 }
 
 void Player::LearnTalent(uint32 talentId, uint32 talentRank)
@@ -20252,8 +20174,8 @@ void Player::LearnTalent(uint32 talentId, uint32 talentRank)
     learnSpell(spellid, false, true);
     DETAIL_LOG("TalentID: %u Rank: %u Spell: %u\n", talentId, talentRank, spellid);
 
-#ifdef ENABLE_DUALSPEC
-    sDualSpecMgr.OnPlayerLearnTalent(this, spellid);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnLearnTalent(this, spellid);
 #endif
 }
 
@@ -20370,14 +20292,14 @@ void Player::RemoveAtLoginFlag(AtLoginFlags f, bool in_db_also /*= false*/)
 
 void Player::ModifyMoney(int32 d)
 {
-#ifdef ENABLE_IMMERSIVE
-    sImmersiveMgr.OnPlayerModifyMoney(this, d);
-#endif
-
     if (d < 0)
         SetMoney(GetMoney() > uint32(-d) ? GetMoney() + d : 0);
     else
         SetMoney(GetMoney() < uint32(MAX_MONEY_AMOUNT - d) ? GetMoney() + d : MAX_MONEY_AMOUNT);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnModifyMoney(this, d);
+#endif
 }
 
 void Player::SendClearCooldown(uint32 spell_id, Unit* target) const

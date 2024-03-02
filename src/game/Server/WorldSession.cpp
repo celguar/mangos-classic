@@ -56,14 +56,6 @@
 #include "playerbot/playerbot.h"
 #endif
 
-#ifdef ENABLE_ACHIEVEMENTS
-#include "AchievementsMgr.h"
-#endif
-
-#ifdef ENABLE_TRANSMOG
-#include "TransmogMgr.h"
-#endif
-
 // select opcodes appropriate for processing in Map::Update context for current session state
 static bool MapSessionFilterHelper(WorldSession* session, OpcodeHandler const& opHandle)
 {
@@ -793,10 +785,6 @@ void WorldSession::LogoutPlayer()
         //Start Solocraft Function
         CharacterDatabase.PExecute("DELETE FROM custom_solocraft_character_stats WHERE GUID = %u", _player->GetGUIDLow());
         //End Solocraft Function
-
-#ifdef ENABLE_TRANSMOG
-        sTransmogMgr.OnPlayerLogout(_player);
-#endif
 
         ///- Remove the player from the world
         // the player may not be in the world when logging out

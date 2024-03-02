@@ -46,12 +46,8 @@
 #include <G3D/Quat.h>
 #include "Entities/Transports.h"
 
-#ifdef ENABLE_IMMERSIVE
-#include "ImmersiveMgr.h"
-#endif
-
-#ifdef ENABLE_ACHIEVEMENTS
-#include "AchievementsMgr.h"
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
 #endif
 
 bool QuaternionData::isUnit() const
@@ -1458,6 +1454,11 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
 
     sWorldState.HandleGameObjectUse(this, user);
 
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnUse(this, user))
+        return;
+#endif
+
     switch (GetGoType())
     {
         case GAMEOBJECT_TYPE_DOOR:                          // 0
@@ -1501,9 +1502,17 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
 
             Player* player = (Player*)user;
 
+#ifdef ENABLE_MODULES
+            if (sModuleMgr.OnPreGossipHello(player, GetObjectGuid()))
+                return;
+#endif
+
             if (!sScriptDevAIMgr.OnGossipHello(player, this))
             {
                 player->PrepareGossipMenu(this, GetGOInfo()->questgiver.gossipID);
+#ifdef ENABLE_MODULES
+                sModuleMgr.OnGossipHello(player, GetObjectGuid());
+#endif
                 player->SendPreparedGossip(this);
             }
 
@@ -1637,11 +1646,23 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
                 }
                 else if (info->goober.gossipID)             // ...or gossip, if page does not exist
                 {
+#ifdef ENABLE_MODULES
+                    if (!sModuleMgr.OnPreGossipHello(player, GetObjectGuid()))
+                    {
+                        if (!sScriptDevAIMgr.OnGossipHello(player, this))
+                        {
+                            player->PrepareGossipMenu(this, info->goober.gossipID);
+                            sModuleMgr.OnGossipHello(player, GetObjectGuid());
+                            player->SendPreparedGossip(this);
+                        }
+                    }
+#else
                     if (!sScriptDevAIMgr.OnGossipHello(player, this))
                     {
                         player->PrepareGossipMenu(this, info->goober.gossipID);
                         player->SendPreparedGossip(this);
                     }
+#endif
                 }
 
                 if (info->goober.eventId)
@@ -1733,10 +1754,6 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
 
                     // normal chance
                     bool success = skill >= zone_skill && chance >= roll;
-
-#ifdef ENABLE_IMMERSIVE
-                    success = sImmersiveMgr.OnPlayerUseFishingNode(player, success);
-#endif
 
                     GameObject* fishingHole = nullptr;
 
@@ -1950,11 +1967,6 @@ void GameObject::Use(Unit* user, SpellEntry const* spellInfo)
             delete m_loot;
             m_loot = new Loot(player, this, LOOT_FISHINGHOLE);
             m_loot->ShowContentTo(player);
-
-#ifdef ENABLE_ACHIEVEMENTS
-            sAchievementsMgr.UpdateAchievementCriteria(player, ACHIEVEMENT_CRITERIA_TYPE_FISH_IN_GAMEOBJECT, GetGOInfo()->id);
-#endif
-
             return;
         }
         case GAMEOBJECT_TYPE_FLAGDROP:                      // 26
