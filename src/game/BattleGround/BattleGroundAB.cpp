@@ -26,6 +26,10 @@
 #include "Server/WorldPacket.h"
 #include "Globals/ObjectMgr.h"
 
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
+#endif
+
 BattleGroundAB::BattleGroundAB(): m_isInformedNearVictory(false), m_honorTicks(0), m_reputationTics(0)
 {
     m_startMessageIds[BG_STARTING_EVENT_FIRST]  = 0;
@@ -163,6 +167,10 @@ void BattleGroundAB::StartingEventOpenDoors()
     // disable gy inside base after bg start
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(AB_GRAVEYARD_ALLIANCE_BASE, BG_AB_ZONE_MAIN, TEAM_INVALID);
     GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(AB_GRAVEYARD_HORDE_BASE, BG_AB_ZONE_MAIN, TEAM_INVALID);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnStartBattleGround(this);
+#endif
 }
 
 void BattleGroundAB::AddPlayer(Player* player)
@@ -473,6 +481,10 @@ void BattleGroundAB::UpdatePlayerScore(Player* source, uint32 type, uint32 value
             BattleGround::UpdatePlayerScore(source, type, value);
             break;
     }
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnUpdatePlayerScore(this, source, type, value);
+#endif
 }
 
 Team BattleGroundAB::GetPrematureWinner()

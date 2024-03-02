@@ -27,8 +27,8 @@
 #include "Entities/UpdateData.h"
 #include "Chat/Chat.h"
 
-#ifdef ENABLE_ACHIEVEMENTS
-#include "AchievementsMgr.h"
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
 #endif
 
 void WorldSession::HandleSplitItemOpcode(WorldPacket& recv_data)
@@ -594,8 +594,8 @@ void WorldSession::HandleSellItemOpcode(WorldPacket& recv_data)
 
     _player->ModifyMoney(money);
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.UpdateAchievementCriteria(_player, ACHIEVEMENT_CRITERIA_TYPE_MONEY_FROM_VENDORS, money);
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnSellItem(_player, pItem, money);
 #endif
 }
 
@@ -634,8 +634,8 @@ void WorldSession::HandleBuybackItem(WorldPacket& recv_data)
             _player->ItemAddedQuestCheck(pItem->GetEntry(), pItem->GetCount());
             _player->StoreItem(dest, pItem, true);
 
-#ifdef ENABLE_ACHIEVEMENTS
-            sAchievementsMgr.UpdateAchievementCriteria(_player, ACHIEVEMENT_CRITERIA_TYPE_RECEIVE_EPIC_ITEM, pItem->GetEntry(), pItem->GetCount());
+#ifdef ENABLE_MODULES
+            sModuleMgr.OnBuyBackItem(_player, pItem, price);
 #endif
         }
         else
@@ -928,12 +928,12 @@ void WorldSession::HandleBuyBankSlotOpcode(WorldPacket& recvPacket)
     _player->SetBankBagSlotCount(slot);
     _player->ModifyMoney(-int32(price));
 
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.UpdateAchievementCriteria(_player, ACHIEVEMENT_CRITERIA_TYPE_BUY_BANK_SLOT);
-#endif
-
     data << uint32(ERR_BANKSLOT_OK);
     SendPacket(data);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnBuyBankSlot(_player, slot, price);
+#endif
 }
 
 void WorldSession::HandleAutoBankItemOpcode(WorldPacket& recvPacket)

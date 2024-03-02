@@ -28,8 +28,8 @@
 #include "Groups/Group.h"
 #include "Entities/GameObject.h"
 
-#ifdef ENABLE_ACHIEVEMENTS
-#include "AchievementsMgr.h"
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
 #endif
 
 void WorldSession::HandleAutostoreLootItemOpcode(WorldPacket& recv_data)
@@ -239,9 +239,11 @@ void WorldSession::HandleLootMasterGiveOpcode(WorldPacket& recv_data)
         else
             _player->SendLootError(lootguid, LOOT_ERROR_MASTER_OTHER);
     }
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnHandleLootMasterGive(target, lootItem, pLoot, result);
+#ifdef ENABLE_MODULES
+    else
+    {
+        sModuleMgr.OnHandleLootMasterGive(pLoot, target, lootItem);
+    }
 #endif
 }
 
@@ -287,9 +289,5 @@ void WorldSession::HandleLootRoll(WorldPacket& recv_data)
         return;
 
     sLootMgr.PlayerVote(GetPlayer(), lootedTarget, itemSlot, RollVote(rollType));
-
-#ifdef ENABLE_ACHIEVEMENTS
-    sAchievementsMgr.OnHandleLootRoll(_player, RollVote(rollType));
-#endif
 }
 

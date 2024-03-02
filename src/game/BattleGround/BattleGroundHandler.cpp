@@ -32,12 +32,8 @@
 #include "AI/ScriptDevAI/ScriptDevAIMgr.h"
 #include "World/World.h"
 
-#ifdef ENABLE_TRANSMOG
-#include "TransmogMgr.h"
-#endif
-
-#ifdef ENABLE_DUALSPEC
-#include "DualSpecMgr.h"
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
 #endif
 
 // Sent by client when player talk to the battle master
@@ -599,15 +595,12 @@ void WorldSession::HandleAreaSpiritHealerQueueOpcode(WorldPacket& recv_data)
     if (!unit->isSpiritService())                           // it's not spirit service
         return;
 
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnPreGossipHello(_player, unit->GetObjectGuid()))
+        return;
+#endif
+
     sScriptDevAIMgr.OnGossipHello(GetPlayer(), unit);
-
-#ifdef ENABLE_TRANSMOG
-    sTransmogMgr.OnPlayerGossipHello(_player, unit);
-#endif
-
-#ifdef ENABLE_DUALSPEC
-    sDualSpecMgr.OnPlayerGossipHello(_player, unit);
-#endif
 }
 
 void WorldSession::SendBattleGroundJoinError(uint8 err) const
