@@ -38,8 +38,8 @@
 #include "Anticheat/Anticheat.hpp"
 
 #ifdef ENABLE_PLAYERBOTS
-#include "playerbot.h"
-#include "RandomPlayerbotMgr.h"
+#include "playerbot/playerbot.h"
+#include "playerbot/RandomPlayerbotMgr.h"
 #endif
 
 #ifdef ENABLE_MODULES
@@ -48,7 +48,7 @@
 
 bool WorldSession::CheckChatMessage(std::string& msg, bool addon/* = false*/)
 {
-#ifdef BUILD_PLAYERBOT
+#ifdef BUILD_DEPRECATED_PLAYERBOT
     // bot check can be avoided
     if (_player->GetPlayerbotAI())
         return true;

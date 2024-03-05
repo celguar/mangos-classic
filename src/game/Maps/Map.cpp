@@ -47,7 +47,7 @@
 #include <time.h>
 
 #ifdef ENABLE_PLAYERBOTS
-#include "playerbot.h"
+#include "playerbot/playerbot.h"
 #endif
 
 #ifdef _WIN32

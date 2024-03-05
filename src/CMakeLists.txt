@@ -21,6 +21,38 @@ if(BUILD_GAME_SERVER OR BUILD_LOGIN_SERVER OR BUILD_EXTRACTORS)
   add_subdirectory(shared)
 endif()
 
+# Playerbots module
+if(BUILD_PLAYERBOTS)
+  include(FetchContent)
+
+  FetchContent_Declare(
+    playerbots
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/playerbots"
+    GIT_REPOSITORY "https://github.com/cmangos/playerbots.git"
+    GIT_TAG "master"
+  )
+
+  FetchContent_GetProperties(playerbots)
+  if (NOT playerbots_POPULATED)
+    FetchContent_Populate(playerbots)
+    message(STATUS "Playerbots module source dir: ${playerbots_SOURCE_DIR}")
+  else()
+    message(STATUS "Playerbots module already populated: ${playerbots_POPULATED}")
+  endif()
+
+  #target_include_directories(Bots PUBLIC ${playerbots_SOURCE_DIR})
+  message(STATUS "Playerbots module source dir: ${playerbots_SOURCE_DIR}")
+  message(STATUS "Playerbots module binary dir: ${playerbots_BINARY_DIR}")
+  message(STATUS "Playerbots module populated: ${playerbots_POPULATED}")
+
+  add_subdirectory(${playerbots_SOURCE_DIR})
+
+else()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/playerbots)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/playerbots)
+  endif()
+endif()
+
 if(BUILD_GAME_SERVER)
   add_subdirectory(game)
   add_subdirectory(mangosd)
@@ -28,10 +60,6 @@ endif()
 
 if(BUILD_LOGIN_SERVER)
   add_subdirectory(realmd)
-endif()
-
-if(BUILD_IKE3_BOTS)
-add_subdirectory(modules)
 endif()
 
 # Install modules
@@ -48,21 +76,15 @@ if(BUILD_MODULES)
 
       FetchContent_Declare(
         ${LOWER_MODULE_NAME}
+		SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME}"
         GIT_REPOSITORY "${MODULE_URL}"
         GIT_TAG "main"
       )
 
+	  FetchContent_GetProperties(${LOWER_MODULE_NAME})
       if(NOT ${LOWER_MODULE_NAME}_POPULATED)
         message(STATUS "Fetching ${LOWER_MODULE_NAME} module...")
-
         FetchContent_Populate(${LOWER_MODULE_NAME})
-            
-        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME})
-          file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME})
-        endif()
-
-        file(COPY ${${LOWER_MODULE_NAME}_SOURCE_DIR}/. DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME})
-
         message(STATUS "${LOWER_MODULE_NAME} module fetched and populated in ${CMAKE_CURRENT_SOURCE_DIR}/modules/${LOWER_MODULE_NAME}")
       endif()
 	

@@ -1,17 +1,22 @@
-option(DEBUG                "Include additional debug-code in core" OFF)
-option(WARNINGS             "Show all warnings during compile"      OFF)
-option(POSTGRESQL           "Use PostgreSQL"                        OFF)
-option(PCH                  "Use precompiled headers"               ON)
-option(BUILD_GAME_SERVER    "Build game server"                     ON)
-option(BUILD_LOGIN_SERVER   "Build login server"                    ON)
-option(BUILD_EXTRACTORS     "Build map/dbc/vmap/mmap extractors"    OFF)
-option(BUILD_SCRIPTDEV      "Build ScriptDev. (OFF Speedup build)"  ON)
-option(BUILD_PLAYERBOT      "Build Playerbot mod"                   OFF)
-option(BUILD_IKE3_BOTS      "Build ike3 Playerbots"                 OFF)
-option(BUILD_AHBOT          "Build Auction House Bot mod"           OFF)
+option(DEBUG                                "Include additional debug-code in core"     OFF)
+option(WARNINGS                             "Show all warnings during compile"          OFF)
+option(POSTGRESQL                           "Use PostgreSQL"                            OFF)
+option(PCH                                  "Use precompiled headers"                   ON)
+option(BUILD_GAME_SERVER                    "Build game server"                         ON)
+option(BUILD_LOGIN_SERVER                   "Build login server"                        ON)
+option(BUILD_EXTRACTORS                     "Build map/dbc/vmap/mmap extractors"        OFF)
+option(BUILD_SCRIPTDEV                      "Build ScriptDev. (OFF Speedup build)"      ON)
+option(BUILD_PLAYERBOTS                     "Build Playerbots mod"                      OFF)
+option(BUILD_AHBOT                          "Build Auction House Bot mod"               OFF)
+option(BUILD_METRICS                        "Build Metrics, generate data for Grafana"  OFF)
+option(BUILD_RECASTDEMOMOD                  "Build map/vmap/mmap viewer"                OFF)
+option(BUILD_GIT_ID                         "Build git_id"                              OFF)
+option(BUILD_DOCS                           "Build documentation with doxygen"          OFF)
+option(CMAKE_INTERPROCEDURAL_OPTIMIZATION   "Enable link-time optimizations"            OFF)
+option(BUILD_DEPRECATED_PLAYERBOT           "Build previous version of Playerbot mod"   OFF)
 
 # Modules
-option(BUILD_MODULES        "Build module system"                   OFF)
+option(BUILD_MODULES                        "Build module system"                       OFF)
 foreach(MODULE_NAME ${MODULE_NAMES})
   if(NOT ${MODULE_NAME} STREQUAL "MODULES")
     string(TOLOWER ${MODULE_NAME} LOWER_MODULE_NAME)
@@ -19,11 +24,6 @@ foreach(MODULE_NAME ${MODULE_NAMES})
   endif()
 endforeach()
 
-option(BUILD_METRICS        "Build Metrics, generate data for Grafana" OFF)
-option(BUILD_RECASTDEMOMOD  "Build map/vmap/mmap viewer"            OFF)
-option(BUILD_GIT_ID         "Build git_id"                          OFF)
-option(BUILD_DOCS           "Build documentation with doxygen"      OFF)
-option(CMAKE_INTERPROCEDURAL_OPTIMIZATION "Enable link-time optimizations" OFF)
 set(DEV_BINARY_DIR ${CMAKE_BINARY_DIR} CACHE STRING "Executable directory on Windows")
 
 # TODO: options that should be checked/created:
@@ -44,16 +44,17 @@ message(STATUS
     BUILD_GAME_SERVER       Build game server (core server)
     BUILD_LOGIN_SERVER      Build login server (auth server)
     BUILD_EXTRACTORS        Build map/dbc/vmap/mmap extractor
-    BUILD_SCRIPTDEV         Build scriptdev. (Disable it to speedup build in dev mode by not including scripts)
-    BUILD_PLAYERBOT         Build Playerbot mod
-    BUILD_IKE3_BOTS         Build Ike3 Playerbot mod
+    BUILD_PLAYERBOTS        Build Playerbots mod
+	BUILD_MODULES			Build modules system
     BUILD_AHBOT             Build Auction House Bot mod
-	BUILD_MODULES			Build module system
     BUILD_METRICS           Build Metrics, generate data for Grafana
     BUILD_RECASTDEMOMOD     Build map/vmap/mmap viewer
     BUILD_GIT_ID            Build git_id
     BUILD_DOCS              Build documentation with doxygen
     CMAKE_INTERPROCEDURAL_OPTIMIZATION Enable link-time optimizations
+    BUILD_DEPRECATED_PLAYERBOT         Build Playerbot mod (deprecated)
+    BUILD_SCRIPTDEV         Build scriptdev. (Disable it to speedup build
+                                in dev mode by not including scripts)
 
     DEV_BINARY_DIR          Target directory for executables on Windows only
 
