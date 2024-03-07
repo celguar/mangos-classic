@@ -291,7 +291,17 @@ bool GameObject::Create(uint32 dbGuid, uint32 guidlow, uint32 name_id, Map* map,
 
     // Notify the battleground or outdoor pvp script
     if (map->IsBattleGround())
-        ((BattleGroundMap*)map)->GetBG()->HandleGameObjectCreate(this);
+    {
+        BattleGround* bg = static_cast<BattleGroundMap*>(GetMap())->GetBG();
+        if (bg)
+        {
+            bg->HandleGameObjectCreate(this);
+        }
+        else
+        {
+            return false;
+        }
+    }
     else if (OutdoorPvP* outdoorPvP = sOutdoorPvPMgr.GetScript(GetZoneId()))
         outdoorPvP->HandleGameObjectCreate(this);
 
