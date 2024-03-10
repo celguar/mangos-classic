@@ -53,7 +53,7 @@ endif()
 
 if(NOT BUILD_PLAYERBOTS)
   # exclude Playerbots folder
-  set (EXCLUDE_DIR "Bots/")
+  set (EXCLUDE_DIR "PlayerBots/")
   foreach (TMP_PATH ${LIBRARY_SRCS})
       string (FIND ${TMP_PATH} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
       if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
@@ -185,8 +185,8 @@ if (BUILD_PLAYERBOTS)
   add_definitions(-DENABLE_PLAYERBOTS)
 endif()
 
-# Define Ike3 Bots ENABLE_PLAYERBOTS if need
-if (BUILD_IKE3_BOTS)
+# Define ENABLE_PLAYERBOTS if need
+if (BUILD_PLAYERBOTS)
   add_definitions(-DENABLE_PLAYERBOTS)
 endif()
 

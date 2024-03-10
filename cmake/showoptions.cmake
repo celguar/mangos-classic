@@ -73,12 +73,6 @@ else()
   message(STATUS "Build Playerbots      : No  (default)")
 endif()
 
-if(BUILD_IKE3_BOTS)
-  message(STATUS "Build ike3 Playerbots : Yes")
-else()
-  message(STATUS "Build ike3 Playerbots : No  (default)")
-endif()
-
 # Modules
 if(BUILD_MODULES)
   message(STATUS "Build Modules         : Yes")

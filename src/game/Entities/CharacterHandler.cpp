@@ -256,7 +256,6 @@ class CharacterHandler
                 session->HandlePlayerLogin((LoginQueryHolder*)holder);
 #endif
         }
-
 #ifdef BUILD_DEPRECATED_PLAYERBOT
         // This callback is different from the normal HandlePlayerLoginCallback in that it
         // sets up the bot's world session and also stores the pointer to the bot player in the master's

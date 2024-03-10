@@ -253,7 +253,6 @@ class WorldSession
 #else
         const std::string GetRemoteAddress() const { return m_socket ? m_socket->GetRemoteAddress() : "disconnected"; }
 #endif
-#endif
         const std::string& GetLocalAddress() const { return m_localAddress; }
 
         void SetPlayer(Player* plr, uint32 playerGuid);
