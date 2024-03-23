@@ -552,6 +552,16 @@ struct GameObjectInfo
             default: return false;
         }
     }
+
+    bool CanAlwaysBreakLoS() const
+    {
+        switch (type)
+        {
+            case GAMEOBJECT_TYPE_DOOR:              return true;
+            case GAMEOBJECT_TYPE_GENERIC:           return true;
+            default: return false;
+        }
+    }
 };
 
 // GCC have alternative #pragma pack() syntax and old gcc version not support pack(pop), also any gcc version not support it at some platform
