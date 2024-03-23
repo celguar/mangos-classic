@@ -93,7 +93,7 @@ bool GameObjectModel::initialize(const GameObject* const pGo, const GameObjectDi
     if (!iModel)
         return false;
 
-    if (it->second.name.find(".m2") != std::string::npos)
+    if (!pGo->GetGOInfo()->CanAlwaysBreakLoS() && it->second.name.find(".m2") != std::string::npos)
         iModel->setModelFlags(VMAP::MOD_M2);
 
     name = it->second.name;
