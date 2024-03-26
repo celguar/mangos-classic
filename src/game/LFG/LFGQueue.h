@@ -93,7 +93,7 @@ class LFGQueue
 
         void LoadMeetingStones();
         MeetingStoneSet GetDungeonsForPlayer(Player* player);
-        void TeleportGroupToStone(Group* grp, uint32 areaId);
+        void TeleportGroupToStone(uint32 groupId, uint32 areaId);
 #endif
 
     private:

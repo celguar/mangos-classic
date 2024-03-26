@@ -1023,7 +1023,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
                     uint8 msg = pCurrChar->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemid, 1, &noSpaceForCount);
                     if (msg != EQUIP_ERR_OK)
                     {
-                        ostringstream body;
+                        std::ostringstream body;
                         body << "Hello, " << pCurrChar->GetName() << ",\n\n";
                         body << "Welcome to the World of Warcraft!\n\n";
                         body << "As special thanks for purchasing the World of Warcraft Collector's Edition we send you a gift: a little companion to join you on your quest for adventure and glory.\n\n";

@@ -1049,7 +1049,6 @@ void Map::Update(const uint32& t_diff)
             }
         }
     }
-#endif
 
     // Reset the has real players flag and check for it again
     const bool hadRealPlayers = hasRealPlayers;
@@ -1108,7 +1107,7 @@ void Map::Update(const uint32& t_diff)
                     {
                         shouldUpdateBot = true;
                     }
-                }*/
+                }
             }
 
             // Save the active characters for later logs
@@ -1187,7 +1186,6 @@ void Map::Update(const uint32& t_diff)
     }
 
     const bool shouldUpdateObjects = urand(0, (uint32)(objectUpdateChance * 100)) < 100;
-#endif
 
     // non-player active objects
     bool updateObj = urand(0, (HasRealPlayers() ? avgDiff : (avgDiff * 3))) < 10;

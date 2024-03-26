@@ -168,10 +168,6 @@ class Map : public GridRefManager<NGridType>
         void DoUpdate(uint32 maxDiff, uint32 minimumTimeSinceLastUpdate = 0);
         virtual void Update(const uint32&);
 
-#ifdef ENABLE_PLAYERBOTS
-        bool HasRealPlayers() { return hasRealPlayers; }
-#endif
-
         void MessageBroadcast(Player const*, WorldPacket const&, bool to_self);
         void MessageBroadcast(WorldObject const*, WorldPacket const&);
         void ThreatMessageBroadcast(WorldObject const*, std::string const&, bool newClient = false);
@@ -419,10 +415,6 @@ class Map : public GridRefManager<NGridType>
 
         // debug
         std::set<ObjectGuid> m_objRemoveList; // this will eventually eat up too much memory - only used for debugging VisibleNotifier::Notify() customlog leak
-        
-        bool HasActiveAreas(ContinentArea areaId = MAP_NO_AREA) { if (areaId == MAP_NO_AREA) { return !m_activeAreas.empty(); } else { return !(find(m_activeAreas.begin(), m_activeAreas.end(), areaId) == m_activeAreas.end()); } }
-        bool HasActiveZones() { return !m_activeZones.empty(); }
-        bool HasActiveZone(uint32 zoneId) { return find(m_activeZones.begin(), m_activeZones.end(), zoneId) != m_activeZones.end(); }
 
 #ifdef ENABLE_PLAYERBOTS
         bool HasRealPlayers() { return hasRealPlayers; }

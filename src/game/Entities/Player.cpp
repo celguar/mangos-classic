@@ -1687,43 +1687,6 @@ void Player::Heartbeat()
     SendUpdateToOutOfRangeGroupMembers();
 }
 
-#ifdef ENABLE_PLAYERBOTS
-void Player::CreatePlayerbotAI()
-{
-    assert(!m_playerbotAI);
-    m_playerbotAI = std::make_unique<PlayerbotAI>(this);
-}
-
-void Player::RemovePlayerbotAI()
-{
-    m_playerbotAI = nullptr;
-}
-
-void Player::CreatePlayerbotMgr()
-{
-    assert(!m_playerbotMgr);
-    m_playerbotMgr = std::make_unique<PlayerbotMgr>(this);
-}
-
-void Player::RemovePlayerbotMgr()
-{
-    m_playerbotMgr = nullptr;
-}
-
-void Player::UpdateAI(const uint32 diff, bool minimal)
-{
-    if (m_playerbotAI)
-    {
-        m_playerbotAI->UpdateAI(diff);
-    }
-
-    if (m_playerbotMgr)
-    {
-        m_playerbotMgr->UpdateAI(diff);
-    }
-}
-#endif
-
 void Player::SetDeathState(DeathState s)
 {
     uint32 ressSpellId = 0;
@@ -8366,25 +8329,6 @@ Item* Player::GetItemByGuid(ObjectGuid guid) const
     return nullptr;
 }
 
-Item* Player::GetItemByEntry(uint32 item) const
-{
-    for (int i = EQUIPMENT_SLOT_START; i < INVENTORY_SLOT_ITEM_END; ++i)
-        if (Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-            if (pItem->GetEntry() == item)
-            {
-                return pItem;
-            }
-
-    for (int i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
-        if (Bag* pBag = (Bag*)GetItemByPos(INVENTORY_SLOT_BAG_0, i))
-            if (Item* itemPtr = pBag->GetItemByEntry(item))
-            {
-                return itemPtr;
-            }
-
-    return NULL;
-}
-
 Item* Player::GetItemByPos(uint16 pos) const
 {
     uint8 bag = pos >> 8;
@@ -12847,7 +12791,6 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
     {
 #endif
     if (!handled && pQuest->GetQuestCompleteScript() != 0)
-#endif
         GetMap()->ScriptsStart(SCRIPT_TYPE_QUEST_END, pQuest->GetQuestCompleteScript(), questGiver, this, Map::SCRIPT_EXEC_PARAM_UNIQUE_BY_SOURCE);
 #ifdef ENABLE_PLAYERBOTS
     }
@@ -19868,8 +19811,6 @@ void Player::learnClassLevelSpells(bool includeHighLevelQuestRewards)
             {
                 CastSpell(this, tSpell->spell, TRIGGERED_OLD_TRIGGERED);
             }
-            else
-                CastSpell(this, tSpell->spell, TRIGGERED_OLD_TRIGGERED);
         }
     }
 }

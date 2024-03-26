@@ -265,10 +265,6 @@ class WorldSession
         void SetNoAnticheat();
 #endif
 
-#ifdef ENABLE_PLAYERBOTS
-        void SetNoAnticheat();
-#endif
-
         /// Session in auth.queue currently
         void SetInQueue(bool state) { m_inQueue = state; }
 

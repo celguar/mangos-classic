@@ -990,7 +990,7 @@ bool Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* lootOwner, b
 
     m_lootItems.reserve(MAX_NR_LOOT_ITEMS);
 
-    tab->Process(*this, lootOwner, store, store.IsRatesAllowed()); // Processing is done there, callback via Loot::AddItem()
+    tab->Process(*this, lootOwner, store.IsRatesAllowed()); // Processing is done there, callback via Loot::AddItem()
 #ifdef ENABLE_MODULES
     }
 #endif

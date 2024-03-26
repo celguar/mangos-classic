@@ -363,14 +363,6 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
     // honorless target
     if (plMover->pvpInfo.inPvPEnforcedArea)
         plMover->CastSpell(plMover, 2479, TRIGGERED_OLD_TRIGGERED);
-
-#ifdef ENABLE_PLAYERBOTS
-    // reset moving for bot if any
-    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->empty())
-    {
-        if (MovementGenerator* movgen = plMover->GetMotionMaster()->top())
-            movgen->Reset(*plMover);
-    }
 #endif
 
     m_anticheat->Teleport({ dest.coord_x, dest.coord_y, dest.coord_z, dest.orientation });
