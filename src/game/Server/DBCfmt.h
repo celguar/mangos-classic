@@ -40,9 +40,6 @@ const char CreatureTypefmt[] = "nxxxxxxxxxx";
 const char DurabilityCostsfmt[] = "niiiiiiiiiiiiiiiiiiiiiiiiiiiii";
 const char DurabilityQualityfmt[] = "nf";
 const char EmotesEntryfmt[] = "nxxiiix";
-#ifdef ENABLE_PLAYERBOTS
-char const EmotesTextSoundEntryfmt[] = "niiii";
-#endif
 const char EmotesTextEntryfmt[] = "nxixxxxxxxxxxxxxxxx";
 
 #ifdef ENABLE_PLAYERBOTS
