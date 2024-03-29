@@ -19769,7 +19769,6 @@ void Player::learnSpellHighRank(uint32 spellid)
     sSpellMgr.doForHighRanks(spellid, worker);
 }
 
-#ifdef ENABLE_PLAYERBOTS
 void Player::learnClassLevelSpells(bool includeHighLevelQuestRewards)
 {
     ChrClassesEntry const* clsEntry = sChrClassesStore.LookupEntry(getClass());
@@ -19924,7 +19923,6 @@ void Player::learnClassLevelSpells(bool includeHighLevelQuestRewards)
         }
     }
 }
-#endif
 
 void Player::_LoadSkills(std::unique_ptr<QueryResult> queryResult)
 {
