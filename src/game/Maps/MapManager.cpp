@@ -224,9 +224,9 @@ void MapManager::Update(uint32 diff)
             map.second->DoUpdate((uint32)i_timer.GetCurrent());
     }
 
-    bool fasterUpdates = false;
+    /*bool fasterUpdates = false;
     uint32 maxDiff = sWorld.GetMaxDiff();
-    fasterUpdates = maxDiff > 100;
+    fasterUpdates = maxDiff > 100;*/
 
     if (m_updater.activated())
     {

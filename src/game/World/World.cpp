@@ -1607,60 +1607,6 @@ void World::Update(uint32 diff)
     m_currentMSTime = WorldTimer::getMSTime();
     m_currentTime = std::chrono::time_point_cast<std::chrono::milliseconds>(Clock::now());
     m_currentDiff = diff;
-    m_currentDiffSum += diff;
-    m_currentDiffSumIndex++;
-
-    m_histDiff.push_back(diff);
-    m_maxDiff = std::max(m_maxDiff, diff);
-
-    while(m_histDiff.size() >= 600)
-    {
-        m_currentDiffSum -= m_histDiff.front();
-        m_histDiff.pop_front();
-    }
-
-    m_averageDiff = (uint32)(m_currentDiffSum / m_histDiff.size());
-
-    if (m_currentDiffSumIndex && m_currentDiffSumIndex % 60 == 0)
-    {
-       //m_averageDiff = (uint32)(m_currentDiffSum / m_currentDiffSumIndex);
-        //if (m_maxDiff < m_averageDiff)
-        //    m_maxDiff = m_averageDiff;
-        sLog.outBasic("Avg Diff: %u. Sessions online: %u.", m_averageDiff, (uint32)GetActiveSessionCount());
-        sLog.outBasic("Max Diff: %u.", m_maxDiff);
-    }
-    if (m_currentDiffSum % 3000 == 0)
-    {
-        m_maxDiff = *std::max_element(m_histDiff.begin(), m_histDiff.end());
-    }
-    /*
-    if (m_currentDiffSum > 300000)
-    {
-        m_currentDiffSum = 0;
-        m_currentDiffSumIndex = 0;
-        if (m_maxDiff > m_averageDiff)
-        {
-            m_maxDiff = m_averageDiff;
-            sLog.outBasic("Max Diff reset to: %u.", m_maxDiff);
-        }
-    }
-    if (GetActiveSessionCount())
-    {
-        if (m_currentDiffSumIndex && (m_currentDiffSumIndex % 5 == 0))
-        {
-            uint32 tempDiff = (uint32)(m_currentDiffSum / m_currentDiffSumIndex);
-            if (tempDiff > m_averageDiff)
-            {
-                m_averageDiff = tempDiff;
-            }
-            if (m_maxDiff < tempDiff)
-            {
-                m_maxDiff = tempDiff;
-                sLog.outBasic("Max Diff Increased: %u.", m_maxDiff);
-            }
-        }
-    }
-    */
 
 #ifdef ENABLE_PLAYERBOTS
     m_currentDiffSum += diff;

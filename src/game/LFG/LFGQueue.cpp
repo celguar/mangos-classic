@@ -142,8 +142,10 @@ void LFGQueue::Update()
 
                 if (qGroup->second.playerCount == 5)
                 {
+#ifdef ENABLE_PLAYERBOTS
                     if (sWorld.getConfig(CONFIG_BOOL_LFG_TELEPORT))
                         TeleportGroupToStone(qGroup->first, qGroup->second.areaId);
+#endif
 
                     RemoveGroupFromQueue(qGroup->first, GROUP_SYSTEM_LEAVE);
                     break;
