@@ -2814,6 +2814,10 @@ void Player::GiveLevel(uint32 level)
 
     // resend quests status directly
     GetSession()->SetCurrentPlayerLevel(level);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnGiveLevel(this, level);
+#endif
 }
 
 void Player::UpdateFreeTalentPoints(bool resetIfNeed)
