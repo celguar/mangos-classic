@@ -4256,8 +4256,6 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             CharacterDatabase.PExecute("DELETE FROM character_skills WHERE guid = '%u'", lowguid);
             CharacterDatabase.PExecute("DELETE FROM character_spell WHERE guid = '%u'", lowguid);
             CharacterDatabase.PExecute("DELETE FROM character_spell_cooldown WHERE guid = '%u'", lowguid);
-            CharacterDatabase.PExecute("DELETE FROM character_talent WHERE guid = '%u'", lowguid);
-            CharacterDatabase.PExecute("DELETE FROM character_talent_name WHERE guid = '%u'", lowguid);
             CharacterDatabase.PExecute("DELETE FROM item_instance WHERE owner_guid = '%u'", lowguid);
             CharacterDatabase.PExecute("DELETE FROM character_social WHERE guid = '%u' OR friend='%u'", lowguid, lowguid);
             CharacterDatabase.PExecute("DELETE FROM mail WHERE receiver = '%u'", lowguid);
