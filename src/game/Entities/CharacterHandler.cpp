@@ -949,12 +949,19 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_FIRST))
         pCurrChar->RemoveAtLoginFlag(AT_LOGIN_FIRST);
 
+#ifdef ENABLE_PLAYERBOTS
+    if (!sPlayerbotAIConfig.IsInRandomAccountList(GetAccountId()))
+    {
+#endif
     // add collector to all accounts if enabled
     if (sWorld.getConfig(CONFIG_BOOL_COLLECTORS_EDITION) && !HasAccountFlag(ACCOUNT_FLAG_COLLECTOR_CLASSIC))
     {
         AddAccountFlag(ACCOUNT_FLAG_COLLECTOR_CLASSIC);
         LoginDatabase.PExecute("UPDATE account SET flags = flags | 0x%x WHERE id = %u", ACCOUNT_FLAG_COLLECTOR_CLASSIC, GetAccountId());
     }
+#ifdef ENABLE_PLAYERBOTS
+    }
+#endif
 
     // create collector's edition reward
     if (HasAccountFlag(ACCOUNT_FLAG_COLLECTOR_CLASSIC))
