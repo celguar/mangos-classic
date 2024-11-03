@@ -4285,7 +4285,12 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
     }
 
     if (updateRealmChars)
-        sWorld.UpdateRealmCharCount(accountId);
+    {
+        if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+            sWorld.UpdateFakeRealmCharCount(accountId, lowguid);
+        else
+            sWorld.UpdateRealmCharCount(accountId);
+    }
 }
 
 /**

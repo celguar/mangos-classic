@@ -229,6 +229,77 @@ int Master::Run()
         int32 port = int32(sWorld.getConfig(CONFIG_UINT32_PORT_WORLD));
         MaNGOS::AsyncListener<WorldSocket> listener(m_context, bindIp, port);
 
+        std::vector<FakeRealm> fakeRealmsList;
+        // Fake Realms sockets
+        const auto threadCount = std::thread::hardware_concurrency();
+        MEMORYSTATUSEX status;
+        status.dwLength = sizeof(status);
+        GlobalMemoryStatusEx(&status);
+        uint32 ramAmount = (status.ullTotalPhys >> 10 >> 10) / 1000;
+        sLog.outDebug("Num of threads - %u", threadCount);
+        sLog.outDebug("Num of RAM - %u", ramAmount);
+        LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags & ~(%u) WHERE id <> %u", REALM_FLAG_RECOMMENDED, realmID);
+        //LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags & ~(%u) WHERE id <> %u", REALM_FLAG_NEW_PLAYERS, realmID);
+        auto queryResult = LoginDatabase.PQuery("SELECT id, name, port, icon, realmflags, timezone, population FROM realmlist WHERE id <> %u ORDER BY id", realmID);
+        if (queryResult)
+        {
+            do
+            {
+                if (!sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+                    break;
+
+                FakeRealm fkRealm;
+                fkRealm.m_ID = (*queryResult)[0].GetUInt32();
+                fkRealm.name = (*queryResult)[1].GetString();
+                fkRealm.port = (*queryResult)[2].GetUInt32();
+                fkRealm.icon = (*queryResult)[3].GetUInt8();
+                fkRealm.realmflags = (RealmFlags)(*queryResult)[4].GetUInt32();
+                fkRealm.timezone = (*queryResult)[5].GetUInt8();
+                fkRealm.populationLevel = (*queryResult)[6].GetUInt32();
+                /*if (fkRealm.populationLevel > 8)
+                    fkRealm.queueAmount = urand(50, 100);
+                else
+                    fkRealm.queueAmount = 0;*/
+
+                fkRealm.queueAmount = 0;
+
+                // set recommended based on thread count
+                if ((threadCount < 4 || ramAmount <= 8) && fkRealm.populationLevel < 2 && !urand(0, 4))
+                {
+                    fkRealm.realmflags = RealmFlags(fkRealm.realmflags | REALM_FLAG_RECOMMENDED);
+                    LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_RECOMMENDED, fkRealm.m_ID);
+                }
+                else if ((threadCount < 8 || ramAmount <= 12) && fkRealm.populationLevel > 1 && fkRealm.populationLevel < 6 && !urand(0, 4))
+                {
+                    fkRealm.realmflags = RealmFlags(fkRealm.realmflags | REALM_FLAG_RECOMMENDED);
+                    LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_RECOMMENDED, fkRealm.m_ID);
+                }
+                else if ((threadCount >= 8 || ramAmount > 12) && fkRealm.populationLevel > 5 && fkRealm.populationLevel < 9 && !urand(0, 4))
+                {
+                    fkRealm.realmflags = RealmFlags(fkRealm.realmflags | REALM_FLAG_RECOMMENDED);
+                    LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_RECOMMENDED, fkRealm.m_ID);
+                }
+
+                /*if (!urand(0, 10) && fkRealm.populationLevel < 6)
+                {
+                    fkRealm.realmflags = RealmFlags(fkRealm.realmflags | REALM_FLAG_NEW_PLAYERS);
+                    LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_NEW_PLAYERS, fkRealm.m_ID);
+                }*/
+
+                fakeRealmsList.push_back(fkRealm);
+
+            } while (queryResult->NextRow());
+        }
+
+        std::vector<std::shared_ptr<MaNGOS::AsyncListener<WorldSocket>> > servers;
+        for (auto& realm : fakeRealmsList)
+        {
+            sLog.outDebug("adding fake realm %u (%s) port %u", realm.m_ID, realm.name, realm.port);
+            servers.push_back(std::shared_ptr< MaNGOS::AsyncListener<WorldSocket>>(new MaNGOS::AsyncListener<WorldSocket>(m_service, bindIp, (int32)realm.port)));
+            sWorld.m_fakeRealms.push_back(realm);
+            LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags & ~(%u) WHERE id = '%u'", REALM_FLAG_OFFLINE, realm.m_ID);
+        }
+
         std::vector<std::thread> threads;
         for (int32 i = 0; i < networkThreadCount; ++i)
             threads.emplace_back([&]() { m_context.run(); });
@@ -264,6 +335,15 @@ int Master::Run()
 
         for (int32 i = 0; i < networkThreadCount; ++i)
             threads[i].join();
+
+        if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+        {
+            for (auto& realm : fakeRealmsList)
+            {
+                sLog.outDebug("removing fake realm %u (%s) port %u", realm.m_ID, realm.name, realm.port);
+                LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_OFFLINE, realm.m_ID);
+            }
+        }
     }
 
     ///- Stop freeze protection before shutdown tasks
