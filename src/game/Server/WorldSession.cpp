@@ -97,7 +97,7 @@ bool WorldSessionFilter::Process(WorldPacket const& packet) const
 }
 
 /// WorldSession constructor
-WorldSession::WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, time_t mute_time, LocaleConstant locale, std::string accountName, uint32 accountFlags) :
+WorldSession::WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, time_t mute_time, LocaleConstant locale, std::string accountName, uint32 accountFlags, uint32 realmId) :
     m_muteTime(mute_time),
     _player(nullptr), m_socket(sock ? sock->shared_from_this() : nullptr), m_requestSocket(nullptr), m_sessionState(WORLD_SESSION_STATE_CREATED),
     _security(sec), _accountId(id), m_accountName(accountName), m_accountFlags(accountFlags),
@@ -105,6 +105,7 @@ WorldSession::WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, time_
     _logoutTime(0), m_afkTime(0), m_playerSave(true), m_inQueue(false), m_playerLoading(false), m_kickSession(false), m_playerLogout(false), m_playerRecentlyLogout(false),
     m_sessionDbcLocale(sWorld.GetAvailableDbcLocale(locale)), m_sessionDbLocaleIndex(sObjectMgr.GetStorageLocaleIndexFor(locale)),
     m_latency(0), m_clientTimeDelay(0), m_tutorialState(TUTORIALDATA_UNCHANGED)
+    , m_currentRealmId(realmId)
     {}
 
 /// WorldSession destructor
@@ -505,7 +506,7 @@ bool WorldSession::Update(uint32 diff)
             else
             {
                 if (m_inQueue)
-                    SendAuthQueued();
+                    return true;
                 else
                     SendAuthOk();
             }
@@ -1333,6 +1334,13 @@ void WorldSession::SetNoAnticheat()
 }
 
 #endif
+
+void WorldSession::SetInQueue(bool state)
+{
+    m_inQueue = state;
+    if (state)
+        m_sessionState = WORLD_SESSION_STATE_CREATED;
+}
 
 void WorldSession::AfkStateChange(bool state)
 {

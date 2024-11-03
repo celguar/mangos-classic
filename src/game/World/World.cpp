@@ -263,6 +263,20 @@ World::AddSession_(WorldSession* s)
     uint32 pLimit = GetPlayerAmountLimit();
     uint32 QueueSize = GetQueuedSessionCount();             // number of players in the queue
 
+    if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+    {
+        // Fake Realms
+        FakeRealm realm;
+        if (GetFakeRealm(realm, s->GetCurrentRealmId()))
+        {
+            if ((realm.realmflags & REALM_FLAG_FULL) != 0 && !realm.queueAmount)
+                realm.queueAmount = urand(50, 150);
+
+            Sessions += realm.queueAmount;
+            pLimit += 1;
+        }
+    }
+
     // so we don't count the user trying to
     // login as a session and queue the socket that we are using
     if (decrease_session)
@@ -275,6 +289,7 @@ World::AddSession_(WorldSession* s)
     {
         AddQueuedSession(s);
         UpdateMaxSessionCounters();
+        s->SendAuthQueued();
         DETAIL_LOG("PlayerQueue: Account id %u is in Queue Position (%u).", s->GetAccountId(), ++QueueSize);
         return;
     }
@@ -301,6 +316,19 @@ int32 World::GetQueuedSessionPos(WorldSession const* sess) const
 {
     uint32 position = 1;
 
+    if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+    {
+        // Fake Realms
+        FakeRealm realm;
+        if (sWorld.GetFakeRealm(realm, sess->GetCurrentRealmId()))
+        {
+            position += realm.queueAmount;
+            // if switched from another realm
+            if (!realm.queueAmount)
+                return 0;
+        }
+    }
+
     for (Queue::const_iterator iter = m_QueuedSessions.begin(); iter != m_QueuedSessions.end(); ++iter, ++position)
         if ((*iter) == sess)
             return position;
@@ -318,6 +346,18 @@ bool World::RemoveQueuedSession(WorldSession* sess)
 {
     // sessions count including queued to remove (if removed_session set)
     uint32 sessions = GetActiveSessionCount();
+
+    // Fake Realms
+    uint32 fakeQueueNum = 0;
+    if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+    {
+        FakeRealm realm;
+        if (GetFakeRealm(realm, sess->GetCurrentRealmId()))
+        {
+            fakeQueueNum = realm.queueAmount;
+            sessions += fakeQueueNum;
+        }
+    }
 
     uint32 position = 1;
     Queue::iterator iter = m_QueuedSessions.begin();
@@ -344,7 +384,7 @@ bool World::RemoveQueuedSession(WorldSession* sess)
         --sessions;
 
     // accept first in queue
-    if ((!m_playerLimit || (int32)sessions < m_playerLimit) && !m_QueuedSessions.empty())
+    if ((!m_playerLimit || (int32)sessions < (m_playerLimit + fakeQueueNum)) && !m_QueuedSessions.empty())
     {
         WorldSession* pop_sess = m_QueuedSessions.front();
         pop_sess->SetInQueue(false);
@@ -354,6 +394,7 @@ bool World::RemoveQueuedSession(WorldSession* sess)
         // update iter to point first queued socket or end() if queue is empty now
         iter = m_QueuedSessions.begin();
         position = 1;
+        position += fakeQueueNum;
     }
 
     // update position from iter to end()
@@ -567,6 +608,8 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_BOOL_COLLECTORS_EDITION, "Custom.CollectorsEdition", true);
 
     setConfig(CONFIG_BOOL_ANTICRASH, "Anticrash.Enabled", false);
+
+    setConfig(CONFIG_BOOL_FAKE_REALMS, "Custom.FakeRealms", false);
 
     setConfigMinMax(CONFIG_UINT32_MAINTENANCE_DAY, "MaintenanceDay", 4, 0, 6);
 
@@ -2251,6 +2294,13 @@ void World::ShutdownCancel()
 
 void World::UpdateSessions(uint32 diff)
 {
+    if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+    {
+        // Fake Realms
+        if (GetActiveAndQueuedSessionCount())
+            ReduceFakeRealmQueue();
+    }
+
     ///- Add new sessions
     {
         std::deque<WorldSession*> sessionQueueCopy;
@@ -2277,7 +2327,24 @@ void World::UpdateSessions(uint32 diff)
             delete pSession;
         }
         else
+        {
+            if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+            {
+                // Fake Realms
+                FakeRealm realm;
+                if (GetFakeRealm(realm, pSession->GetCurrentRealmId()))
+                {
+                    if (!realm.queueAmount)
+                    {
+                        // fake queue ended
+                        RemoveQueuedSession(pSession);
+                    }
+                    if ((realm.realmflags & REALM_FLAG_FULL) != 0 && !realm.queueAmount)
+                        realm.queueAmount = urand(50, 150);
+                }
+            }
             ++itr;
+        }
     }
 }
 
@@ -2359,6 +2426,212 @@ void World::UpdateRealmCharCount(uint32 accountId)
 {
     CharacterDatabase.AsyncPQuery(this, &World::_UpdateRealmCharCount, accountId,
                                   "SELECT COUNT(guid) FROM characters WHERE account = '%u'", accountId);
+}
+
+void World::UpdateFakeRealmCharCount(uint32 accountId, uint32 except)
+{
+    // Clean up
+    LoginDatabase.PExecute("DELETE FROM realmcharacters WHERE acctid= '%u'", accountId);
+
+    // Calculate
+    auto queryResult = CharacterDatabase.PQuery("SELECT guid FROM characters WHERE account = '%u'", accountId);
+    std::vector<uint32> guidsOnAccount;
+    //std::set<uint32> guidsOnFakeCurrentRealm;
+    //std::set<uint32> guidsOnFakeAllRealm;
+    uint8 charcount = 0;
+    uint8 charTotalCount = 0;
+    uint32 currentRealm = realmID;
+
+    std::map<uint32, uint32> charCountFakeRealms;
+
+    if (queryResult)
+    {
+        do
+        {
+            uint32 guid = (*queryResult)[0].GetUInt32();
+            guidsOnAccount.push_back(guid);
+
+        } while (queryResult->NextRow());
+
+        auto query = CharacterDatabase.PQuery(
+            "SELECT * "
+            "FROM fake_realms_info"
+        );
+
+        if (query)
+        {
+            do
+            {
+                // Fake Realms
+                uint32 guid = (*query)[0].GetUInt32();
+                uint32 realmId = (*query)[1].GetUInt32();
+                /*guidsOnFakeAllRealm.insert(guid);
+                if (realmId == realmID)
+                {
+                    guidsOnFakeCurrentRealm.insert(guid);
+                }*/
+                for (auto& mychar : guidsOnAccount)
+                {
+                    if (guid == mychar && guid != except)
+                    {
+                        charCountFakeRealms[realmId]++;
+                        sLog.outString("found virtual realm char %u for realm %u", guid, realmId);
+                    }
+                }
+
+            } while (query->NextRow());
+
+            // no my attached to fake realms - use total count
+            if (charCountFakeRealms.empty())
+                charCountFakeRealms[realmID] = guidsOnAccount.size();
+        }
+        else // no any chars attached to fake realms - use total count
+        {
+            charCountFakeRealms[realmID] = guidsOnAccount.size();
+        }
+    }
+
+    for (auto& realmChars : charCountFakeRealms)
+    {
+        uint32 realmId = realmChars.first;
+        uint32 charsAmount = realmChars.second;
+        LoginDatabase.BeginTransaction();
+        LoginDatabase.PExecute("INSERT INTO realmcharacters (numchars, acctid, realmid) VALUES (%u, %u, %u)", charsAmount, accountId, realmId);
+        LoginDatabase.CommitTransaction();
+        sLog.outString("Setting char count to %u for realm %u account %u", charsAmount, realmId, accountId);
+    }
+}
+
+uint32 World::GetFakeRealmCharCount(uint32 accountId, uint32 realmId, Team team)
+{
+    std::string teamCheck = "";
+    if (team == ALLIANCE)
+        teamCheck = " AND race IN(1,3,4,7)";
+    if (team == HORDE)
+        teamCheck = " AND race IN(2,5,6,8)";
+    auto queryResult = CharacterDatabase.PQuery("SELECT guid FROM characters WHERE account = '%u'%s", accountId, teamCheck.c_str());
+    std::vector<uint32> guidsOnAccount;
+    std::set<uint32> guidsOnFakeCurrentRealm;
+    std::set<uint32> guidsOnFakeAllRealm;
+    uint8 charcount = 0;
+    uint8 charTotalCount = 0;
+
+    std::map<uint32, uint32> charCountFakeRealms;
+
+    if (queryResult)
+    {
+        do
+        {
+            uint32 guid = (*queryResult)[0].GetUInt32();
+            guidsOnAccount.push_back(guid);
+
+        } while (queryResult->NextRow());
+
+        auto query = CharacterDatabase.PQuery(
+            "SELECT * "
+            "FROM fake_realms_info"
+        );
+
+        if (query)
+        {
+            do
+            {
+                // Fake Realms
+                uint32 guid = (*query)[0].GetUInt32();
+                uint32 realm = (*query)[1].GetUInt32();
+                guidsOnFakeAllRealm.insert(guid);
+                if (realm == realmID)
+                {
+                    guidsOnFakeCurrentRealm.insert(guid);
+                }
+                for (auto& mychar : guidsOnAccount)
+                {
+                    if (guid == mychar)
+                        charCountFakeRealms[realm]++;
+                }
+
+            } while (query->NextRow());
+
+            // if current chars exist in list
+            for (auto& mychar : guidsOnAccount)
+            {
+                if (guidsOnFakeCurrentRealm.find(mychar) != guidsOnFakeCurrentRealm.end())
+                    charcount++;
+            }
+
+            for (auto& mychar : guidsOnAccount)
+            {
+                if (guidsOnFakeAllRealm.find(mychar) != guidsOnFakeAllRealm.end())
+                    charTotalCount++;
+            }
+        }
+        else
+        {
+            charcount = guidsOnAccount.size();
+        }
+
+        if (!charcount && !guidsOnAccount.empty())
+            charcount = guidsOnAccount.size();
+    }
+
+    if (realmId != realmID)
+        charcount = charCountFakeRealms[realmId];
+
+    sLog.outString("Virtual Realm #%u chars for account %u: %u", realmId, accountId, charcount);
+
+    return charcount;
+}
+
+std::string World::GetRandomFakeRealmName()
+{
+    std::vector<std::string> listOfNames;
+    for (auto& realm : m_fakeRealms)
+    {
+        listOfNames.push_back(realm.name);
+    }
+
+    std::vector<std::string> out;
+    size_t nelems = 3;
+    std::sample(
+        listOfNames.begin(),
+        listOfNames.end(),
+        std::back_inserter(out),
+        nelems,
+        std::mt19937{ std::random_device{}() }
+    );
+
+    return out[0];
+}
+
+bool World::GetFakeRealm(FakeRealm& realm, uint32 realmId)
+{
+    for (auto& fakerealm : m_fakeRealms)
+    {
+        if (realmId == fakerealm.m_ID)
+        {
+            realm = fakerealm;
+            return true;
+        }
+    }
+    return false;
+}
+
+void World::ReduceFakeRealmQueue()
+{
+    for (auto& fakerealm : m_fakeRealms)
+    {
+        if (fakerealm.queueAmount && !urand(0, 3))
+        {
+            fakerealm.queueAmount--;
+            sLog.outDebug("Reducing Fake Queue of Realm #%u (%s) to %u", fakerealm.m_ID, fakerealm.name, fakerealm.queueAmount);
+
+            // update position from iter to end()
+            // iter point to first not updated socket, position store new position
+            Queue::iterator iter = m_QueuedSessions.begin();
+            for (; iter != m_QueuedSessions.end(); ++iter)
+                (*iter)->SendAuthWaitQue(GetQueuedSessionPos((*iter)));
+        }
+    }
 }
 
 void World::_UpdateRealmCharCount(QueryResult* resultCharCount, uint32 accountId)

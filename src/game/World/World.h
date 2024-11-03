@@ -436,6 +436,7 @@ enum eConfigBoolValues
     CONFIG_BOOL_ENABLE_CITY_PROTECTOR,
     CONFIG_BOOL_COLLECTORS_EDITION,
     CONFIG_BOOL_ANTICRASH,
+    CONFIG_BOOL_FAKE_REALMS,
     CONFIG_BOOL_VALUE_COUNT
 };
 
@@ -468,6 +469,20 @@ struct CliCommandHolder
     {
         memcpy(&m_command[0], command, m_command.size() - 1);
     }
+};
+
+// Fake Realm
+struct FakeRealm
+{
+    std::string name;
+    uint32 port;
+    uint8 icon;
+    RealmFlags realmflags;                                  // realmflags
+    uint8 timezone;
+    uint32 m_ID;
+    AccountTypes allowedSecurityLevel;                      // current allowed join security level (show as locked for not fit accounts)
+    float populationLevel;
+    uint32 queueAmount;
 };
 
 /// The World
@@ -633,6 +648,11 @@ class World
         void InitResultQueue();
 
         void UpdateRealmCharCount(uint32 accountId);
+        void UpdateFakeRealmCharCount(uint32 accountId, uint32 except = 0);
+        uint32 GetFakeRealmCharCount(uint32 accountId, uint32 realmId, Team team = TEAM_NONE);
+        std::string GetRandomFakeRealmName();
+        bool GetFakeRealm(FakeRealm& realm, uint32 realmId);
+        void ReduceFakeRealmQueue();
 
         LocaleConstant GetAvailableDbcLocale(LocaleConstant locale) const
         {
@@ -687,6 +707,12 @@ class World
         BattleGroundQueue& GetBGQueue() { return m_bgQueue; }
         void StartLFGQueueThread();
         void StartBGQueueThread();
+
+        // Fake Realms
+        typedef std::list<FakeRealm> FakeRealms;
+        FakeRealms m_fakeRealms;
+        std::map<uint32, ObjectGuid> m_fakeRealmsPlayers;
+
     protected:
         void _UpdateGameTime();
         // callback for UpdateRealmCharacters

@@ -43,6 +43,11 @@
 #include <utility>
 #include <vector>
 
+#ifdef ENABLE_PLAYERBOTS
+#include "playerbot/playerbot.h"
+#include "playerbot/PlayerbotAIConfig.h"
+#endif
+
 #if defined( __GNUC__ )
 #pragma pack(1)
 #else
@@ -502,13 +507,78 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
         return false;
     }
 
+    // Fake Realms
+    uint32 currentRealmId = realmID;
+    if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+    {
+        unsigned short port = GetAsioSocket().local_endpoint().port();
+        if ((uint32)port != sWorld.getConfig(CONFIG_UINT32_PORT_WORLD))
+        {
+            for (auto& fakeRealm : sWorld.m_fakeRealms)
+            {
+                if ((uint32)port == fakeRealm.port)
+                {
+                    currentRealmId = fakeRealm.m_ID;
+                    sLog.outDebug("User %s connected to a fake realm %s on port %u!", account.c_str(), fakeRealm.name.c_str(), fakeRealm.port);
+
+                    // change type
+                    if (sWorld.getConfig(CONFIG_UINT32_GAME_TYPE) != (uint32)fakeRealm.icon)
+                    {
+                        sWorld.setConfig(CONFIG_UINT32_GAME_TYPE, (uint32)fakeRealm.icon);
+                    }
+
+                    if ((fakeRealm.realmflags & REALM_FLAG_FULL) != 0 && !fakeRealm.queueAmount)
+                        fakeRealm.queueAmount = urand(50, 150);
+
+#ifdef ENABLE_PLAYERBOTS
+                    if (fakeRealm.populationLevel < 2)
+                    {
+                        sPlayerbotAIConfig.minRandomBots = urand(300, 500);
+                        sPlayerbotAIConfig.maxRandomBots = urand(600, 800);
+                    }
+                    else if (fakeRealm.populationLevel < 6)
+                    {
+                        sPlayerbotAIConfig.minRandomBots = urand(1100, 1300);
+                        sPlayerbotAIConfig.maxRandomBots = urand(1400, 1600);
+                    }
+                    else if (fakeRealm.populationLevel < 9)
+                    {
+                        sPlayerbotAIConfig.minRandomBots = urand(2100, 2300);
+                        sPlayerbotAIConfig.maxRandomBots = urand(2400, 2600);
+                    }
+                    else if (fakeRealm.populationLevel > 8)
+                    {
+                        /*sPlayerbotAIConfig.minRandomBots = urand(2900, 3100);
+                        sPlayerbotAIConfig.maxRandomBots = urand(3200, 3400);*/
+                        sPlayerbotAIConfig.minRandomBots = urand(3700, 3900);
+                        sPlayerbotAIConfig.maxRandomBots = urand(4000, 4200);
+                    }
+
+                    if ((fakeRealm.realmflags & REALM_FLAG_NEW_PLAYERS) != 0)
+                    {
+                        sPlayerbotAIConfig.syncLevelWithPlayers = true;
+                        sPlayerbotAIConfig.syncLevelNoPlayer = 5;
+                        sPlayerbotAIConfig.syncLevelMaxAbove = 5;
+                    }
+                    /*else if (fakeRealm.populationLevel > 8)
+                    {
+                        sPlayerbotAIConfig.minRandomBots = urand(3700, 3900);
+                        sPlayerbotAIConfig.maxRandomBots = urand(4000, 4200);
+                    }*/
+                    sLog.outDebug("Virtual realm #%u (%s) population changed to %u to %u", fakeRealm.m_ID, fakeRealm.name, sPlayerbotAIConfig.minRandomBots, sPlayerbotAIConfig.maxRandomBots);
+#endif
+                }
+            }
+        }
+    }
+
     if (m_session)
     {
         DEBUG_LOG("WorldSocket::HandleAuthSession reconnecting for account '%s' from %s", account.c_str(), address.c_str());
 
         // defer operation to session thread context to avoid any race conditions
         auto self = shared_from_this();
-        m_session->GetMessager().AddMessage([self, ClientBuild, clientOS, clientPlatform, account, address = address, K, id, recvPacket = recvPacket](WorldSession* session)
+        m_session->GetMessager().AddMessage([self, ClientBuild, clientOS, clientPlatform, account, address = address, K, id, recvPacket = recvPacket, currentRealmId](WorldSession* session)
         {
             // Session exist so player is reconnecting
             // check if we can request a new socket
@@ -535,6 +605,32 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
 
             DEBUG_LOG("WorldSocket::HandleAuthSession assigning anticheat for '%s' from %s", account.c_str(), address.c_str());
             session->AssignAnticheat(std::move(anticheat));
+
+            // Fake Realms
+            if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+            {
+                uint32 Sessions = sWorld.GetActiveAndQueuedSessionCount();
+                uint32 pLimit = sWorld.GetPlayerAmountLimit();
+                uint32 QueueSize = sWorld.GetQueuedSessionCount();
+
+                session->SetCurrentRealmId(currentRealmId);
+                FakeRealm realm;
+                if (sWorld.GetFakeRealm(realm, currentRealmId))
+                {
+                    if (realm.queueAmount)
+                    {
+                        Sessions += realm.queueAmount;
+                        pLimit += 1;
+                    }
+                }
+
+                if (pLimit > 0 && Sessions >= pLimit && session->GetSecurity() == SEC_PLAYER)
+                {
+                    sWorld.AddQueuedSession(session);
+                    sWorld.UpdateMaxSessionCounters();
+                    DETAIL_LOG("PlayerQueue: Account id %u is in Queue Position (%u).", session->GetAccountId(), ++QueueSize);
+                }
+            }
         });
     }
     else
@@ -562,6 +658,12 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
             SendPacket(addonPacket);
 
         sWorld.AddSession(m_session);
+
+        // Fake Realms
+        if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+        {
+            m_session->SetCurrentRealmId(currentRealmId);
+        }
     }
 
     return true;

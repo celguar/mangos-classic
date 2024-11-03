@@ -198,13 +198,15 @@ class WorldSessionFilter : public PacketFilter
         virtual bool Process(WorldPacket const& packet) const override;
 };
 
+extern uint32 realmID;
+
 /// Player session in the World
 class WorldSession
 {
         friend class CharacterHandler;
 
     public:
-        WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, time_t mute_time, LocaleConstant locale, std::string accountName, uint32 accountFlags);
+        WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, time_t mute_time, LocaleConstant locale, std::string accountName, uint32 accountFlags, uint32 realmId = realmID);
         ~WorldSession();
 
         // Set this session have no attached socket but keep it alive for short period of time to permit a possible reconnection
@@ -266,7 +268,7 @@ class WorldSession
 #endif
 
         /// Session in auth.queue currently
-        void SetInQueue(bool state) { m_inQueue = state; }
+        void SetInQueue(bool state);
 
         /// Is the user engaged in a log out process?
         bool isLogingOut() const { return _logoutTime || m_playerLogout; }
@@ -809,6 +811,10 @@ class WorldSession
 
         void SetPacketLogging(bool state);
 
+        // Fake Realms
+        void SetCurrentRealmId(uint32 id) { m_currentRealmId = id; }
+        uint32 GetCurrentRealmId() const { return m_currentRealmId; }
+
     private:
         // private trade methods
         void moveItems(Item* myItems[], Item* hisItems[]);
@@ -877,6 +883,9 @@ class WorldSession
         Messager<WorldSession> m_messager;
 
         std::atomic<uint32> m_currentPlayerLevel;
+
+        // Fake Realms
+        uint32 m_currentRealmId;
 };
 #endif
 /// @}

@@ -86,6 +86,10 @@ void WorldSession::SendNameQueryResponseFromDBCallBack(QueryResult* result, uint
     response.name = fields[1].GetCppString();
     response.realm = "";
 
+    // Fake Realms
+    if (urand(0, 3) && sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+        response.realm = urand(0, 3) ? sWorld.GetRandomFakeRealmName() : "";
+
     if (!response.name.empty())
     {
         response.race = fields[2].GetUInt8();
@@ -128,6 +132,9 @@ void WorldSession::HandleNameQueryOpcode(WorldPacket& recv_data)
         response.race = uint32(pChar->getRace());
         response.gender = uint32(pChar->getGender());
         response.classid = uint32(pChar->getClass());
+
+        if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS) && pChar->InBattleGround() && !urand(0, 2))
+            response.realm = sWorld.GetRandomFakeRealmName();
 
         if (m_sessionState != WORLD_SESSION_STATE_READY)
             m_offlineNameResponses.push_back(response);

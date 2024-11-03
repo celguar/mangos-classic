@@ -295,9 +295,97 @@ void WorldSession::HandleCharEnum(QueryResult* result)
 
     if (result)
     {
+        // Fake Realms
+        bool foundCharacters = false;
+        bool loadOldCharacters = false;
+        std::vector<uint32> guidsOnAccount;
+        std::set<uint32> guidsOnFakeCurrentRealm;
+        std::set<uint32> guidsOnFakeAllRealm;
+
+        if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+        {
+            auto charlist = CharacterDatabase.PQuery(
+                "SELECT characters.guid "
+                "FROM characters "
+                "WHERE characters.account = '%u' ORDER BY characters.guid",
+                GetAccountId());
+
+            if (charlist)
+            {
+                do
+                {
+                    // Fake Realms
+                    uint32 guid = (*charlist)[0].GetUInt32();
+                    guidsOnAccount.push_back(guid);
+
+                } while (charlist->NextRow());
+
+                auto query = CharacterDatabase.PQuery(
+                    "SELECT * "
+                    "FROM fake_realms_info"
+                );
+
+                if (query)
+                {
+                    do
+                    {
+                        // Fake Realms
+                        uint32 guid = (*query)[0].GetUInt32();
+                        uint32 realmId = (*query)[1].GetUInt32();
+                        guidsOnFakeAllRealm.insert(guid);
+                        if (realmId == GetCurrentRealmId())
+                            guidsOnFakeCurrentRealm.insert(guid);
+
+                    } while (query->NextRow());
+
+                    // if current chars exist in list
+                    for (auto& mychar : guidsOnAccount)
+                    {
+                        if (guidsOnFakeCurrentRealm.find(mychar) != guidsOnFakeCurrentRealm.end())
+                            foundCharacters = true;
+                    }
+
+                    if (!foundCharacters)
+                    {
+                        for (auto& mychar : guidsOnAccount)
+                        {
+                            if (guidsOnFakeAllRealm.find(mychar) != guidsOnFakeAllRealm.end())
+                                foundCharacters = true;
+                        }
+                    }
+
+                    if (!foundCharacters)
+                        loadOldCharacters = true;
+                }
+                else
+                {
+                    loadOldCharacters = true;
+                }
+
+                if (loadOldCharacters)
+                {
+                    for (auto& mychar : guidsOnAccount)
+                    {
+                        CharacterDatabase.PExecute("INSERT INTO fake_realms_info (guid, realm_id) VALUES (%u, %u)", mychar, GetCurrentRealmId());
+                    }
+                }
+            }
+        }
+
         do
         {
             uint32 guidlow = (*result)[0].GetUInt32();
+
+            if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+            {
+                // Fake Realms
+                if (foundCharacters)
+                {
+                    if (guidsOnFakeCurrentRealm.find(guidlow) == guidsOnFakeCurrentRealm.end())
+                        continue;
+                }
+            }
+
             DETAIL_LOG("Build enum data for char guid %u from account %u.", guidlow, GetAccountId());
             if (Player::BuildEnumData(result, data))
                 ++num;
@@ -433,16 +521,39 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
         }
     }
 
-    auto queryResult = CharacterDatabase.PQuery("SELECT COUNT(guid) FROM characters WHERE account = '%u'", GetAccountId());
     uint8 charcount = 0;
-    if (queryResult)
+    uint8 charTotalCount = 0;
+
+    if (!sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS) || GetCurrentRealmId() == realmID)
     {
-        Field* fields = queryResult->Fetch();
-        charcount = fields[0].GetUInt8();
+        auto queryResult = CharacterDatabase.PQuery("SELECT COUNT(guid) FROM characters WHERE account = '%u'", GetAccountId());
+        if (queryResult)
+        {
+            Field* fields = queryResult->Fetch();
+            charcount = fields[0].GetUInt8();
+
+            if (charcount >= sWorld.getConfig(CONFIG_UINT32_CHARACTERS_PER_REALM))
+            {
+                data << (uint8)CHAR_CREATE_SERVER_LIMIT;
+                SendPacket(data, true);
+                return;
+            }
+        }
+    }
+    else
+    {
+        charcount = sWorld.GetFakeRealmCharCount(GetAccountId(), GetCurrentRealmId());
 
         if (charcount >= sWorld.getConfig(CONFIG_UINT32_CHARACTERS_PER_REALM))
         {
             data << (uint8)CHAR_CREATE_SERVER_LIMIT;
+            SendPacket(data, true);
+            return;
+        }
+
+        if (charTotalCount >= sWorld.getConfig(CONFIG_UINT32_CHARACTERS_PER_ACCOUNT))
+        {
+            data << (uint8)CHAR_CREATE_ACCOUNT_LIMIT;
             SendPacket(data, true);
             return;
         }
@@ -463,11 +574,24 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
             Field* field = queryResult2->Fetch();
             uint8 acc_race  = field[0].GetUInt32();
 
-            // need to check team only for first character
-            // TODO: what to if account already has characters of both races?
-            if (!AllowTwoSideAccounts)
+            if (!sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS) || GetCurrentRealmId() == realmID)
             {
-                if (acc_race == 0 || Player::TeamForRace(acc_race) != team_)
+                // need to check team only for first character
+                // TODO: what to if account already has characters of both races?
+                if (!AllowTwoSideAccounts)
+                {
+                    if (acc_race == 0 || Player::TeamForRace(acc_race) != team_)
+                    {
+                        data << (uint8)CHAR_CREATE_PVP_TEAMS_VIOLATION;
+                        SendPacket(data, true);
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                uint32 otherTeamChars = sWorld.GetFakeRealmCharCount(GetAccountId(), GetCurrentRealmId(), team_ == ALLIANCE ? HORDE : ALLIANCE);
+                if (otherTeamChars)
                 {
                     data << (uint8)CHAR_CREATE_PVP_TEAMS_VIOLATION;
                     SendPacket(data, true);
@@ -507,12 +631,19 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
 
     pNewChar->SetAtLoginFlag(AT_LOGIN_FIRST);               // First login
 
+    if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+    {
+        // Fake Realms
+        CharacterDatabase.PExecute("INSERT INTO fake_realms_info (guid, realm_id) VALUES (%u, %u)", pNewChar->GetGUIDLow(), GetCurrentRealmId());
+        charcount = sWorld.GetFakeRealmCharCount(GetAccountId(), GetCurrentRealmId());
+    }
+
     // Player created, save it now
     pNewChar->SaveToDB();
     charcount += 1;
 
-    LoginDatabase.PExecute("DELETE FROM realmcharacters WHERE acctid= '%u' AND realmid = '%u'", GetAccountId(), realmID);
-    LoginDatabase.PExecute("INSERT INTO realmcharacters (numchars, acctid, realmid) VALUES (%u, %u, %u)",  charcount, GetAccountId(), realmID);
+    LoginDatabase.PExecute("DELETE FROM realmcharacters WHERE acctid= '%u' AND realmid = '%u'", GetAccountId(), GetCurrentRealmId());
+    LoginDatabase.PExecute("INSERT INTO realmcharacters (numchars, acctid, realmid) VALUES (%u, %u, %u)",  charcount, GetAccountId(), GetCurrentRealmId());
 
     data << (uint8)CHAR_CREATE_SUCCESS;
     SendPacket(data, true);
@@ -567,6 +698,12 @@ void WorldSession::HandleCharDeleteOpcode(WorldPacket& recv_data)
     {
         std::string dump = PlayerDumpWriter().GetDump(lowguid);
         sLog.outCharDump(dump.c_str(), GetAccountId(), lowguid, name.c_str());
+    }
+
+    if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+    {
+        // Fake Realms
+        CharacterDatabase.PExecute("DELETE FROM fake_realms_info WHERE guid = %u", guid);
     }
 
     Player::DeleteFromDB(guid, GetAccountId());
