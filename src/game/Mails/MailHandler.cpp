@@ -272,7 +272,7 @@ void WorldSession::HandleSendMail(WorldPacket& recv_data)
     CharacterDatabase.CommitTransaction();
 
 #ifdef ENABLE_MODULES
-    sModuleMgr.OnSendMail(pl, rc, reqmoney);
+    sModuleMgr.OnSendMail(draft, pl, rc, reqmoney);
 #endif
 }
 
