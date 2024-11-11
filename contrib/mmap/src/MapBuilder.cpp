@@ -79,6 +79,7 @@ void from_json(const json& j, rcConfig& config)
     config.detailSampleDist = j["detailSampleDist"].get<float>();
     config.detailSampleMaxError = j["detailSampleMaxError"].get<float>();
     config.liquidFlagMergeThreshold = j["liquidFlagMergeThreshold"].get<float>();
+    config.filterUnderTerrain = j["filterUnderTerrain"].get<int>();
 }
 
 namespace MMAP
@@ -651,7 +652,7 @@ namespace MMAP
     void filterSteepSlopeTriangles(rcContext* ctx,
         const float* verts, int nv,
         const int* tris, int nt,
-        unsigned char* areas, MeshData& meshData, TerrainBuilder* m_terrainBuilder, VMAP::IVMapManager* vmapManager)
+        unsigned char* areas, bool filterUnderTerrain, MeshData& meshData, TerrainBuilder* m_terrainBuilder, VMAP::IVMapManager* vmapManager)
     {
         rcIgnoreUnused(ctx);
         rcIgnoreUnused(nv);
@@ -701,7 +702,7 @@ namespace MMAP
 
                 // Now we remove underterrain triangles (actually set flags to 0)
                 // This prevents selecting wrong poly for a player in the server later.
-                if (vmapManager && !terrain && areas[i])
+                if (filterUnderTerrain && vmapManager && !terrain && areas[i])
                 {
                     // Get triangle corners (as usual, yzx positions)
                     // (actually we push these corners towards the center a bit to prevent collision with border models etc...)
@@ -1160,7 +1161,8 @@ namespace MMAP
         rcClearUnwalkableTriangles(m_rcContext, tileCfg.walkableSlopeAngle, tVerts, tVertCount, tTris, tTriCount, triFlags);
 
         // mark almost unwalkable triangles with steep flag
-        rcModAlmostUnwalkableTriangles(m_rcContext, 50.0f, tVerts, tVertCount, tTris, tTriCount, triFlags);
+        //rcModAlmostUnwalkableTriangles(m_rcContext, 50.0f, tVerts, tVertCount, tTris, tTriCount, triFlags);
+        filterSteepSlopeTriangles(m_rcContext, tVerts, tVertCount, tTris, tTriCount, triFlags, tileCfg.filterUnderTerrain, meshData, m_terrainBuilder, vmapManager);
 
         rcRasterizeTriangles(m_rcContext, tVerts, tVertCount, tTris, triFlags, tTriCount, *tile.solid, tileCfg.walkableClimb);
         delete[] triFlags;
@@ -1352,6 +1354,7 @@ namespace MMAP
             {"walkableRadius", 2},
             {"walkableSlopeAngle", 75.0f},
             {"liquidFlagMergeThreshold", 0.0f},
+            {"filterUnderTerrain", 0},
         };
     }
 
