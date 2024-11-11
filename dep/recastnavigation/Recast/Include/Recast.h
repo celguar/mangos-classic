@@ -281,6 +281,11 @@ struct rcConfig
 
 	/// Vertical threshold for merging spans with higher priority areas when rasterizing liquids
 	float liquidFlagMergeThreshold;
+
+	/// Filter vmap polygons under terrain when generating mmaps. Can fix mmaps being generated on objects surfaces
+	/// that go under the map, e.g. trees. Prevents pathfinder select underterrain mmaps when moving near such objects,
+	/// but may cause issues in some dungeons, e.g. RFK, RFD. So is configurable
+	int filterUnderTerrain;
 };
 
 /// Defines the number of bits allocated to rcSpan::smin and rcSpan::smax.
