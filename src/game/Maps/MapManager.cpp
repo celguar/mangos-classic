@@ -211,7 +211,7 @@ void MapManager::Update(uint32 diff)
     for (auto& map : i_maps)
     {
         // skip crashed or restarting world maps
-        if (IsMapCrashed(map.second))
+        if (IsMapCrashed(map.second.get()))
             continue;
 
         // skip updating maps until restarted
@@ -254,7 +254,7 @@ void MapManager::Update(uint32 diff)
         MapMapType::iterator iter = i_maps.begin();
         while (iter != i_maps.end())
         {
-            if (iter->second == crashedMap)
+            if (iter->second.get() == crashedMap)
             {
                 if (isContinent)
                 {
@@ -264,7 +264,7 @@ void MapManager::Update(uint32 diff)
                     i_maps.erase(iter);
                     sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Restarting...", mapId, mapName.c_str());
                     Map* m = new WorldMap(mapId, i_gridCleanUpDelay, 0);
-                    i_maps[MapID(mapId)] = m;
+                    i_maps[MapID(mapId)].reset(m);
                     m->Initialize();
                     SetMapCrashStatus(mapId, instanceId, MAP_CRASH_NOCRASH);
                     delete crashedMap;
