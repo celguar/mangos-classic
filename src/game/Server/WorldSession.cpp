@@ -208,15 +208,6 @@ void WorldSession::SendPacket(WorldPacket const& packet, bool forcedSend /*= fal
     }
 #endif
 
-#ifdef ENABLE_PLAYERBOTS
-    if (GetPlayer()) {
-        if (GetPlayer()->GetPlayerbotAI())
-            GetPlayer()->GetPlayerbotAI()->HandleBotOutgoingPacket(packet);
-        else if (GetPlayer()->GetPlayerbotMgr())
-            GetPlayer()->GetPlayerbotMgr()->HandleMasterOutgoingPacket(packet);
-    }
-#endif
-
     if (!m_socket || (m_sessionState != WORLD_SESSION_STATE_READY && !forcedSend))
     {
         //sLog.outDebug("Refused to send %s to %s", packet.GetOpcodeName(), _player ? _player->GetName() : "UKNOWN");
@@ -401,10 +392,6 @@ bool WorldSession::Update(uint32 diff)
 #if defined(BUILD_DEPRECATED_PLAYERBOT) || defined(ENABLE_PLAYERBOTS)
                 if (_player && _player->GetPlayerbotMgr())
                     _player->GetPlayerbotMgr()->HandleMasterIncomingPacket(*packet);
-#endif
-#ifdef ENABLE_PLAYERBOTS
-                if (_player && _player->GetPlayerbotMgr())
-                     _player->GetPlayerbotMgr()->HandleMasterIncomingPacket(*packet);
 #endif
                 break;
             case STATUS_LOGGEDIN_OR_RECENTLY_LOGGEDOUT:
@@ -831,17 +818,10 @@ void WorldSession::LogoutPlayer()
         SqlStatement stmt2 = CharacterDatabase.CreateStatement(updChars, "UPDATE characters SET online = 0 WHERE guid = ?");
         stmt2.PExecute(guid);
 #else
-#ifdef ENABLE_PLAYERBOTS
-        // Set for only character instead of accountid
-        // Different characters can be alive as bots
-        stmt = CharacterDatabase.CreateStatement(updChars, "UPDATE characters SET online = 0 WHERE guid = ?");
-        stmt.PExecute(guid);
-#else
         ///- Since each account can only have one online character at any given time, ensure all characters for active account are marked as offline
         // No SQL injection as AccountId is uint32
         stmt = CharacterDatabase.CreateStatement(updChars, "UPDATE characters SET online = 0 WHERE account = ?");
         stmt.PExecute(GetAccountId());
-#endif
 #endif
 
         DEBUG_LOG("SESSION: Sent SMSG_LOGOUT_COMPLETE Message");
