@@ -231,7 +231,7 @@ struct ProcTriggeredData
     {}
     SpellProcEventEntry const* spellProcEvent;
     SpellAuraHolder* triggeredByHolder;
-    bool canProc[MAX_EFFECT_INDEX];
+    bool canProc[MAX_EFFECT_INDEX] = { true, true, true };
 };
 
 typedef std::vector<ProcTriggeredData> ProcTriggeredVector;
