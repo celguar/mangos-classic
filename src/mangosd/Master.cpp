@@ -97,6 +97,20 @@ class FreezeDetectorRunnable : public MaNGOS::Runnable
         }
 };
 
+bool port_in_use(unsigned short port) {
+    using namespace boost::asio;
+    using ip::tcp;
+
+    io_service svc;
+    tcp::acceptor a(svc);
+
+    boost::system::error_code ec;
+    a.open(tcp::v4(), ec) || a.bind({ tcp::v4(), port }, ec);
+
+    return ec == error::address_in_use;
+}
+
+
 /// Main function
 int Master::Run()
 {
@@ -294,6 +308,20 @@ int Master::Run()
         std::vector<std::shared_ptr<MaNGOS::AsyncListener<WorldSocket>> > servers;
         for (auto& realm : fakeRealmsList)
         {
+            // check if port is used
+            if (port_in_use(realm.port))
+            {
+                sLog.outError("Fake realm %u uses port %u that is in use, change it", realm.m_ID, realm.port);
+                for (int i = port + 1; i < port + 10000; ++i)
+                    if (!port_in_use(i))
+                    {
+                        realm.port = i;
+                        LoginDatabase.DirectPExecute("UPDATE realmlist SET port = %u WHERE id = '%u'", i, realm.m_ID);
+                        sLog.outError("Fake realm %u port changed to %u", realm.m_ID, realm.port);
+                        break;
+                    }
+            }
+
             sLog.outDebug("adding fake realm %u (%s) port %u", realm.m_ID, realm.name, realm.port);
             servers.push_back(std::shared_ptr< MaNGOS::AsyncListener<WorldSocket>>(new MaNGOS::AsyncListener<WorldSocket>(m_service, bindIp, (int32)realm.port)));
             sWorld.m_fakeRealms.push_back(realm);
