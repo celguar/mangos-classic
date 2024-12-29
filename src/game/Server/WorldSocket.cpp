@@ -511,6 +511,8 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     uint32 currentRealmId = realmID;
     if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
     {
+        sWorld.UpdateFakeRealmCharCount(id);
+
         unsigned short port = GetAsioSocket().local_endpoint().port();
         if ((uint32)port != sWorld.getConfig(CONFIG_UINT32_PORT_WORLD))
         {
@@ -526,9 +528,6 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
                     {
                         sWorld.setConfig(CONFIG_UINT32_GAME_TYPE, (uint32)fakeRealm.icon);
                     }
-
-                    if ((fakeRealm.realmflags & REALM_FLAG_FULL) != 0 && !fakeRealm.queueAmount)
-                        fakeRealm.queueAmount = urand(50, 150);
 
 #ifdef ENABLE_PLAYERBOTS
                     if (fakeRealm.populationLevel < 2)
@@ -565,6 +564,22 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
                         sPlayerbotAIConfig.minRandomBots = urand(3700, 3900);
                         sPlayerbotAIConfig.maxRandomBots = urand(4000, 4200);
                     }*/
+
+                    if ((fakeRealm.realmflags & REALM_FLAG_FULL) != 0 && !fakeRealm.queueAmount)
+                    {
+                        fakeRealm.queueAmount = urand(50, 150);
+
+#ifdef ENABLE_PLAYERBOTS
+                        uint32 maxBots = sRandomPlayerbotMgr.GetMaxAllowedBotCount();
+                        uint32 currentBots = sRandomPlayerbotMgr.GetPlayerbotsAmount();
+
+                        if (maxBots > currentBots)
+                        {
+                            fakeRealm.queueAmount = urand(0, (maxBots * 0.1f));
+                        }
+#endif
+                    }
+
                     sLog.outDebug("Virtual realm #%u (%s) population changed to %u to %u", fakeRealm.m_ID, fakeRealm.name, sPlayerbotAIConfig.minRandomBots, sPlayerbotAIConfig.maxRandomBots);
 #endif
                 }
@@ -609,6 +624,9 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
             // Fake Realms
             if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
             {
+                sWorld.RemoveQueuedSession(session);
+                sWorld.UpdateFakeRealmCharCount(id);
+
                 uint32 Sessions = sWorld.GetActiveAndQueuedSessionCount();
                 uint32 pLimit = sWorld.GetPlayerAmountLimit();
                 uint32 QueueSize = sWorld.GetQueuedSessionCount();

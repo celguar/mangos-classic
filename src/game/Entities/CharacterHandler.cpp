@@ -41,6 +41,7 @@
 #include "Spells/SpellMgr.h"
 #include "Anticheat/Anticheat.hpp"
 #include "Mails/Mail.h"
+#include "Accounts/AccountMgr.h"
 
 #ifdef BUILD_DEPRECATED_PLAYERBOT
 #include "PlayerBot/Base/PlayerbotMgr.h"
@@ -295,20 +296,40 @@ void WorldSession::HandleCharEnum(QueryResult* result)
 
     if (result)
     {
+        // Undelete Hermes Custom
+        bool IsDeletedCharacters = result->GetFieldCount() == 21;
         // Fake Realms
         bool foundCharacters = false;
         bool loadOldCharacters = false;
         std::vector<uint32> guidsOnAccount;
         std::set<uint32> guidsOnFakeCurrentRealm;
         std::set<uint32> guidsOnFakeAllRealm;
+        std::set<uint32> guidsToAddToFakeRealms;
+        std::set<uint32> guidsDeletedChars;
 
         if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
         {
             auto charlist = CharacterDatabase.PQuery(
                 "SELECT characters.guid "
                 "FROM characters "
-                "WHERE characters.account = '%u' ORDER BY characters.guid",
-                GetAccountId());
+                "WHERE characters.account = '%u' OR characters.deleteInfos_Account = '%u' ORDER BY characters.guid",
+                GetAccountId(), GetAccountId());
+
+            auto charDeletedlist = CharacterDatabase.PQuery(
+                "SELECT characters.guid "
+                "FROM characters "
+                "WHERE characters.deleteInfos_Account = '%u' ORDER BY characters.guid",
+                GetAccountId(), GetAccountId());
+
+            if (charDeletedlist)
+            {
+                do
+                {
+                    uint32 guid = (*charDeletedlist)[0].GetUInt32();
+                    guidsDeletedChars.insert(guid);
+
+                } while (charDeletedlist->NextRow());
+            }
 
             if (charlist)
             {
@@ -322,7 +343,9 @@ void WorldSession::HandleCharEnum(QueryResult* result)
 
                 auto query = CharacterDatabase.PQuery(
                     "SELECT * "
-                    "FROM fake_realms_info"
+                    "FROM fake_realms_info WHERE guid IN (SELECT characters.guid FROM characters where characters.account = %u OR characters.deleteInfos_Account = %u)",
+                    GetAccountId(),
+                    GetAccountId()
                 );
 
                 if (query)
@@ -332,8 +355,9 @@ void WorldSession::HandleCharEnum(QueryResult* result)
                         // Fake Realms
                         uint32 guid = (*query)[0].GetUInt32();
                         uint32 realmId = (*query)[1].GetUInt32();
+                        bool isDeleted = (*query)[2].GetBool();
                         guidsOnFakeAllRealm.insert(guid);
-                        if (realmId == GetCurrentRealmId())
+                        if (realmId == GetCurrentRealmId() && IsDeletedCharacters == isDeleted)
                             guidsOnFakeCurrentRealm.insert(guid);
 
                     } while (query->NextRow());
@@ -351,6 +375,8 @@ void WorldSession::HandleCharEnum(QueryResult* result)
                         {
                             if (guidsOnFakeAllRealm.find(mychar) != guidsOnFakeAllRealm.end())
                                 foundCharacters = true;
+                            else
+                                guidsToAddToFakeRealms.insert(mychar);
                         }
                     }
 
@@ -362,11 +388,25 @@ void WorldSession::HandleCharEnum(QueryResult* result)
                     loadOldCharacters = true;
                 }
 
-                if (loadOldCharacters)
+                if (loadOldCharacters || !guidsToAddToFakeRealms.empty())
                 {
-                    for (auto& mychar : guidsOnAccount)
+                    if (loadOldCharacters)
                     {
-                        CharacterDatabase.PExecute("INSERT INTO fake_realms_info (guid, realm_id) VALUES (%u, %u)", mychar, GetCurrentRealmId());
+                        for (auto& mychar : guidsOnAccount)
+                        {
+                            if (guidsToAddToFakeRealms.find(mychar) == guidsToAddToFakeRealms.end())
+                                guidsToAddToFakeRealms.insert(mychar);
+                        }
+                    }
+                    for (auto& mychar : guidsToAddToFakeRealms/*guidsOnAccount*/)
+                    {
+                        bool isDeleted = guidsDeletedChars.find(mychar) != guidsDeletedChars.end();
+                        CharacterDatabase.PExecute("REPLACE INTO fake_realms_info (guid, realm_id, deleted) VALUES (%u, %u, %u)", mychar, realmID, isDeleted);
+                        if (GetCurrentRealmId() == realmID && IsDeletedCharacters == isDeleted)
+                        {
+                            guidsOnFakeCurrentRealm.insert(mychar);
+                            foundCharacters = true;
+                        }
                     }
                 }
             }
@@ -634,7 +674,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
     if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
     {
         // Fake Realms
-        CharacterDatabase.PExecute("INSERT INTO fake_realms_info (guid, realm_id) VALUES (%u, %u)", pNewChar->GetGUIDLow(), GetCurrentRealmId());
+        CharacterDatabase.PExecute("REPLACE INTO fake_realms_info (guid, realm_id) VALUES (%u, %u)", pNewChar->GetGUIDLow(), GetCurrentRealmId());
         charcount = sWorld.GetFakeRealmCharCount(GetAccountId(), GetCurrentRealmId());
     }
 
@@ -702,8 +742,18 @@ void WorldSession::HandleCharDeleteOpcode(WorldPacket& recv_data)
 
     if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
     {
+        uint32 charDelete_method = sWorld.getConfig(CONFIG_UINT32_CHARDELETE_METHOD);
+        uint32 charDelete_minLvl = sWorld.getConfig(CONFIG_UINT32_CHARDELETE_MIN_LEVEL);
+
+        // if we want to finally delete the character or the character does not meet the level requirement, we set it to mode 0
+        if (Player::GetLevelFromDB(guid) < charDelete_minLvl)
+            charDelete_method = 0;
+
         // Fake Realms
-        CharacterDatabase.PExecute("DELETE FROM fake_realms_info WHERE guid = %u", guid);
+        if (!charDelete_method)
+            CharacterDatabase.PExecute("DELETE FROM fake_realms_info WHERE guid = %u", guid);
+        else
+            CharacterDatabase.PExecute("UPDATE fake_realms_info SET deleted = 1 WHERE guid = %u", guid);
     }
 
     Player::DeleteFromDB(guid, GetAccountId());

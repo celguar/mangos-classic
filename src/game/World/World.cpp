@@ -270,7 +270,19 @@ World::AddSession_(WorldSession* s)
         if (GetFakeRealm(realm, s->GetCurrentRealmId()))
         {
             if ((realm.realmflags & REALM_FLAG_FULL) != 0 && !realm.queueAmount)
+            {
                 realm.queueAmount = urand(50, 150);
+
+#ifdef ENABLE_PLAYERBOTS
+                uint32 maxBots = sRandomPlayerbotMgr.GetMaxAllowedBotCount();
+                uint32 currentBots = sRandomPlayerbotMgr.GetPlayerbotsAmount();
+
+                if (maxBots > currentBots)
+                {
+                    realm.queueAmount = urand(0, (maxBots * 0.1f));
+                }
+#endif
+            }
 
             Sessions += realm.queueAmount;
             pLimit += 1;
@@ -2340,7 +2352,19 @@ void World::UpdateSessions(uint32 diff)
                         RemoveQueuedSession(pSession);
                     }
                     if ((realm.realmflags & REALM_FLAG_FULL) != 0 && !realm.queueAmount)
+                    {
                         realm.queueAmount = urand(50, 150);
+
+#ifdef ENABLE_PLAYERBOTS
+                        uint32 maxBots = sRandomPlayerbotMgr.GetMaxAllowedBotCount();
+                        uint32 currentBots = sRandomPlayerbotMgr.GetPlayerbotsAmount();
+
+                        if (maxBots > currentBots)
+                        {
+                            realm.queueAmount = urand(0, (maxBots * 0.1f));
+                        }
+#endif
+                    }
                 }
             }
             ++itr;
@@ -2455,7 +2479,9 @@ void World::UpdateFakeRealmCharCount(uint32 accountId, uint32 except)
 
         auto query = CharacterDatabase.PQuery(
             "SELECT * "
-            "FROM fake_realms_info"
+            "FROM fake_realms_info WHERE deleted = '0' AND guid IN (SELECT characters.guid FROM characters where characters.account = %u OR characters.deleteInfos_Account = %u)",
+            accountId,
+            accountId
         );
 
         if (query)
