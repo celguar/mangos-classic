@@ -2501,7 +2501,7 @@ void World::UpdateFakeRealmCharCount(uint32 accountId, uint32 except)
                     if (guid == mychar && guid != except)
                     {
                         charCountFakeRealms[realmId]++;
-                        sLog.outString("found virtual realm char %u for realm %u", guid, realmId);
+                        sLog.outDebug("found virtual realm char %u for realm %u", guid, realmId);
                     }
                 }
 
@@ -2524,7 +2524,7 @@ void World::UpdateFakeRealmCharCount(uint32 accountId, uint32 except)
         LoginDatabase.BeginTransaction();
         LoginDatabase.PExecute("INSERT INTO realmcharacters (numchars, acctid, realmid) VALUES (%u, %u, %u)", charsAmount, accountId, realmId);
         LoginDatabase.CommitTransaction();
-        sLog.outString("Setting char count to %u for realm %u account %u", charsAmount, realmId, accountId);
+        sLog.outDebug("Setting char count to %u for realm %u account %u", charsAmount, realmId, accountId);
     }
 }
 
@@ -2603,7 +2603,7 @@ uint32 World::GetFakeRealmCharCount(uint32 accountId, uint32 realmId, Team team)
     if (realmId != realmID)
         charcount = charCountFakeRealms[realmId];
 
-    sLog.outString("Virtual Realm #%u chars for account %u: %u", realmId, accountId, charcount);
+    sLog.outDebug("Virtual Realm #%u chars for account %u: %u", realmId, accountId, charcount);
 
     return charcount;
 }

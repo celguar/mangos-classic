@@ -254,7 +254,7 @@ int Master::Run()
         sLog.outDebug("Num of RAM - %u", ramAmount);
         LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags & ~(%u) WHERE id <> %u", REALM_FLAG_RECOMMENDED, realmID);
         //LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags & ~(%u) WHERE id <> %u", REALM_FLAG_NEW_PLAYERS, realmID);
-        auto queryResult = LoginDatabase.PQuery("SELECT id, name, port, icon, realmflags, timezone, population FROM realmlist WHERE id <> %u ORDER BY id", realmID);
+        auto queryResult = LoginDatabase.PQuery("SELECT id, name, port, icon, realmflags, timezone, population FROM realmlist WHERE id <> %u AND port <> %u ORDER BY id", realmID, port);
         if (queryResult)
         {
             do
