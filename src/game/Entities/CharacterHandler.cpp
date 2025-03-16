@@ -432,6 +432,9 @@ void WorldSession::HandleCharEnum(QueryResult* result)
         }
         while (result->NextRow());
 
+        if (IsDeletedCharacters)
+            data << uint8(1);
+
         delete result;
     }
 
@@ -440,8 +443,33 @@ void WorldSession::HandleCharEnum(QueryResult* result)
     m_anticheat->SendCharEnum(std::move(data));
 }
 
-void WorldSession::HandleCharEnumOpcode(WorldPacket& /*recv_data*/)
+void WorldSession::HandleCharEnumOpcode(WorldPacket& recv_data)
 {
+    // custom hermes proxy undelete
+    bool deletedCharacters = false;
+    if (GetOS() == CLIENT_OS_MAC && !recv_data.empty())
+        recv_data >> deletedCharacters;
+
+    if (deletedCharacters)
+    {
+        sLog.outString("Searching for deleted chars in DB");
+        /// get all the data necessary for loading all deleted (along with their pets) on the account
+        //resultChar = CharacterDatabase.Query("SELECT guid, deleteInfos_Name, deleteInfos_Account, deleteDate FROM characters WHERE deleteDate IS NOT NULL");
+        CharacterDatabase.AsyncPQuery(&chrHandler, &CharacterHandler::HandleCharEnumCallback, GetAccountId(),
+            //           0               1                2                3                 4                  5                       6                        7
+            "SELECT characters.guid, characters.deleteInfos_Name as name, characters.race, characters.class, characters.gender, characters.playerBytes, characters.playerBytes2, characters.level, "
+            //   8                9               10                     11                     12                     13                    14
+            "characters.zone, characters.map, characters.position_x, characters.position_y, characters.position_z, guild_member.guildid, characters.playerFlags, "
+            //  15                    16                   17                     18                   19
+            "characters.at_login, character_pet.entry, character_pet.modelid, character_pet.level, characters.equipmentCache, characters.deleteInfos_Account "
+            "FROM characters LEFT JOIN character_pet ON characters.guid=character_pet.owner AND character_pet.slot='%u' "
+            "LEFT JOIN guild_member ON characters.guid = guild_member.guid "
+            "WHERE characters.deleteInfos_Account = '%u' ORDER BY characters.guid",
+            PET_SAVE_AS_CURRENT, GetAccountId());
+
+        return;
+    }
+
     /// get all the data necessary for loading all characters (along with their pets) on the account
     CharacterDatabase.AsyncPQuery(&chrHandler, &CharacterHandler::HandleCharEnumCallback, GetAccountId(),
                                   //           0               1                2                3                 4                  5                       6                        7
@@ -695,10 +723,108 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
     delete pNewChar;                                        // created only to call SaveToDB()
 }
 
+enum CharacterUndeleteResult
+{
+    CHARACTER_UNDELETE_RESULT_OK = 0,
+    CHARACTER_UNDELETE_RESULT_ERROR_COOLDOWN = 1,
+    CHARACTER_UNDELETE_RESULT_ERROR_CHAR_CREATE = 2,
+    CHARACTER_UNDELETE_RESULT_ERROR_DISABLED = 3,
+    CHARACTER_UNDELETE_RESULT_ERROR_NAME_TAKEN_BY_THIS_ACCOUNT = 4,
+    CHARACTER_UNDELETE_RESULT_ERROR_FACTION = 5
+};
+
 void WorldSession::HandleCharDeleteOpcode(WorldPacket& recv_data)
 {
     ObjectGuid guid;
     recv_data >> guid;
+
+    // Undelete character
+    if (guid.IsEmpty())
+    {
+        // read the real value
+        recv_data >> guid;
+        uint32 Token;
+        recv_data >> Token;
+        uint32 lowguid = guid.GetCounter();
+        uint32 accountId = 0;
+        std::string name;
+        uint32 race = RACE_HUMAN;
+        auto queryResult = CharacterDatabase.PQuery("SELECT deleteInfos_Account,deleteInfos_Name, race FROM characters WHERE guid='%u' AND deleteInfos_Account='%u'", lowguid, GetAccountId());
+        if (queryResult)
+        {
+            Field* fields = queryResult->Fetch();
+            accountId = fields[0].GetUInt32();
+            name = fields[1].GetCppString();
+            race = fields[2].GetUInt32();
+        }
+
+        uint8 result = CHARACTER_UNDELETE_RESULT_OK;
+
+        // prevent deleting other players' characters using cheating tools
+        if (accountId != GetAccountId())
+            result = CHARACTER_UNDELETE_RESULT_ERROR_CHAR_CREATE;
+
+        // check character count
+        uint32 charcount = sAccountMgr.GetCharactersCount(accountId);
+        if (charcount >= 10)
+            result = CHARACTER_UNDELETE_RESULT_ERROR_CHAR_CREATE;
+
+        // Name already exists
+        if (sObjectMgr.GetPlayerGuidByName(name))
+            result = CHARACTER_UNDELETE_RESULT_ERROR_NAME_TAKEN_BY_THIS_ACCOUNT;
+
+        // Check faction
+        bool AllowTwoSideAccounts = !sWorld.IsPvPRealm() || sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_ACCOUNTS) || GetSecurity() > SEC_PLAYER;
+        bool have_same_race = false;
+        if (!AllowTwoSideAccounts)
+        {
+            auto queryResult2 = CharacterDatabase.PQuery("SELECT race FROM characters WHERE account = '%u' LIMIT 1",
+                GetAccountId());
+            if (queryResult2 && sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+            {
+                queryResult2 = CharacterDatabase.PQuery("SELECT race FROM characters WHERE account = '%u' LIMIT 1 WHERE guid IN (SELECT guid FROM fake_realms_info WHERE realmid = %u)",
+                    GetAccountId(),
+                    GetCurrentRealmId());
+            }
+            if (queryResult2)
+            {
+                Team team_ = Player::TeamForRace(race);
+
+                Field* field = queryResult2->Fetch();
+                uint8 acc_race = field[0].GetUInt32();
+
+                // need to check team only for first character
+                // TODO: what to if account already has characters of both races?
+                if (!AllowTwoSideAccounts)
+                {
+                    if (acc_race == 0 || Player::TeamForRace(acc_race) != team_)
+                        result = CHARACTER_UNDELETE_RESULT_ERROR_FACTION;
+                }
+            }
+        }
+
+        if (!result)
+        {
+            CharacterDatabase.PExecute("UPDATE characters SET name='%s', account='%u', deleteDate=NULL, deleteInfos_Name=NULL, deleteInfos_Account=NULL WHERE deleteDate IS NOT NULL AND guid = %u",
+                name.c_str(), accountId, guid.GetCounter());
+
+            if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+            {
+                // Fake Realms
+                CharacterDatabase.PExecute("UPDATE fake_realms_info SET deleted = 0 WHERE guid = %u", guid);
+                sWorld.UpdateFakeRealmCharCount(GetAccountId());
+            }
+        }
+
+        WorldPacket data(SMSG_CHAR_DELETE, 14);
+        data << (uint8)CHAR_DELETE_SUCCESS;
+        data << Token;
+        data << (uint8)result;
+        data << guid;
+        SendPacket(data, true);
+
+        return;
+    }
 
     // can't delete loaded character
     if (sObjectMgr.GetPlayer(guid))
