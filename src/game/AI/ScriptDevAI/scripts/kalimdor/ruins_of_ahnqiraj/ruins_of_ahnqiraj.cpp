@@ -306,10 +306,7 @@ void instance_ruins_of_ahnqiraj::Update(uint32 diff)
         if (m_armyDelayTimer)
         {
             if (m_armyDelayTimer <= diff)
-            {
                 DoSendNextArmyWave();
-                m_armyDelayTimer = 3 * MINUTE * IN_MILLISECONDS;
-            }
             else
                 m_armyDelayTimer -= diff;
         }
@@ -342,7 +339,7 @@ void instance_ruins_of_ahnqiraj::DoSendNextArmyWave()
     }
     else
     {
-        if (m_currentArmyWave == MAX_ARMY_WAVES)
+        if (m_currentArmyWave > MAX_ARMY_WAVES)
         {
             script_error_log("Instance Ruins of Ahn'Qiraj: ERROR Something unexpected happened. Please report to SD2 team.");
             return;
