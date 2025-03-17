@@ -2643,9 +2643,7 @@ class Unit : public WorldObject
         bool m_debuggingMovement;
 
         // guard to prevent chaining extra attacks
-        uint32 m_extraAttacks;
         bool m_extraAttacksExecuting;
-        bool m_doExtraAttacks;
 
         uint64 m_auraUpdateMask;
 

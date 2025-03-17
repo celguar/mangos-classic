@@ -7485,7 +7485,7 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType, bool sp
             return;
 
         // not allow proc extra attack spell at extra attack
-        if (GetExtraAttacks() && IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
+        if (m_extraAttacks && IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
             return;
 
         float chance = (float)spellInfo->procChance;
@@ -7525,7 +7525,7 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType, bool sp
             }
 
             // not allow proc extra attack spell at extra attack
-            if (GetExtraAttacks() && IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
+            if (m_extraAttacks && IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
                 continue;
 
             // some weapon enchantments have proc flags which need to be checked
