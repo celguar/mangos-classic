@@ -429,7 +429,6 @@ Unit::Unit() :
 
     m_noThreat = false;
     m_extraAttacksExecuting = false;
-    m_doExtraAttacks = false;
     m_debuggingMovement = false;
 
     m_baseSpeedWalk = 1.f;
