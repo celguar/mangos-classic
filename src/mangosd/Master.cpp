@@ -323,7 +323,7 @@ int Master::Run()
             }
 
             sLog.outDebug("adding fake realm %u (%s) port %u", realm.m_ID, realm.name, realm.port);
-            servers.push_back(std::shared_ptr< MaNGOS::AsyncListener<WorldSocket>>(new MaNGOS::AsyncListener<WorldSocket>(m_service, bindIp, (int32)realm.port)));
+            servers.push_back(std::shared_ptr< MaNGOS::AsyncListener<WorldSocket>>(new MaNGOS::AsyncListener<WorldSocket>(m_context, bindIp, (int32)realm.port)));
             sWorld.m_fakeRealms.push_back(realm);
             LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags & ~(%u) WHERE id = '%u'", REALM_FLAG_OFFLINE, realm.m_ID);
         }
