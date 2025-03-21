@@ -580,7 +580,7 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
 #endif
                     }
 
-                    sLog.outDebug("Virtual realm #%u (%s) population changed to %u to %u", fakeRealm.m_ID, fakeRealm.name, sPlayerbotAIConfig.minRandomBots, sPlayerbotAIConfig.maxRandomBots);
+                    sLog.outDebug("Virtual realm #%u (%s) population changed to %u to %u", fakeRealm.m_ID, fakeRealm.name.c_str(), sPlayerbotAIConfig.minRandomBots, sPlayerbotAIConfig.maxRandomBots);
 #endif
                 }
             }
