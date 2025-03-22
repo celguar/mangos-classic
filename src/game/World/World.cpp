@@ -2649,7 +2649,7 @@ void World::ReduceFakeRealmQueue()
         if (fakerealm.queueAmount && !urand(0, 3))
         {
             fakerealm.queueAmount--;
-            sLog.outDebug("Reducing Fake Queue of Realm #%u (%s) to %u", fakerealm.m_ID, fakerealm.name, fakerealm.queueAmount);
+            sLog.outDebug("Reducing Fake Queue of Realm #%u (%s) to %u", fakerealm.m_ID, fakerealm.name.c_str(), fakerealm.queueAmount);
 
             // update position from iter to end()
             // iter point to first not updated socket, position store new position
