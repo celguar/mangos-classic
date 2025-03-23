@@ -245,6 +245,7 @@ int Master::Run()
 
         std::vector<FakeRealm> fakeRealmsList;
         // Fake Realms sockets
+#ifdef WIN32
         const auto threadCount = std::thread::hardware_concurrency();
         MEMORYSTATUSEX status;
         status.dwLength = sizeof(status);
@@ -252,6 +253,7 @@ int Master::Run()
         uint32 ramAmount = (status.ullTotalPhys >> 10 >> 10) / 1000;
         sLog.outDebug("Num of threads - %u", threadCount);
         sLog.outDebug("Num of RAM - %u", ramAmount);
+#endif
         LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags & ~(%u) WHERE id <> %u", REALM_FLAG_RECOMMENDED, realmID);
         //LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags & ~(%u) WHERE id <> %u", REALM_FLAG_NEW_PLAYERS, realmID);
         auto queryResult = LoginDatabase.PQuery("SELECT id, name, port, icon, realmflags, timezone, population FROM realmlist WHERE id <> %u AND port <> %u ORDER BY id", realmID, port);
@@ -277,6 +279,7 @@ int Master::Run()
 
                 fkRealm.queueAmount = 0;
 
+#ifdef WIN32
                 // set recommended based on thread count
                 if ((threadCount < 4 || ramAmount <= 8) && fkRealm.populationLevel < 2 && !urand(0, 4))
                 {
@@ -293,6 +296,7 @@ int Master::Run()
                     fkRealm.realmflags = RealmFlags(fkRealm.realmflags | REALM_FLAG_RECOMMENDED);
                     LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_RECOMMENDED, fkRealm.m_ID);
                 }
+#endif
 
                 /*if (!urand(0, 10) && fkRealm.populationLevel < 6)
                 {
@@ -368,7 +372,7 @@ int Master::Run()
         {
             for (auto& realm : fakeRealmsList)
             {
-                sLog.outDebug("removing fake realm %u (%s) port %u", realm.m_ID, realm.name, realm.port);
+                sLog.outDebug("removing fake realm %u (%s) port %u", realm.m_ID, realm.name.c_str(), realm.port);
                 LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_OFFLINE, realm.m_ID);
             }
         }
