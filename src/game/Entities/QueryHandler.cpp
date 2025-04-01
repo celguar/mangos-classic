@@ -87,8 +87,8 @@ void WorldSession::SendNameQueryResponseFromDBCallBack(QueryResult* result, uint
     response.realm = "";
 
     // Fake Realms
-    if (urand(0, 3) && sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
-        response.realm = urand(0, 3) ? sWorld.GetRandomFakeRealmName() : "";
+    /*if (urand(0, 3) && sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+        response.realm = urand(0, 3) ? sWorld.GetRandomFakeRealmName() : "";*/
 
     if (!response.name.empty())
     {
