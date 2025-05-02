@@ -12850,6 +12850,10 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
     for (SpellAreaForAreaMap::const_iterator itr = saBounds.first; itr != saBounds.second; ++itr)
         itr->second->ApplyOrRemoveSpellIfCan(this, zone, area, false);
 
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnRewardQuest(this, pQuest);
+#endif
+
     // resend quests status directly
     UpdateForQuestWorldObjects();
 }
