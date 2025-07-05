@@ -623,6 +623,8 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_BOOL_FAKE_REALMS, "Custom.FakeRealms", false);
 
+    setConfig(CONFIG_BOOL_THREAT_API, "Custom.ThreatApi", false);
+
     setConfigMinMax(CONFIG_UINT32_MAINTENANCE_DAY, "MaintenanceDay", 4, 0, 6);
 
     setConfig(CONFIG_BOOL_ALWAYS_SHOW_QUEST_GREETING, "AlwaysShowQuestGreeting", false);
