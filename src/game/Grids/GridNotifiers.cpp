@@ -191,6 +191,9 @@ void ObjectThreatMessageDeliverer::Visit(CameraMapType& m)
             if (player->GetSession()->GetOS() == CLIENT_OS_MAC && !i_newClient)
                 continue;
 
+            if (!player->isRealPlayer())
+                continue;
+
             // Replace the unit name with the player locale
 
             std::string message = i_message;
