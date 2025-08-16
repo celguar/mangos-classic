@@ -61,6 +61,8 @@ class SessionAnticheatInterface;
 
 struct OpcodeHandler;
 
+struct PlayerCacheData;
+
 enum AccountDataType
 {
     GLOBAL_CONFIG_CACHE             = 0,                    // 0x01 g
@@ -443,6 +445,7 @@ class WorldSession
         void HandleCharCreateOpcode(WorldPacket& recvPacket);
         void HandlePlayerLoginOpcode(WorldPacket& recvPacket);
         void HandleCharEnum(QueryResult* result);
+        void HandleCharEnum(std::list<PlayerCacheData const*>& cache);
         void HandlePlayerLogin(LoginQueryHolder* holder);
         void HandlePlayerReconnect();
 

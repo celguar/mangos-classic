@@ -1847,6 +1847,123 @@ bool Player::BuildEnumData(QueryResult* result, WorldPacket& p_data)
     return true;
 }
 
+bool Player::BuildEnumData(PlayerCacheData const* cache, WorldPacket& p_data)
+{
+    uint32 guid = cache->uiGuid;
+    uint8 pRace = cache->uiRace;
+    uint8 pClass = cache->uiClass;
+
+    PlayerInfo const* info = sObjectMgr.GetPlayerInfo(pRace, pClass);
+    if (!info)
+    {
+        sLog.outError("Player %u has incorrect race/class pair. Don't build enum.", guid);
+        return false;
+    }
+
+    p_data << ObjectGuid(HIGHGUID_PLAYER, guid);
+    p_data << cache->sName;                                // name
+    p_data << uint8(pRace);                                // race
+    p_data << uint8(pClass);                               // class
+    p_data << uint8(cache->uiGender);                      // gender
+
+    uint32 playerBytes = cache->uiPlayerBytes;
+    p_data << uint8(playerBytes);                          // skin
+    p_data << uint8(playerBytes >> 8);                     // face
+    p_data << uint8(playerBytes >> 16);                    // hair style
+    p_data << uint8(playerBytes >> 24);                    // hair color
+
+    uint32 playerBytes2 = cache->uiPlayerBytes2;
+    p_data << uint8(playerBytes2 & 0xFF);                  // facial hair
+
+    p_data << uint8(cache->uiLevel);                       // level
+    p_data << cache->uiZoneId;                             // zone
+    p_data << cache->uiMapId;                              // map
+
+    p_data << cache->fPosX;                                // x
+    p_data << cache->fPosY;                                // y
+    p_data << cache->fPosZ;                                // z
+
+    Guild* guild = sGuildMgr.GetGuildByLeader(ObjectGuid(HIGHGUID_PLAYER, guid));
+    uint32 guildId = 0;
+    if (guild)
+        guildId = guild->GetId();
+    p_data << guildId;                                     // guild id
+
+    uint32 char_flags = 0;
+    uint32 playerFlags = cache->uiPlayerFlags;
+    uint32 atLoginFlags = cache->uiLoginFlags;
+    if (playerFlags & PLAYER_FLAGS_HIDE_HELM)
+        char_flags |= CHARACTER_FLAG_HIDE_HELM;
+    if (playerFlags & PLAYER_FLAGS_HIDE_CLOAK)
+        char_flags |= CHARACTER_FLAG_HIDE_CLOAK;
+    if (playerFlags & PLAYER_FLAGS_GHOST)
+        char_flags |= CHARACTER_FLAG_GHOST;
+    if (atLoginFlags & AT_LOGIN_RENAME)
+        char_flags |= CHARACTER_FLAG_RENAME;
+
+    p_data << uint32(char_flags);                          // character flags
+
+    // First login
+    p_data << uint8(atLoginFlags & AT_LOGIN_FIRST ? 1 : 0);
+
+    // Pets info
+    {
+        uint32 petDisplayId = 0;
+        uint32 petLevel = 0;
+        uint32 petFamily = 0;
+
+        // show pet at selection character in character list only for non-ghost character
+        if (cache->petEntry && !(playerFlags & PLAYER_FLAGS_GHOST) && (pClass == CLASS_WARLOCK || pClass == CLASS_HUNTER))
+        {
+            CreatureInfo const* cInfo = sCreatureStorage.LookupEntry<CreatureInfo>(cache->petEntry);
+            if (cInfo)
+            {
+                petDisplayId = cache->petDisplayId;
+                petLevel = cache->petLevel;
+                petFamily = cInfo->Family;
+            }
+        }
+
+        p_data << uint32(petDisplayId);
+        p_data << uint32(petLevel);
+        p_data << uint32(petFamily);
+    }
+
+    Tokens data = StrSplit(cache->uiEquipmentCache, " ");
+    for (uint8 slot = 0; slot < INVENTORY_SLOT_BAG_START + 1; ++slot)
+    {
+        uint32 visualbase = slot * 2;                       // entry, perm ench., temp ench.
+        uint32 item_id = GetUInt32ValueFromArray(data, visualbase);
+        const ItemPrototype* proto = ObjectMgr::GetItemPrototype(item_id);
+        if (!proto)
+        {
+            p_data << uint32(0);
+            p_data << uint8(0);
+            continue;
+        }
+
+        SpellItemEnchantmentEntry const* enchant = nullptr;
+
+        uint32 enchants = GetUInt32ValueFromArray(data, visualbase + 1);
+        for (uint8 enchantSlot = PERM_ENCHANTMENT_SLOT; enchantSlot <= TEMP_ENCHANTMENT_SLOT; ++enchantSlot)
+        {
+            // values stored in 2 uint16
+            uint32 enchantId = 0x0000FFFF & (enchants >> enchantSlot * 16);
+            if (!enchantId)
+                continue;
+
+            enchant = sSpellItemEnchantmentStore.LookupEntry(enchantId);
+            if (enchant)
+                break;
+        }
+
+        p_data << uint32(proto->DisplayInfoID);
+        p_data << uint8(proto->InventoryType);
+    }
+
+    return true;
+}
+
 bool Player::Mount(uint32 displayid, const Aura* aura/* = nullptr*/)
 {
     if (!Unit::Mount(displayid, aura))
@@ -15940,6 +16057,8 @@ void Player::SaveToDB()
     // save pet (hunter pet level and experience and all type pets health/mana).
     if (Pet* pet = GetPet())
         pet->SavePetToDB(PET_SAVE_AS_CURRENT, this);
+
+    sObjectMgr.UpdatePlayerCache(this);
 
 #ifdef ENABLE_MODULES
     sModuleMgr.OnSaveToDB(this);

@@ -466,6 +466,40 @@ struct WorldStateName
     std::string Name;
 };
 
+struct PlayerCacheData
+{
+    uint32 uiGuid;
+    uint32 uiLevel;
+    uint32 uiAccount;
+    uint32 uiRace;
+    uint32 uiClass;
+    uint32 uiGender;
+    uint32 uiPlayerBytes;
+    uint32 uiPlayerBytes2;
+    uint8  uiSkin;
+    uint8  uiFace;
+    uint8  uiHair;
+    uint8  uiHairColor;
+    uint8  uiFacialHair;
+    uint32 uiPlayerFlags;
+    uint32 uiLoginFlags;
+    std::string uiEquipmentCache;
+    uint32 uiZoneId;
+    uint32 uiMapId;
+    std::string sName;
+    float fPosX;
+    float fPosY;
+    float fPosZ;
+    float fOrientation;
+    bool bInFlight;
+    uint8 realmId;
+    uint32 guildId;
+    uint32 petEntry;
+    uint32 petDisplayId;
+    uint32 petLevel;
+};
+typedef std::map<uint32 /*guid*/, PlayerCacheData> PlayerCacheDataMap;
+
 class ObjectMgr
 {
         friend class PlayerDumpReader;
@@ -1047,6 +1081,28 @@ class ObjectMgr
         bool IsWorldStateExpressionSatisfied(int32 expressionId, Map const* map);
         bool IsUnitConditionSatisfied(int32 conditionId, Unit const* source, Unit const* target);
         bool IsCombatConditionSatisfied(int32 expressionId, Unit const* source, float range);
+
+        // Caching Player Data
+        void LoadPlayerCacheData(uint32 lowGuid = 0);
+        PlayerCacheData* GetPlayerDataByGUID(uint32 lowGuid);
+        PlayerCacheData const* GetPlayerDataByGUID(uint32 lowGuid) const;
+        PlayerCacheData const* GetPlayerDataByName(std::string const& name) const;
+        void GetPlayerDataForAccount(uint32 accountId, std::list<PlayerCacheData const*>& data) const;
+        PlayerCacheData* InsertPlayerInCache(Player* pPlayer);
+        PlayerCacheData* InsertPlayerInCache(uint32 lowGuid, uint32 race, uint32 _class, uint32 uiGender, uint32 account, std::string const& name, uint32 level, uint32 zoneId, uint32 playerBytes, uint32 playerByte2, std::string equipmentCache, uint32 playerFlags, uint32 loginFlags);
+        void DeletePlayerFromCache(uint32 lowGuid);
+        void ChangePlayerNameInCache(uint32 lowGuid, std::string const& oldName, std::string const& newName);
+        void UpdatePlayerCachedPosition(Player* pPlayer);
+        void UpdatePlayerCachedPosition(uint32 lowGuid, uint32 mapId, float posX, float posY, float posZ, float o, bool inFlight);
+        void UpdatePlayerCachedPosition(PlayerCacheData* data, uint32 mapId, float posX, float posY, float posZ, float o, bool inFlight);
+        void UpdatePlayerCache(Player* pPlayer);
+        void UpdatePlayerCacheRealmID(uint32 lowGuid, uint32 realmId);
+        void UpdatePlayerCacheGuildID(uint32 lowGuid, uint32 guildID);
+        void UpdatePlayerCacheCurrentPet(uint32 lowGuid, uint32 petEntry, uint32 petLevel, uint32 petDisplayID);
+        void UpdatePlayerCache(PlayerCacheData* data, uint32 race, uint32 _class, uint32 gender, uint32 accountId, std::string const& name, uint32 level, uint32 zoneId, uint32 playerBytes, uint32 playerByte2, std::string equipmentCache, uint32 playerFlags, uint32 loginFlags);
+
+        PlayerCacheDataMap m_playerCacheData;
+        std::map<std::string, uint32> m_playerNameToGuid;
 
         GameTele const* GetGameTele(uint32 id) const
         {

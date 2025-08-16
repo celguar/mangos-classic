@@ -1335,6 +1335,9 @@ void World::SetInitialWorldSettings()
     CharacterDatabaseCleaner::CleanDatabase();
     sLog.outString();
 
+    sLog.outString("Loading character cache data...");
+    sObjectMgr.LoadPlayerCacheData();
+
     sLog.outString("Loading the max pet number...");
     sObjectMgr.LoadPetNumber();
 

@@ -527,11 +527,13 @@ void Pet::SavePetToDB(PetSaveMode mode, Player* owner)
 
         savePet.Execute();
         CharacterDatabase.CommitTransaction();
+        sObjectMgr.UpdatePlayerCacheCurrentPet(owner->GetGUIDLow(), GetEntry(), GetLevel(), GetNativeDisplayId());
     }
     else
     {
         RemoveAllAuras(AURA_REMOVE_BY_DELETE);
         DeleteFromDB(m_charmInfo->GetPetNumber());
+        sObjectMgr.UpdatePlayerCacheCurrentPet(owner->GetGUIDLow(), 0, 0, 0);
     }
 }
 

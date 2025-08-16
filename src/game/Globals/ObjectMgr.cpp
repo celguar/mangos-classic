@@ -60,6 +60,10 @@
 #include "Globals/CombatCondition.h"
 #include "World/WorldStateExpression.h"
 
+#ifdef ENABLE_PLAYERBOTS
+#include "playerbot/PlayerbotAIConfig.h"
+#endif
+
 #include <limits>
 #include <cstdarg>
 #include <cstring>
@@ -8612,6 +8616,440 @@ bool ObjectMgr::IsCombatConditionSatisfied(int32 conditionId, Unit const* source
 {
     return m_combatConditionMgr->Meets(source, conditionId, range);
 }
+
+// Caching player data
+void ObjectMgr::LoadPlayerCacheData(uint32 lowGuid)
+{
+    std::unique_ptr<QueryResult> result;
+    if (!lowGuid)
+    {
+        // load all characters (likely at startup)
+        m_playerCacheData.clear();
+        m_playerNameToGuid.clear();
+
+        result = CharacterDatabase.PQuery(
+            //       0       1       2        3         4          5       6        7          8      9             10            11            12             13             14           15             16            17         18
+            "SELECT characters.guid, characters.race, characters.class, characters.gender, characters.account, characters.name, characters.level, characters.zone, characters.map, characters.position_x, characters.position_y, characters.position_z, characters.orientation, characters.taxi_path, characters.playerBytes, characters.playerBytes2, characters.equipmentCache, characters.playerFlags, characters.at_login, guild_member.guildid, character_pet.entry, character_pet.modelid, character_pet.level FROM characters LEFT JOIN character_pet ON characters.guid=character_pet.owner AND character_pet.slot='%u' LEFT JOIN guild_member ON characters.guid = guild_member.guid;", PET_SAVE_AS_CURRENT);
+    }
+    else
+    {
+        // load a single character (likely just restored)
+        result = CharacterDatabase.PQuery(
+            //       0       1       2        3         4          5       6        7          8      9             10            11            12             13             14           15             16            17         18
+            "SELECT characters.guid, characters.race, characters.class, characters.gender, characters.account, characters.name, characters.level, characters.zone, characters.map, characters.position_x, characters.position_y, characters.position_z, characters.orientation, characters.taxi_path,  characters.playerBytes, characters.playerBytes2, characters.equipmentCache, characters.playerFlags, characters.at_login, guild_member.guildid, character_pet.entry, character_pet.modelid, character_pet.level FROM characters LEFT JOIN character_pet ON characters.guid=character_pet.owner AND character_pet.slot='%u' LEFT JOIN guild_member ON characters.guid = guild_member.guid WHERE characters.guid = u;", PET_SAVE_AS_CURRENT, lowGuid);
+    }
+
+    uint32 totalCount = 0;
+
+    if (!result)
+    {
+        if (!lowGuid)
+        {
+            BarGoLink bar(1);
+            bar.step();
+
+            sLog.outString(">> Loaded 0 cached player data ...");
+            sLog.outString();
+        }
+        return;
+    }
+
+    BarGoLink bar(result->GetRowCount());
+
+#ifdef ENABLE_PLAYERBOTS
+    std::list<uint32> randomBotAccounts;
+    if (auto results = LoginDatabase.PQuery("SELECT id FROM account WHERE sessionkey IS NULL"))
+    {
+        do
+        {
+            uint32 accid = (*results)[0].GetUInt32();
+            randomBotAccounts.push_back(accid);
+
+        } while (results->NextRow());
+    }
+#endif
+
+    do
+    {
+        bar.step();
+        Field* fields = result->Fetch();
+
+        // guid, race, class, gender, account, name
+        std::string name = fields[5].GetCppString();
+        if (normalizePlayerName(name))
+        {
+            PlayerCacheData* data = InsertPlayerInCache(fields[0].GetUInt32(), fields[1].GetUInt32(), fields[2].GetUInt32(),
+                fields[3].GetUInt32(), fields[4].GetUInt32(), name, fields[6].GetUInt32(), fields[7].GetUInt32(), fields[14].GetUInt32(), fields[15].GetUInt32(), fields[16].GetCppString(), fields[17].GetUInt32(), fields[18].GetUInt32());
+
+            UpdatePlayerCachedPosition(data, fields[8].GetUInt32(), fields[9].GetFloat(), fields[10].GetFloat(),
+                fields[11].GetFloat(), fields[12].GetFloat(), !fields[13].GetCppString().empty());
+
+            UpdatePlayerCacheGuildID(fields[0].GetUInt32(), fields[19].GetUInt32());
+            UpdatePlayerCacheCurrentPet(fields[0].GetUInt32(), fields[20].GetUInt32(), fields[22].GetUInt32(), fields[21].GetUInt32());
+
+            const uint32 accountId = fields[4].GetUInt32();
+#ifdef ENABLE_PLAYERBOTS
+            if (find(randomBotAccounts.begin(), randomBotAccounts.end(), accountId) != randomBotAccounts.end())
+            {
+                ++totalCount;
+                continue;
+            }
+#endif
+            bool foundCharacters = false;
+            bool loadOldCharacters = false;
+            std::vector<uint32> guidsOnAccount;
+            std::set<uint32> guidsOnFakeCurrentRealm;
+            std::set<uint32> guidsOnFakeAllRealm;
+            std::set<uint32> guidsToAddToFakeRealms;
+            std::set<uint32> guidsDeletedChars;
+
+            if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+            {
+                auto charlist = CharacterDatabase.PQuery(
+                "SELECT characters.guid "
+                "FROM characters "
+                "WHERE characters.account = '%u' OR characters.deleteInfos_Account = '%u' ORDER BY characters.guid",
+                accountId, accountId);
+
+                auto charDeletedlist = CharacterDatabase.PQuery(
+                "SELECT characters.guid "
+                "FROM characters "
+                "WHERE characters.deleteInfos_Account = '%u' ORDER BY characters.guid",
+                accountId, accountId);
+
+                if (charDeletedlist)
+                {
+                    do
+                    {
+                        uint32 guid = (*charDeletedlist)[0].GetUInt32();
+                        guidsDeletedChars.insert(guid);
+
+                    } while (charDeletedlist->NextRow());
+                }
+
+                if (charlist)
+                {
+                    do
+                    {
+                        // Fake Realms
+                        uint32 guid = (*charlist)[0].GetUInt32();
+                        guidsOnAccount.push_back(guid);
+
+                    } while (charlist->NextRow());
+
+                    auto query = CharacterDatabase.PQuery(
+                        "SELECT * "
+                        "FROM fake_realms_info WHERE guid IN (SELECT characters.guid FROM characters where characters.account = %u OR characters.deleteInfos_Account = %u)",
+                        accountId,
+                        accountId
+                    );
+
+                    if (query)
+                    {
+                        do
+                        {
+                            // Fake Realms
+                            uint32 guid = (*query)[0].GetUInt32();
+                            uint32 realmId = (*query)[1].GetUInt32();
+                            bool isDeleted = (*query)[2].GetBool();
+                            guidsOnFakeAllRealm.insert(guid);
+                            // skip deleted for now
+                            /*if (realmId == GetCurrentRealmId() && IsDeletedCharacters == isDeleted)
+                                guidsOnFakeCurrentRealm.insert(guid);*/
+                            if (realmId)
+                                UpdatePlayerCacheRealmID(guid, realmId);
+
+
+                        } while (query->NextRow());
+
+                        /*// if current chars exist in list
+                        for (auto& mychar : guidsOnAccount)
+                        {
+                            if (guidsOnFakeAllRealm.find(mychar) != guidsOnFakeAllRealm.end())
+                                foundCharacters = true;
+                        }*/
+
+                        if (!foundCharacters)
+                        {
+                            for (auto& mychar : guidsOnAccount)
+                            {
+                                if (guidsOnFakeAllRealm.find(mychar) != guidsOnFakeAllRealm.end())
+                                    foundCharacters = true;
+                                else
+                                    guidsToAddToFakeRealms.insert(mychar);
+                            }
+                        }
+
+                        if (!foundCharacters)
+                            loadOldCharacters = true;
+                    }
+                    else
+                    {
+                        loadOldCharacters = true;
+                    }
+
+                    if (loadOldCharacters || !guidsToAddToFakeRealms.empty())
+                    {
+                        if (loadOldCharacters)
+                        {
+                            for (auto& mychar : guidsOnAccount)
+                            {
+                                if (guidsToAddToFakeRealms.find(mychar) == guidsToAddToFakeRealms.end())
+                                    guidsToAddToFakeRealms.insert(mychar);
+                            }
+                        }
+                        for (auto& mychar : guidsToAddToFakeRealms/*guidsOnAccount*/)
+                        {
+                            bool isDeleted = guidsDeletedChars.find(mychar) != guidsDeletedChars.end();
+                            CharacterDatabase.PExecute("REPLACE INTO fake_realms_info (guid, realm_id, deleted) VALUES (%u, %u, %u)", mychar, realmID, isDeleted);
+                            UpdatePlayerCacheRealmID(mychar, realmID);
+                            /*if (GetCurrentRealmId() == realmID && IsDeletedCharacters == isDeleted)
+                            {
+                                guidsOnFakeCurrentRealm.insert(mychar);
+                                foundCharacters = true;
+                            }*/
+                        }
+                    }
+                }
+            }
+            else
+                UpdatePlayerCacheRealmID(fields[0].GetUInt32(), realmID);
+        }
+
+        ++totalCount;
+    } while (result->NextRow());
+
+    if (!lowGuid)
+    {
+        sLog.outString(">> Loaded %u players in cache.", totalCount);
+        sLog.outString();
+    }
+}
+
+PlayerCacheData* ObjectMgr::GetPlayerDataByGUID(uint32 guidLow)
+{
+    auto itr = m_playerCacheData.find(guidLow);
+    if (itr != m_playerCacheData.end())
+        return &itr->second;
+    return nullptr;
+}
+
+PlayerCacheData const* ObjectMgr::GetPlayerDataByGUID(uint32 guidLow) const
+{
+    auto itr = m_playerCacheData.find(guidLow);
+    if (itr != m_playerCacheData.end())
+        return &itr->second;
+    return nullptr;
+}
+
+PlayerCacheData const* ObjectMgr::GetPlayerDataByName(std::string const& name) const
+{
+    if (ObjectGuid guid = GetPlayerGuidByName(name))
+        return GetPlayerDataByGUID(guid.GetCounter());
+    return nullptr;
+}
+
+PlayerCacheData* ObjectMgr::InsertPlayerInCache(Player* pPlayer)
+{
+    auto pSession = pPlayer->GetSession();
+    if (!pSession)
+        return nullptr;
+    auto accountId = pSession->GetAccountId();
+
+    uint32 loginFlags = AT_LOGIN_NONE;
+    if (pPlayer->HasAtLoginFlag(AT_LOGIN_RENAME))
+        loginFlags |= 16384;
+
+    std::ostringstream ss;
+    for (uint32 i = 0; i < EQUIPMENT_SLOT_END; ++i)         // string: item id, ench (perm/temp)
+    {
+        ss << pPlayer->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET) << " ";
+
+        uint32 ench1 = pPlayer->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET + 1 + PERM_ENCHANTMENT_SLOT);
+        uint32 ench2 = pPlayer->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET + 1 + TEMP_ENCHANTMENT_SLOT);
+        ss << uint32(MAKE_PAIR32(ench1, ench2)) << " ";
+    }
+    // 1 in tbc - 4 in wotlk
+    for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_START + 1; ++i) // string: item id, ench (perm/temp)
+    {
+        uint32 itemEntry = 0;
+        const Bag* const pBag = (Bag*)pPlayer->GetItemByPos(INVENTORY_SLOT_BAG_0, i);
+        if (pBag)
+        {
+            itemEntry = pBag->GetEntry();
+        }
+        ss << (pBag ? itemEntry : 0) << " ";
+        ss << uint32(MAKE_PAIR32(0, 0)) << " ";
+    }
+
+    return InsertPlayerInCache(pPlayer->GetGUIDLow(), pPlayer->getRace(), pPlayer->getClass(), pPlayer->getGender(), accountId, pPlayer->GetName(), pPlayer->GetLevel(), pPlayer->GetCachedZoneId(), pPlayer->GetUInt32Value(PLAYER_BYTES), pPlayer->GetUInt32Value(PLAYER_BYTES_2), ss.str(), pPlayer->GetUInt32Value(PLAYER_FLAGS), loginFlags);
+}
+
+void ObjectMgr::UpdatePlayerCachedPosition(Player* pPlayer)
+{
+    auto iter = m_playerCacheData.find(pPlayer->GetGUIDLow());
+    PlayerCacheData* data = nullptr;
+    if (iter == m_playerCacheData.end())
+        data = InsertPlayerInCache(pPlayer);
+    else
+        data = &iter->second;
+
+    if (!data)
+        return;
+
+    UpdatePlayerCachedPosition(data, pPlayer->GetMapId(), pPlayer->GetPositionX(), pPlayer->GetPositionY(),
+        pPlayer->GetPositionZ(), pPlayer->GetOrientation(), pPlayer->IsTaxiFlying());
+}
+
+void ObjectMgr::UpdatePlayerCachedPosition(uint32 lowGuid, uint32 mapId, float posX, float posY, float posZ, float o, bool inFlight)
+{
+    auto iter = m_playerCacheData.find(lowGuid);
+    if (iter == m_playerCacheData.end())
+        return;
+
+    UpdatePlayerCachedPosition(&iter->second, mapId, posX, posY, posZ, o, inFlight);
+}
+
+void ObjectMgr::UpdatePlayerCachedPosition(PlayerCacheData* data, uint32 mapId, float posX, float posY, float posZ, float o, bool inFlight)
+{
+    data->uiMapId = mapId;
+    data->fPosX = posX;
+    data->fPosY = posY;
+    data->fPosZ = posZ;
+    data->fOrientation = o;
+    data->bInFlight = inFlight;
+}
+
+void ObjectMgr::UpdatePlayerCache(Player* pPlayer)
+{
+    auto iter = m_playerCacheData.find(pPlayer->GetGUIDLow());
+    PlayerCacheData* data = nullptr;
+    if (iter == m_playerCacheData.end())
+        data = InsertPlayerInCache(pPlayer);
+    else
+        data = &iter->second;
+
+    if (!data)
+        return;
+
+    uint32 loginFlags = AT_LOGIN_NONE;
+    if (pPlayer->HasAtLoginFlag(AT_LOGIN_RENAME))
+        loginFlags |= 16384;
+
+    std::ostringstream ss;
+    for (uint32 i = 0; i < EQUIPMENT_SLOT_END; ++i)         // string: item id, ench (perm/temp)
+    {
+        ss << pPlayer->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET) << " ";
+
+        uint32 ench1 = pPlayer->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET + 1 + PERM_ENCHANTMENT_SLOT);
+        uint32 ench2 = pPlayer->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET + 1 + TEMP_ENCHANTMENT_SLOT);
+        ss << uint32(MAKE_PAIR32(ench1, ench2)) << " ";
+    }
+    // 1 in tbc - 4 in wotlk
+    for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_START + 1; ++i) // string: item id, ench (perm/temp)
+    {
+        uint32 itemEntry = 0;
+        const Bag* const pBag = (Bag*)pPlayer->GetItemByPos(INVENTORY_SLOT_BAG_0, i);
+        if (pBag)
+        {
+            itemEntry = pBag->GetEntry();
+        }
+        ss << (pBag ? itemEntry : 0) << " ";
+        ss << uint32(MAKE_PAIR32(0, 0)) << " ";
+    }
+
+    if (pPlayer->GetSession())
+        UpdatePlayerCache(data, pPlayer->getRace(), pPlayer->getClass(), pPlayer->getGender(), pPlayer->GetSession()->GetAccountId(), pPlayer->GetName(), pPlayer->GetLevel(), pPlayer->GetCachedZoneId(), pPlayer->GetUInt32Value(PLAYER_BYTES), pPlayer->GetUInt32Value(PLAYER_BYTES_2), ss.str(), pPlayer->GetUInt32Value(PLAYER_FLAGS), loginFlags);
+
+    UpdatePlayerCachedPosition(data, pPlayer->GetMapId(), pPlayer->GetPositionX(), pPlayer->GetPositionY(), pPlayer->GetPositionZ(), pPlayer->GetOrientation(), pPlayer->IsTaxiFlying());
+}
+
+void ObjectMgr::UpdatePlayerCache(PlayerCacheData* data, uint32 race, uint32 _class, uint32 gender, uint32 accountId, std::string const& name, uint32 level, uint32 zoneId, uint32 playerBytes, uint32 playerByte2, std::string equipmentCache, uint32 playerFlags, uint32 loginFlags)
+{
+    data->uiAccount = accountId;
+    data->uiRace = race;
+    data->uiClass = _class;
+    data->uiGender = gender;
+    data->uiLevel = level;
+    data->sName = name;
+    data->uiZoneId = zoneId;
+    data->uiPlayerBytes = playerBytes;
+    data->uiPlayerBytes2 = playerByte2;
+    data->uiEquipmentCache = equipmentCache;
+    data->uiPlayerFlags = playerFlags;
+    data->uiLoginFlags = loginFlags;
+}
+
+PlayerCacheData* ObjectMgr::InsertPlayerInCache(uint32 lowGuid, uint32 race, uint32 _class, uint32 gender, uint32 accountId, std::string const& name, uint32 level, uint32 zoneId, uint32 playerBytes, uint32 playerByte2, std::string equipmentCache, uint32 playerFlags, uint32 loginFlags)
+{
+    PlayerCacheData& data = m_playerCacheData[lowGuid];
+    data.uiGuid = lowGuid;
+    UpdatePlayerCache(&data, race, _class, gender, accountId, name, level, zoneId, playerBytes, playerByte2, equipmentCache, playerFlags, loginFlags);
+    m_playerNameToGuid[name] = lowGuid;
+    return &data;
+}
+
+void ObjectMgr::DeletePlayerFromCache(uint32 lowGuid)
+{
+    auto itr = m_playerCacheData.find(lowGuid);
+    if (itr != m_playerCacheData.end())
+    {
+        auto itr2 = m_playerNameToGuid.find(itr->second.sName);
+        if (itr2 != m_playerNameToGuid.end())
+            m_playerNameToGuid.erase(itr2);
+        m_playerCacheData.erase(itr);
+    }
+}
+
+void ObjectMgr::ChangePlayerNameInCache(uint32 guidLow, std::string const& oldName, std::string const& newName)
+{
+    auto itr = m_playerCacheData.find(guidLow);
+    if (itr != m_playerCacheData.end())
+    {
+        m_playerNameToGuid.erase(oldName);
+        m_playerNameToGuid[newName] = guidLow;
+        itr->second.sName = newName;
+    }
+}
+
+void ObjectMgr::GetPlayerDataForAccount(uint32 accountId, std::list<PlayerCacheData const*>& data) const
+{
+    for (const auto& iter : m_playerCacheData)
+    {
+        if (iter.second.uiAccount == accountId)
+            data.push_back(&iter.second);
+    }
+}
+
+void ObjectMgr::UpdatePlayerCacheRealmID(uint32 lowGuid, uint32 realmId)
+{
+    auto itr = m_playerCacheData.find(lowGuid);
+    if (itr != m_playerCacheData.end())
+    {
+        itr->second.realmId = realmId;
+    }
+}
+
+void ObjectMgr::UpdatePlayerCacheGuildID(uint32 lowGuid, uint32 guildID)
+{
+    auto itr = m_playerCacheData.find(lowGuid);
+    if (itr != m_playerCacheData.end())
+    {
+        itr->second.guildId = guildID;
+    }
+}
+
+void ObjectMgr::UpdatePlayerCacheCurrentPet(uint32 lowGuid, uint32 petEntry, uint32 petLevel, uint32 petDisplayID)
+{
+    auto itr = m_playerCacheData.find(lowGuid);
+    if (itr != m_playerCacheData.end())
+    {
+        itr->second.petEntry = petEntry;
+        itr->second.petLevel = petLevel;
+        itr->second.petDisplayId = petDisplayID;
+    }
+}
+
 
 SkillRangeType GetSkillRangeType(SkillLineEntry const* pSkill, bool racial)
 {
