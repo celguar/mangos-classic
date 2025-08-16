@@ -851,7 +851,7 @@ void WorldSession::HandleCharDeleteOpcode(WorldPacket& recv_data)
                 GetAccountId());
             if (queryResult2 && sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
             {
-                queryResult2 = CharacterDatabase.PQuery("SELECT race FROM characters WHERE account = '%u' LIMIT 1 WHERE guid IN (SELECT guid FROM fake_realms_info WHERE realmid = %u)",
+                queryResult2 = CharacterDatabase.PQuery("SELECT race FROM characters WHERE account = '%u' LIMIT 1 WHERE guid IN (SELECT guid FROM fake_realms_info WHERE realm_id = %u)",
                     GetAccountId(),
                     GetCurrentRealmId());
             }
