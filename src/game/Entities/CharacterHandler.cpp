@@ -443,8 +443,45 @@ void WorldSession::HandleCharEnum(QueryResult* result)
     m_anticheat->SendCharEnum(std::move(data));
 }
 
+void WorldSession::HandleCharEnum(std::list<PlayerCacheData const*>& cache)
+{
+    WorldPacket data(SMSG_CHAR_ENUM, 100);                  // we guess size
+
+    uint8 num = 0;
+
+    data << num;
+
+    if (!cache.empty())
+    {
+        for (const auto& info : cache)
+        {
+            if (sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
+            {
+                if (info->realmId != GetCurrentRealmId())
+                    continue;
+            }
+            uint32 guidlow = info->uiGuid;
+            DETAIL_LOG("Build enum data for char guid %u from account %u.", guidlow, GetAccountId());
+            if (Player::BuildEnumData(info, data))
+                ++num;
+        }
+    }
+
+    data.put<uint8>(0, num);
+
+    m_anticheat->SendCharEnum(std::move(data));
+}
+
 void WorldSession::HandleCharEnumOpcode(WorldPacket& recv_data)
 {
+    // try use cache
+    std::list<PlayerCacheData const*> characters;
+    sObjectMgr.GetPlayerDataForAccount(GetAccountId(), characters);
+    if (!characters.empty())
+    {
+        return HandleCharEnum(characters);
+    }
+
     // custom hermes proxy undelete
     bool deletedCharacters = false;
     if (GetOS() == CLIENT_OS_MAC && !recv_data.empty())
@@ -716,6 +753,38 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
     data << (uint8)CHAR_CREATE_SUCCESS;
     SendPacket(data, true);
 
+    // Save cache
+    uint32 loginFlags = AT_LOGIN_NONE;
+    if (pNewChar->HasAtLoginFlag(AT_LOGIN_RENAME))
+        loginFlags |= 16384;
+
+    // save player cache
+    std::ostringstream ss;
+    for (uint32 i = 0; i < EQUIPMENT_SLOT_END; ++i)         // string: item id, ench (perm/temp)
+    {
+        ss << pNewChar->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET) << " ";
+
+        uint32 ench1 = pNewChar->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET + 1 + PERM_ENCHANTMENT_SLOT);
+        uint32 ench2 = pNewChar->GetUInt32Value(PLAYER_VISIBLE_ITEM_1_0 + i * MAX_VISIBLE_ITEM_OFFSET + 1 + TEMP_ENCHANTMENT_SLOT);
+        ss << uint32(MAKE_PAIR32(ench1, ench2)) << " ";
+    }
+    // 1 in tbc - 4 in wotlk
+    for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_START + 1; ++i) // string: item id, ench (perm/temp)
+    {
+        uint32 itemEntry = 0;
+        const Bag* const pBag = (Bag*)pNewChar->GetItemByPos(INVENTORY_SLOT_BAG_0, i);
+        if (pBag)
+        {
+            itemEntry = pBag->GetEntry();
+        }
+        ss << (pBag ? itemEntry : 0) << " ";
+        ss << uint32(MAKE_PAIR32(0, 0)) << " ";
+    }
+
+    PlayerCacheData* cacheData = sObjectMgr.InsertPlayerInCache(pNewChar->GetGUIDLow(), pNewChar->getRace(), pNewChar->getClass(), gender, GetAccountId(), name, pNewChar->GetLevel(), pNewChar->GetZoneId(), pNewChar->GetUInt32Value(PLAYER_BYTES), pNewChar->GetUInt32Value(PLAYER_BYTES_2), ss.str(), pNewChar->GetUInt32Value(PLAYER_FLAGS), loginFlags);
+    sObjectMgr.UpdatePlayerCachedPosition(cacheData, pNewChar->GetMapId(), pNewChar->GetPositionX(), pNewChar->GetPositionY(), pNewChar->GetPositionZ(), pNewChar->GetOrientation(), false);
+    sObjectMgr.UpdatePlayerCacheRealmID(pNewChar->GetGUIDLow(), GetCurrentRealmId());
+
     const std::string& IP_str = GetRemoteAddress();
     DETAIL_LOG("Account: %d (IP: %s) Create Character:[%s] (guid: %u)", GetAccountId(), IP_str.c_str(), name.c_str(), pNewChar->GetGUIDLow());
     sLog.outChar("Account: %d (IP: %s) Create Character:[%s] (guid: %u)", GetAccountId(), IP_str.c_str(), name.c_str(), pNewChar->GetGUIDLow());
@@ -887,6 +956,8 @@ void WorldSession::HandleCharDeleteOpcode(WorldPacket& recv_data)
     WorldPacket data(SMSG_CHAR_DELETE, 1);
     data << (uint8)CHAR_DELETE_SUCCESS;
     SendPacket(data, true);
+
+    sObjectMgr.DeletePlayerFromCache(guid);
 }
 
 void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recv_data)

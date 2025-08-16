@@ -243,6 +243,8 @@ bool Guild::AddMember(ObjectGuid plGuid, uint32 plRank)
 
     UpdateAccountsNumber();
 
+    sObjectMgr.UpdatePlayerCacheGuildID(plGuid, GetId());
+
     return true;
 }
 
@@ -547,6 +549,8 @@ bool Guild::DelMember(ObjectGuid guid, bool isDisbanding)
 
     if (!isDisbanding)
         UpdateAccountsNumber();
+
+    sObjectMgr.UpdatePlayerCacheGuildID(guid, GetId());
 
     return members.empty();
 }

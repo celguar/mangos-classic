@@ -71,6 +71,8 @@ class PlayerbotMgr;
 
 struct AreaTrigger;
 
+struct PlayerCacheData;
+
 typedef std::deque<Mail*> PlayerMails;
 
 #define PLAYER_MAX_SKILLS           127
@@ -937,6 +939,8 @@ class Player : public Unit
         void Heartbeat() override;
 
         static bool BuildEnumData(QueryResult* result,  WorldPacket& p_data);
+        static bool BuildEnumData(PlayerCacheData const* cache, WorldPacket& p_data);
+
 
         void SendInitialPacketsBeforeAddToMap();
 
