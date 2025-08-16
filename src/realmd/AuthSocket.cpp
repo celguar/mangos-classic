@@ -154,7 +154,6 @@ typedef struct AUTH_LOGON_PROOF_S_BUILD_6005
 
 typedef struct AUTH_RECONNECT_PROOF_C
 {
-    uint8   cmd;
     uint8   R1[16];
     uint8   R2[20];
     uint8   R3[20];
@@ -719,7 +718,7 @@ bool AuthSocket::_HandleReconnectChallenge()
         uint16 remaining = header->size;
         DEBUG_LOG("[ReconnectChallenge] got header, body is %#04x bytes", remaining);
 
-        if ((remaining < sizeof(sAuthLogonChallengeBody) - 10))
+        if ((remaining < sizeof(sAuthLogonChallengeBody) - AUTH_LOGON_MAX_NAME))
             return;
 
         ///- Session is closed unless overriden
@@ -825,12 +824,12 @@ bool AuthSocket::_HandleReconnectProof()
             // Sending response
             *pkt << uint8(CMD_AUTH_RECONNECT_PROOF);
             *pkt << uint8(AUTH_LOGON_SUCCESS);
-            *pkt << uint16(0x00);                                // 2 bytes zeros
             self->Write((const char*)pkt->contents(), pkt->size(), [self, pkt](const boost::system::error_code& /*error*/, std::size_t /*written*/) {});
 
             // Set _status to authed!
             self->_status = STATUS_AUTHED;
 
+            self->ProcessIncomingData();
             return;
         }
         sLog.outError("[ERROR] user %s tried to login, but session invalid.", self->_login.c_str());
