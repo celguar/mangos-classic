@@ -2670,9 +2670,12 @@ void Unit::AttackerStateUpdate(Unit* pVictim, WeaponAttackType attType, bool ext
         meleeDamageInfo.absorb += meleeDamageInfo.subDamage[i].absorb;
     }
 
-    SendAttackStateUpdate(&meleeDamageInfo);
-    DealMeleeDamage(&meleeDamageInfo, true);
     ProcDamageAndSpell(ProcSystemArguments(this, meleeDamageInfo.target, meleeDamageInfo.procAttacker, meleeDamageInfo.procVictim, meleeDamageInfo.procEx, meleeDamageInfo.totalDamage, meleeDamageInfo.absorb, meleeDamageInfo.attackType));
+
+    DealMeleeDamage(&meleeDamageInfo, true);
+
+    // In sniffs SMSG_ATTACKERSTATEUPDATE is sent after chance on hit spell casts from CastItemCombatSpell. This fixes animation for Frostbrand Attack.
+    SendAttackStateUpdate(&meleeDamageInfo);
 
     uint32 totalAbsorb = 0;
     uint32 totalResist = 0;
