@@ -937,6 +937,7 @@ void BattleGroundMap::HandleCrash()
         }
         sLog.outError("MAP ANTI CRASH: Battleground Map: %u (%s) %u players teleported out!", GetId(), GetMapName(), players.size());
     }
+    sBattleGroundMgr.RemoveBattleGround(GetInstanceId(), GetBattleGroundTypeIdByMapId(GetId()));
 }
 
 void Map::Update(const uint32& t_diff)

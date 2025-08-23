@@ -215,7 +215,7 @@ void MapManager::Update(uint32 diff)
             continue;
 
         // skip updating maps until restarted
-        if (crashedMaps.size())
+        if (!crashedMaps.empty())
             break;
 
         if (m_updater.activated())
@@ -251,7 +251,7 @@ void MapManager::Update(uint32 diff)
 
         crashedMap->HandleCrash();
         //crashedMap->RemoveAllObjectsInRemoveList();
-        MapMapType::iterator iter = i_maps.begin();
+        auto iter = i_maps.begin();
         while (iter != i_maps.end())
         {
             if (iter->second.get() == crashedMap)
@@ -261,15 +261,15 @@ void MapManager::Update(uint32 diff)
                     sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Unloading grids...", mapId, mapName.c_str());
                     crashedMap->UnloadAll(true);
                     sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Deactivating...", mapId, mapName.c_str());
-                    i_maps.erase(iter);
+                    //i_maps.erase(iter);
                     sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Restarting...", mapId, mapName.c_str());
                     Map* m = new WorldMap(mapId, i_gridCleanUpDelay, 0);
                     i_maps[MapID(mapId)].reset(m);
                     m->Initialize();
+                    crashedMap->Initialize();
                     SetMapCrashStatus(mapId, instanceId, MAP_CRASH_NOCRASH);
-                    delete crashedMap;
                     sLog.outError("MAP ANTI CRASH: World Map: %u (%s) Activated!", mapId, mapName.c_str());
-                    iter++;
+                    ++iter;
                 }
                 else
                 {
@@ -277,7 +277,7 @@ void MapManager::Update(uint32 diff)
                     i_maps.erase(iter);
                     SetMapCrashStatus(crashedMap, MAP_CRASH_NOCRASH);
                     sLog.outError("MAP ANTI CRASH: %s Map: %u (%s) Removed!", isBg ? "Battleground" : "Dungeon", mapId, mapName.c_str());
-                    iter++;
+                    ++iter;
                 }
             }
             else
@@ -288,7 +288,7 @@ void MapManager::Update(uint32 diff)
     crashedMaps.clear();
 
     // remove all maps which can be unloaded
-    MapMapType::iterator iter = i_maps.begin();
+    auto iter = i_maps.begin();
     while (iter != i_maps.end())
     {
         // check if map can be unloaded
