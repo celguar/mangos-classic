@@ -142,10 +142,9 @@ struct ArcaneCloaking : public SpellScript
         if (effIdx == EFFECT_INDEX_0)
         {
             Unit* caster = spell->GetCaster();
-            Unit* target = spell->GetUnitTarget();
             // Naxxramas Entry Flag Effect DND
-            if (target && target->IsPlayer())
-                caster->CastSpell(target, 29296, TRIGGERED_OLD_TRIGGERED);  // Cast Naxxramas Entry Flag Trigger DND
+            if (caster && caster->GetTypeId() == TYPEID_PLAYER)
+                caster->CastSpell(caster, 29296, TRIGGERED_OLD_TRIGGERED);  // Cast Naxxramas Entry Flag Trigger DND
         }
     }
 };
