@@ -98,7 +98,7 @@ std::deque<uint32> WorldSocket::GetIncOpcodeHistory()
 }
 
 WorldSocket::WorldSocket(boost::asio::io_context& context) : AsyncSocket(context), m_lastPingTime(std::chrono::system_clock::time_point::min()), m_overSpeedPings(0),
-    m_session(nullptr), m_seed(urand()), m_loggingPackets(false)
+    m_session(nullptr), m_seed(urand()), m_loggingPackets(false), m_packetLog(nullptr)
 {
 }
 
@@ -107,8 +107,21 @@ void WorldSocket::SendPacket(const WorldPacket& pct)
     if (IsClosed())
         return;
 
-    if (sPacketLog->CanLogPacket() && IsLoggingPackets())
-        sPacketLog->LogPacket(pct, SERVER_TO_CLIENT, GetRemoteIpAddress(), GetRemotePort());
+    if (IsLoggingPackets())
+    {
+        if (!m_packetLog)
+        {
+            std::string fileName = "packetLog_5875_" + m_session->GetAccountName() + "_" + TimeToTimestampStr(time(nullptr)) + ".pkt";
+            m_packetLog = std::make_unique<PacketLog>(fileName);
+        }
+        if (m_packetLog->CanLogPacket())
+            m_packetLog->LogPacket(pct, SERVER_TO_CLIENT, GetRemoteIpAddress(), GetRemotePort());
+    }
+
+    if (!IsLoggingPackets() && m_packetLog)
+    {
+        m_packetLog = nullptr;
+    }
 
     // Dump outgoing packet.
     sLog.outWorldPacketDump(GetRemoteEndpoint().c_str(), pct.GetOpcode(), pct.GetOpcodeName(), pct, false);
@@ -200,8 +213,22 @@ bool WorldSocket::ProcessIncomingData()
 
             std::unique_ptr<WorldPacket> pct = std::make_unique<WorldPacket>(opcode, packetBuffer->size());
             pct->append(*packetBuffer.get());
-            if (sPacketLog->CanLogPacket() && self->IsLoggingPackets())
-                sPacketLog->LogPacket(*pct, CLIENT_TO_SERVER, self->GetRemoteIpAddress(), self->GetRemotePort());
+
+            if (self->IsLoggingPackets())
+            {
+                if (!self->m_packetLog)
+                {
+                    std::string fileName = "packetLog_5875_" + self->m_session->GetAccountName() + "_" + TimeToTimestampStr(time(nullptr)) + ".pkt";
+                    self->m_packetLog = std::make_unique<PacketLog>(fileName);
+                }
+                if (self->m_packetLog->CanLogPacket())
+                    self->m_packetLog->LogPacket(*pct, CLIENT_TO_SERVER, self->GetRemoteIpAddress(), self->GetRemotePort());
+            }
+
+            if (!self->IsLoggingPackets() && self->m_packetLog)
+            {
+                self->m_packetLog = nullptr;
+            }
 
             sLog.outWorldPacketDump(self->GetRemoteEndpoint().c_str(), pct->GetOpcode(), pct->GetOpcodeName(), *pct, true);
 

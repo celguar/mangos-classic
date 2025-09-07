@@ -34,13 +34,15 @@ class WorldPacket;
 class PacketLog
 {
     private:
-        PacketLog();
-        ~PacketLog();
         std::mutex _logPacketLock;
         std::once_flag _initializeFlag;
 
     public:
         static PacketLog* instance();
+
+        PacketLog();
+        ~PacketLog();
+        PacketLog(std::string fileName);
 
         void Initialize();
         void Reinitialize();
@@ -49,6 +51,7 @@ class PacketLog
 
     private:
         FILE* _file;
+        std::string _fileName;
 };
 
 #define sPacketLog PacketLog::instance()
