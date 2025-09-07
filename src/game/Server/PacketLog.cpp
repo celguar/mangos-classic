@@ -62,6 +62,12 @@ PacketLog::PacketLog() : _file(nullptr)
     std::call_once(_initializeFlag, &PacketLog::Initialize, this);
 }
 
+PacketLog::PacketLog(std::string fileName) : _file(nullptr)
+{
+    _fileName = fileName;
+    std::call_once(_initializeFlag, &PacketLog::Initialize, this);
+}
+
 PacketLog::~PacketLog()
 {
     if (_file)
@@ -86,6 +92,8 @@ void PacketLog::Initialize()
             logsDir.push_back('/');
 
     std::string logname = sConfig.GetStringDefault("PacketLogFile", "");
+    if (!_fileName.empty())
+        logname = _fileName;
     if (!logname.empty())
     {
         _file = fopen((logsDir + logname).c_str(), "wb");

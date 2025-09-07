@@ -29,6 +29,7 @@
 #include "AuthCrypt.h"
 #include "Auth/BigNumber.h"
 #include "Network/AsyncSocket.hpp"
+#include "PacketLog.h"
 
 #include <chrono>
 #include <functional>
@@ -36,6 +37,7 @@
 
 class WorldPacket;
 class WorldSession;
+class PacketLog;
 
 /**
  * WorldSocket.
@@ -146,6 +148,8 @@ class WorldSocket : public MaNGOS::AsyncSocket<WorldSocket>
 
         bool IsLoggingPackets() const { return m_loggingPackets; }
         void SetPacketLogging(bool state) { m_loggingPackets = state; }
+
+        std::unique_ptr<PacketLog> m_packetLog;
 };
 
 #endif  /* _WORLDSOCKET_H */

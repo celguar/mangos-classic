@@ -36,6 +36,7 @@
 #include "Maps/InstanceData.h"
 #include "Cinematics/M2Stores.h"
 #include "Entities/Transports.h"
+#include "World/World.h"
 #include <string>
 
 bool ChatHandler::HandleDebugSendSpellFailCommand(char* args)
@@ -1763,12 +1764,37 @@ bool ChatHandler::HandleDebugRespawnDynguid(char* args)
 
 bool ChatHandler::HandleDebugPacketLog(char* args)
 {
-    uint32 value;
-    if (!ExtractUInt32(&args, value))
+    char* targetName = ExtractLiteralArg(&args);
+    if (!targetName)
+    {
+        SendSysMessage(LANG_NEED_CHARACTER_NAME);
         return false;
+    }
 
-    GetSession()->SetPacketLogging(value == 1);
-    return true;
+    bool value;
+    if (!ExtractOnOff(&args, value))
+    {
+        SendSysMessage(LANG_USE_BOL);
+        return false;
+    }
+
+    uint32 accountId = sObjectMgr.GetPlayerAccountIdByPlayerName(targetName);
+    if (!accountId)
+    {
+        SendSysMessage(LANG_ACCOUNT_FOR_PLAYER_NOT_FOUND);
+        return false;
+    }
+
+    WorldSession* sess = sWorld.FindSession(accountId);
+    if (sess)
+    {
+        PSendSysMessage("PacketLog %s for account %s (current character: %s).", value ? "enabled" : "disabled", sess->GetAccountName(), sess->GetPlayer() ? sess->GetPlayerName() : "None");
+        sess->SetPacketLogging(value);
+        return true;
+    }
+
+    SendSysMessage(LANG_PLAYER_NOT_EXIST_OR_OFFLINE);
+    return false;
 }
 
 bool ChatHandler::HandleDebugDbscript(char* args)
