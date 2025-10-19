@@ -200,9 +200,6 @@ struct world_map_kalimdor : public ScriptedMap
             case GO_AQ_GATE_ROOTS:
             case GO_AQ_GATE_RUNES:
                 sWorldState.SetAQGateGuid(pGo->GetEntry(), pGo->GetDbGuid());
-                pGo->SetGoState(sWorldState.IsGateClosed() ? GO_STATE_READY : GO_STATE_ACTIVE);
-                pGo->SendForcedObjectUpdate();
-                pGo->SetActiveObjectState(true);
                 break;
             case GO_NECROPOLIS_CITY:
                 pGo->GetVisibilityData().SetVisibilityDistanceOverride(VisibilityDistanceType::Infinite);

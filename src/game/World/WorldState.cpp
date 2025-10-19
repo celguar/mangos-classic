@@ -425,7 +425,7 @@ bool WorldState::IsConditionFulfilled(uint32 conditionId, uint32 state) const
         return m_aqData.GetDaysRemaining() == state;
 
     if (conditionId == WAR_EFFORT_GATES_OPEN)
-        return m_aqData.IsGateClosed ? 0 : 1 == state;
+        return m_aqData.IsGateClosed ? false : 1 == state;
 
     auto itr = m_aqWorldstateMapReverse.find(conditionId);
     if (itr != m_aqWorldstateMapReverse.end())
@@ -558,6 +558,17 @@ void WorldState::Update(const uint32 diff)
             }
         }
         else m_siData.m_broadcastTimer -= diff;
+    }
+
+    // gate check timer
+    if (m_aqData.m_gateTimer)
+    {
+        if (m_aqData.m_gateTimer <= diff)
+        {
+            m_aqData.m_gateTimer = 10 * IN_MILLISECONDS;
+            HandleAQGate();
+        }
+        else m_aqData.m_gateTimer -= diff;
     }
 }
 
@@ -783,10 +794,26 @@ void WorldState::HandleAQGate()
 
         if (GameObject* obj = mapPtr->GetGameObject(goGuid.second))
         {
-            obj->UseOpenableObject(!m_aqData.IsGateClosed);
-            obj->SendForcedObjectUpdate();
+            if (!m_aqData.IsGateClosed)
+            {
+                if (obj->GetGoState() == GO_STATE_READY)
+                {
+                    obj->UseOpenableObject(true);
+                    obj->SendForcedObjectUpdate();
+                }
+            }
+            else
+            {
+                if (obj->GetGoState() == GO_STATE_ACTIVE)
+                {
+                    obj->UseOpenableObject(false);
+                    obj->SendForcedObjectUpdate();
+                }
+            }
         }
     }
+
+    m_aqData.m_gateTimer = 10 * IN_MILLISECONDS;
 }
 
 void WorldState::SpawnWarEffortGos()
