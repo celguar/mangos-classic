@@ -299,6 +299,7 @@ struct AhnQirajData
 {
     uint32 m_phase;
     uint64 m_timer;
+    uint32 m_gateTimer;
     uint32 m_WarEffortCounters[RESOURCE_MAX];
     GuidVector m_warEffortWorldstatesPlayers;
     std::mutex m_warEffortMutex;
