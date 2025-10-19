@@ -287,6 +287,27 @@ Aura::Aura(SpellEntry const* spellproto, SpellEffectIndex eff, int32 const* curr
 
     // Start periodic on next tick
     m_periodicTimer += m_modifier.periodictime;
+
+    // auras that should tick on apply
+    switch (GetId())
+    {
+        case 8145:  // Tremor Tortem Passive
+        case 6474:  // Earthbind Totem Passive
+        case 8179:  // Grounding Totem Passive
+        case 8172:  // Disease Cleansing Totem Passive
+        case 8167:  // Poison Cleansing Totem Passive
+        case 8515:  // Windfury Totem Passive (Rank 1)
+        case 10609: // Windfury Totem Passive (Rank 2)
+        case 10612: // Windfury Totem Passive (Rank 3)
+        case 13797: // Immolation Trap Effect (Rank 1)
+        case 14298: // Immolation Trap Effect (Rank 2)
+        case 14299: // Immolation Trap Effect (Rank 3)
+        case 14300: // Immolation Trap Effect (Rank 4)
+        case 14301: // Immolation Trap Effect (Rank 5)
+        case 23184: // Mark of Frost
+        case 25041: // Mark of Nature
+            m_periodicTimer = 0;
+    }
 }
 
 Aura::~Aura()
