@@ -629,7 +629,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
     uint8 charcount = 0;
     uint8 charTotalCount = 0;
 
-    if (!sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS) || GetCurrentRealmId() == realmID)
+    if (!sWorld.getConfig(CONFIG_BOOL_FAKE_REALMS))
     {
         auto queryResult = CharacterDatabase.PQuery("SELECT COUNT(guid) FROM characters WHERE account = '%u'", GetAccountId());
         if (queryResult)
