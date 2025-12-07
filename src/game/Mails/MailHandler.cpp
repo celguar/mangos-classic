@@ -47,6 +47,14 @@
 
 bool WorldSession::CheckMailBox(ObjectGuid guid) const
 {
+#ifdef ENABLE_MODULES
+    bool value = true;
+    if (sModuleMgr.OnCanCheckMailBox(GetPlayer(), guid, value))
+    {
+        return value;
+    }
+#endif
+
     if (!GetPlayer()->GetGameObjectIfCanInteractWith(guid, GAMEOBJECT_TYPE_MAILBOX))
     {
         DEBUG_LOG("Mailbox %s not found or you can't interact with him.", guid.GetString().c_str());
@@ -444,6 +452,10 @@ void WorldSession::HandleMailTakeItem(WorldPacket& recv_data)
     InventoryResult msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, it, false);
     if (msg == EQUIP_ERR_OK)
     {
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnMailTakeItem(m, pl, it, ObjectGuid(HIGHGUID_PLAYER, m->sender));
+#endif
+
         m->RemoveItem(itemGuid);
         m->removedItems.push_back(itemGuid);
 
@@ -527,6 +539,10 @@ void WorldSession::HandleMailTakeMoney(WorldPacket& recv_data)
     }
 
     pl->SendMailResult(mailId, MAIL_MONEY_TAKEN, MAIL_OK);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnMailTakeMoney(m, pl, m->money, ObjectGuid(HIGHGUID_PLAYER, m->sender));
+#endif
 
     pl->ModifyMoney(m->money);
     m->money = 0;

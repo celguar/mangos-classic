@@ -28,6 +28,10 @@
 #include "Entities/Creature.h"
 #include "Util/Util.h"
 
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
+#endif
+
 pAuraProcHandler AuraProcHandler[TOTAL_AURAS] =
 {
     &Unit::HandleNULLProc,                                  //  0 SPELL_AURA_NONE
@@ -484,6 +488,11 @@ void Unit::ProcDamageAndSpellFor(ProcSystemArguments& argData, bool isVictim)
             SpellAuraProcResult procResult = execData.triggeredByAura->OnProc(execData);
             if (procResult == SPELL_AURA_PROC_OK)
                 procResult = (*this.*AuraProcHandler[auraModifier->m_auraname])(execData);
+
+#ifdef ENABLE_MODULES
+            sModuleMgr.OnProc(execData, procResult);
+#endif
+
             switch (procResult)
             {
                 case SPELL_AURA_PROC_CANT_TRIGGER:

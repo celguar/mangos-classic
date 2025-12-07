@@ -770,6 +770,10 @@ void AuctionEntry::AuctionBidWinning(Player* newbidder)
     sAuctionMgr.RemoveAItem(this->itemGuidLow);
     sAuctionMgr.GetAuctionsMap(this->auctionHouseEntry)->RemoveAuction(this->Id);
 
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnActionBidWinning(this, ObjectGuid(HIGHGUID_PLAYER, owner), ObjectGuid(HIGHGUID_PLAYER, bidder));
+#endif
+
     CharacterDatabase.BeginTransaction();
     this->DeleteFromDB();
     if (newbidder)

@@ -2515,6 +2515,10 @@ void Player::Regenerate(Powers power, uint32 diff)
             break;
     }
 
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnRegenerate(this, power, diff, addvalue);
+#endif
+
     if (power != POWER_RAGE)
     {
         curValue += uint32(addvalue);
@@ -2824,6 +2828,11 @@ void Player::SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 RestXP, float gr
 
 void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
 {
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnPreGiveXP(this, xp, victim))
+        return;
+#endif
+
     if (xp < 1)
         return;
 
@@ -2881,6 +2890,10 @@ void Player::GiveLevel(uint32 level)
 
     PlayerClassLevelInfo classInfo;
     sObjectMgr.GetPlayerClassLevelInfo(plClass, level, &classInfo);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnGetPlayerClassLevelInfo(this, classInfo);
+#endif
 
     // send levelup info to client
     WorldPacket data(SMSG_LEVELUP_INFO, (4 + 4 + MAX_POWERS * 4 + MAX_STATS * 4));
@@ -2984,6 +2997,10 @@ void Player::InitStatsForLevel(bool reapplyMods)
     uint32 level = GetLevel();
     uint32 plClass = getClass();
     sObjectMgr.GetPlayerClassLevelInfo(plClass, level, &classInfo);
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnGetPlayerClassLevelInfo(this, classInfo);
+#endif
 
     PlayerLevelInfo info;
     sObjectMgr.GetPlayerLevelInfo(getRace(), plClass, level, &info);
@@ -6055,6 +6072,12 @@ void Player::LearnDefaultSkills()
 
 uint32 Player::GetSpellRank(SpellEntry const* spellInfo) const
 {
+#ifdef ENABLE_MODULES
+    uint32 overridenSpellRank = 0;
+    if (sModuleMgr.OnGetSpellRank(this, spellInfo, overridenSpellRank))
+        return overridenSpellRank;
+#endif
+
     SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySpellId(spellInfo->Id);
     if (bounds.first != bounds.second)
     {
@@ -12781,6 +12804,10 @@ void Player::AddQuest(Quest const* pQuest, Object* questGiver)
         itr->second->ApplyOrRemoveSpellIfCan(this, zone, area, true);
 
     UpdateForQuestWorldObjects();
+
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnAcceptQuest(this, quest_id, questGiver ? &questGiver->GetObjectGuid() : nullptr);
+#endif
 }
 
 void Player::CompleteQuest(uint32 quest_id)

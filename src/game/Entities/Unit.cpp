@@ -9353,6 +9353,10 @@ void Unit::SetPower(Powers power, uint32 val)
     if (maxPower < val)
         val = maxPower;
 
+#ifdef ENABLE_MODULES
+    sModuleMgr.OnSetPower(this, power, val);
+#endif
+
     SetStatInt32Value(UNIT_FIELD_POWER1 + power, val);
 
     // group update
@@ -12139,6 +12143,12 @@ void Unit::AdjustZForCollision(float x, float y, float& z, float halfHeight) con
 
 uint32 Unit::GetSpellRank(SpellEntry const* spellInfo) const
 {
+#ifdef ENABLE_MODULES
+    uint32 overridenSpellRank = 0;
+    if (sModuleMgr.OnGetSpellRank(this, spellInfo, overridenSpellRank))
+        return overridenSpellRank;
+#endif
+
     uint32 spellRank = GetLevel();
     if (spellInfo->maxLevel > 0 && spellRank >= spellInfo->maxLevel * 5)
         spellRank = spellInfo->maxLevel * 5;

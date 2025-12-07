@@ -31,6 +31,10 @@
 #include "Util/Util.h"
 #include "Anticheat/Anticheat.hpp"
 
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
+#endif
+
 /* differeces from off:
     -you can uninvite yourself - is is useful
     -you can accept invitation even if leader went offline
@@ -68,6 +72,13 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recv_data)
 
     Player* initiator = GetPlayer();
     Player* recipient = sObjectMgr.GetPlayer(membername.c_str());
+
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnPreInviteMember(initiator ? initiator->GetGroup() : nullptr, initiator, recipient))
+    {
+        return;
+    }
+#endif
 
     // no player or player trying to invite himself
     if (!recipient || recipient == initiator)
