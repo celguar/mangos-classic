@@ -55,6 +55,13 @@ void WorldSession::HandleAuctionHelloOpcode(WorldPacket& recv_data)
 // this void causes that auction window is opened
 void WorldSession::SendAuctionHello(Unit* unit) const
 {
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnPreGossipHello(GetPlayer(), unit ? unit->GetObjectGuid() : ObjectGuid()))
+    {
+        return;
+    }
+#endif
+
     // always return pointer
     AuctionHouseEntry const* ahEntry = AuctionHouseMgr::GetAuctionHouseEntry(unit);
 

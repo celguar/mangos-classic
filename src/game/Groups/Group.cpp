@@ -384,6 +384,10 @@ bool Group::AddMember(ObjectGuid guid, const char* name, uint8 joinMethod)
                 sLFGMgr.UpdateGroup(this, true, guid);
             }
         }
+
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnAddMember(this, player, joinMethod);
+#endif
     }
 
     return true;
@@ -483,6 +487,10 @@ uint32 Group::RemoveMember(ObjectGuid guid, uint8 method)
             sLFGMgr.UpdateGroup(this, false, guid);
 
         SendUpdate();
+
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnRemoveMember(this, player, method);
+#endif
     }
     // if group before remove <= 2 disband it
     else
@@ -556,6 +564,10 @@ void Group::Disband(bool hideDestroy)
         }
 
         _homebindIfInstance(player);
+
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnRemoveMember(this, player, GROUP_LEAVE);
+#endif
     }
 
     if (IsInLFG())

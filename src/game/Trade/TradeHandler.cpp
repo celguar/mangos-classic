@@ -29,6 +29,10 @@
 #include "Social/SocialMgr.h"
 #include "Server/DBCStores.h"
 
+#ifdef ENABLE_MODULES
+#include "ModuleMgr.h"
+#endif
+
 void WorldSession::SendTradeStatus(TradeStatusInfo const& info) const
 {
     WorldPacket data(SMSG_TRADE_STATUS, 13);
@@ -431,6 +435,10 @@ void WorldSession::HandleAcceptTradeOpcode(WorldPacket& recvPacket)
             return;
         }
 
+#ifdef ENABLE_MODULES
+        sModuleMgr.OnTradeAccepted(_player, trader, my_trade, his_trade);
+#endif
+
         // execute trade: 1. remove
         for (int i = 0; i < TRADE_SLOT_TRADED_COUNT; ++i)
         {
@@ -546,6 +554,13 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPacket& recvPacket)
 {
     ObjectGuid otherGuid;
     recvPacket >> otherGuid;
+
+#ifdef ENABLE_MODULES
+    if (sModuleMgr.OnPreHandleInitializeTrade(GetPlayer(), ObjectAccessor::FindPlayer(otherGuid)))
+    {
+        return;
+    }
+#endif
 
     if (GetPlayer()->m_trade)
         return;
