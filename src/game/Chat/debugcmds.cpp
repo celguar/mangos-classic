@@ -1781,7 +1781,7 @@ bool ChatHandler::HandleDebugPacketLog(char* args)
     uint32 accountId = sObjectMgr.GetPlayerAccountIdByPlayerName(targetName);
     if (!accountId)
     {
-        SendSysMessage(LANG_ACCOUNT_FOR_PLAYER_NOT_FOUND);
+        PSendSysMessage(LANG_ACCOUNT_FOR_PLAYER_NOT_FOUND, targetName);
         return false;
     }
 
@@ -1793,7 +1793,7 @@ bool ChatHandler::HandleDebugPacketLog(char* args)
         return true;
     }
 
-    SendSysMessage(LANG_PLAYER_NOT_EXIST_OR_OFFLINE);
+    PSendSysMessage(LANG_PLAYER_NOT_EXIST_OR_OFFLINE, targetName);
     return false;
 }
 
