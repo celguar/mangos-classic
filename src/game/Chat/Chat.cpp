@@ -322,6 +322,9 @@ ChatCommand* ChatHandler::getCommandTable()
         { "invite",         SEC_GAMEMASTER,     true,  &ChatHandler::HandleGuildInviteCommand,         "", nullptr },
         { "uninvite",       SEC_GAMEMASTER,     true,  &ChatHandler::HandleGuildUninviteCommand,       "", nullptr },
         { "rank",           SEC_GAMEMASTER,     true,  &ChatHandler::HandleGuildRankCommand,           "", nullptr },
+        { "motd",           SEC_GAMEMASTER,     true,  &ChatHandler::HandleGuildMotdCommand,           "", nullptr },
+        { "pnote",          SEC_GAMEMASTER,     true,  &ChatHandler::HandleGuildPnoteCommand,          "", nullptr },
+        { "offnote",        SEC_GAMEMASTER,     true,  &ChatHandler::HandleGuildOffnoteCommand,        "", nullptr },
         { nullptr,          0,                  false, nullptr,                                        "", nullptr }
     };
 
