@@ -2796,6 +2796,112 @@ bool ChatHandler::HandleGuildDeleteCommand(char* args)
     return true;
 }
 
+bool ChatHandler::HandleGuildMotdCommand(char* args)
+{
+    char* guildStr = ExtractQuotedArg(&args);
+    if (!guildStr)
+        return false;
+
+    char* motdStr = ExtractQuotedArg(&args);
+    if (!motdStr)
+        return false;
+
+    Guild* targetGuild = sGuildMgr.GetGuildByName(guildStr);
+    if (!targetGuild)
+    {
+        PSendSysMessage("Guild not found: %s", guildStr);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    targetGuild->SetMOTD(motdStr);
+    targetGuild->BroadcastEvent(GE_MOTD, motdStr);
+    PSendSysMessage("Guild MOTD for [%s] updated.", guildStr);
+    return true;
+}
+
+bool ChatHandler::HandleGuildPnoteCommand(char* args)
+{
+    Player* target = nullptr;
+    ObjectGuid targetGuid;
+    std::string targetName;
+    if (!ExtractPlayerTarget(&args, &target, &targetGuid, &targetName))
+        return false;
+
+    char* noteStr = ExtractQuotedArg(&args);
+    if (!noteStr)
+        return false;
+
+    uint32 guildId = target ? target->GetGuildId() : Player::GetGuildIdFromDB(targetGuid);
+    if (!guildId)
+    {
+        PSendSysMessage("%s is not in a guild.", targetName.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    Guild* targetGuild = sGuildMgr.GetGuildById(guildId);
+    if (!targetGuild)
+    {
+        PSendSysMessage("Could not find guild for %s.", targetName.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    MemberSlot* slot = targetGuild->GetMemberSlot(targetGuid);
+    if (!slot)
+    {
+        PSendSysMessage("Could not find guild member slot for %s.", targetName.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    slot->SetPNOTE(noteStr);
+    PSendSysMessage("Public note for %s updated.", targetName.c_str());
+    return true;
+}
+
+bool ChatHandler::HandleGuildOffnoteCommand(char* args)
+{
+    Player* target = nullptr;
+    ObjectGuid targetGuid;
+    std::string targetName;
+    if (!ExtractPlayerTarget(&args, &target, &targetGuid, &targetName))
+        return false;
+
+    char* noteStr = ExtractQuotedArg(&args);
+    if (!noteStr)
+        return false;
+
+    uint32 guildId = target ? target->GetGuildId() : Player::GetGuildIdFromDB(targetGuid);
+    if (!guildId)
+    {
+        PSendSysMessage("%s is not in a guild.", targetName.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    Guild* targetGuild = sGuildMgr.GetGuildById(guildId);
+    if (!targetGuild)
+    {
+        PSendSysMessage("Could not find guild for %s.", targetName.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    MemberSlot* slot = targetGuild->GetMemberSlot(targetGuid);
+    if (!slot)
+    {
+        PSendSysMessage("Could not find guild member slot for %s.", targetName.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    slot->SetOFFNOTE(noteStr);
+    PSendSysMessage("Officer note for %s updated.", targetName.c_str());
+    return true;
+}
+
 bool ChatHandler::HandleGetDistanceCommand(char* args)
 {
     WorldObject* obj = nullptr;

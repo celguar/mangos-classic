@@ -347,6 +347,9 @@ class ChatHandler
         bool HandleGuildUninviteCommand(char* args);
         bool HandleGuildRankCommand(char* args);
         bool HandleGuildDeleteCommand(char* args);
+        bool HandleGuildMotdCommand(char* args);
+        bool HandleGuildPnoteCommand(char* args);
+        bool HandleGuildOffnoteCommand(char* args);
 
         bool HandleHonorShow(char* args);
         bool HandleHonorAddCommand(char* args);
