@@ -5285,13 +5285,8 @@ void Player::UpdateSkill(uint16 id, uint16 diff)
         skillStatus.uState = SKILL_CHANGED;
 
 #ifdef ENABLE_MODULES
-        sModuleMgr.OnUpdateSkill(this, id);
+    sModuleMgr.OnUpdateSkill(this, id);
 #endif
-
-        return true;
-    }
-
-    return false;
 }
 
 inline int SkillGainChance(uint32 SkillValue, uint32 GrayLevel, uint32 GreenLevel, uint32 YellowLevel)
